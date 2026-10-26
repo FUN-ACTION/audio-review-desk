@@ -285,11 +285,26 @@ export function mountMarkers({
       const row = active?.closest(".marker-row");
       if (!row || !list.contains(row)) return null;
       const index = [...list.children].indexOf(row);
+      const marker = editing?.index === index
+        ? {
+            time: parseMarkerTime(
+              editing.timeDirty ? editing.time : editing.originalTime,
+              duration(),
+            ),
+            text: editing.text.trim(),
+          }
+        : draft[index];
       const selector = active.classList.contains("marker-time")
         ? ".marker-time"
         : ".marker-note";
-      return () =>
-        list.children[index]?.querySelector(selector)?.focus({ preventScroll: true });
+      return () => {
+        const current = draft.findIndex(
+          (note) => note.time === marker?.time && note.text === marker?.text,
+        );
+        list.children[current >= 0 ? current : index]
+          ?.querySelector(selector)
+          ?.focus({ preventScroll: true });
+      };
     },
     hasChanges(saved) {
       if (input.value.trim()) return true;

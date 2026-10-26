@@ -12,7 +12,7 @@ Tests use temporary workspaces and procedural signals. Optional FFmpeg tests run
 
 Local Chromium was used with separate empty, populated and 2500-item test workspaces:
 
-- Restore focus to the edited time note after keyboard save; keep another control focused if the user moved there during the request.
+- Restore focus to the edited time note after keyboard save, including command-menu save after changing its sort position; keep another control focused if the user moved there during the request.
 - Add a note, change its text and timestamp, reject an out-of-range timestamp, cancel an edit, save, search its text and seek back to it.
 - Match several search terms across file labels and saved notes. Empty filters retain the current draft and offer a clear-filters action.
 - Save and continue through pending clips, preserve a zero score, and show the completed-batch export view. The completion view survives a language change.
