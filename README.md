@@ -46,6 +46,8 @@ python -m venv .venv
 
 Open **http://127.0.0.1:8765/**. The demo generates its own tones, silence, overlap examples, an unreadable file, and a pair with equal PCM but different WAV container bytes. It never downloads or uses recorded voices. Demo creation refuses to overwrite a nonempty directory.
 
+On Windows, you can also double-click **start-windows.cmd** in the source checkout. It prepares a dedicated environment on first use and opens the synthetic demo. If the app is already running on the default port, it opens that existing workspace.
+
 ## Analyze your audio
 
 After installation, use the environment's `audio-review-desk` executable, or `python -m audio_review_desk` with that environment's Python.
