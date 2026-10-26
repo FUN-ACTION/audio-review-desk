@@ -37,7 +37,7 @@ The example clips are each two seconds long. The overlap in the first two rows c
 | `eligible` | `true` / `false` (CSV also accepts `1` / `0`). Defaults to true if the column is absent. This is candidate eligibility, not a human approval. |
 | `reference_path` | Optional time-aligned clip for B. Duration must differ by no more than 50 ms. No alignment is guessed. |
 
-Each scan/import replaces the active catalog for **one workspace**. Use separate workspaces for separate collections. Historical versions and decisions remain stored, even when an item leaves the active catalog. A malformed manifest is rejected before the active catalog changes; individual audio decode errors are reported as unreadable items.
+CLI scan/import replaces the active list unless `--append` is supplied. The graphical importer keeps other collections by default. In append mode, a known collection is refreshed as a unit; other collections stay active. Ambiguous IDs pointing to different files are rejected. Historical versions and decisions remain stored even when an item leaves the active catalog. A malformed manifest is rejected before the active catalog changes; individual audio decode errors are reported as unreadable items.
 
 ## Version binding
 
@@ -52,3 +52,7 @@ Keys are content-addressed: reimporting an exact previously reviewed version res
 The JSON export includes current item metadata, current decisions, audio hashes, and aggregate statistics. Explicit absolute path fields are omitted unless `--include-paths` is supplied. User-written notes, IDs, and labels are not redacted; inspect those before sharing an export. All historical versions remain in SQLite; a JSON export is not a replacement for a full workspace backup.
 
 `restore` accepts an export with this schema. Every reviewed row must match a current key and file hash; validation and optimistic version checks protect the batch. Imported decisions receive a new local review revision and `imported_review` origin. Importing a review does not mean that you personally listened to it again.
+
+CSV exports are convenient review tables, not input manifests or full workspace backups. They contain clip IDs, labels, source intervals, hashes, status, score, issues, notes, and suggested bounds. Use `export --format csv --status pass` to export approved rows. Potential spreadsheet formulas in text cells are prefixed with an apostrophe. Absolute paths remain opt-in through the CLI.
+
+Batch status changes support `pending`, `fix`, and `exclude`, preserve existing notes/scores, and commit all selected rows or none. Undo appends a new revision containing the preceding decision; it never removes history. These operations refuse stale versions or changed source files.

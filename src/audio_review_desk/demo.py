@@ -49,10 +49,10 @@ def create_demo(root: Path) -> dict:
     write_wav(samples / "07-overlap-b.wav", offset=1, frequency=311.37)
     write_wav(samples / "reference.wav", amplitude=0.08)
     (samples / "08-broken.wav").write_bytes(b"RIFF\x00\x00\x00\x00WAVEbroken")
-    names = [("01-clean", "Clean / A-B example"), ("02-exact-duplicate", "Same PCM, different file bytes"),
-             ("03-near-full-scale", "Near full scale"), ("04-silence", "Silence"),
-             ("05-stereo", "Stereo"), ("06-overlap-a", "Source overlap: 0-2 s"),
-             ("07-overlap-b", "Source overlap: 1-3 s"), ("08-broken", "Unreadable file")]
+    names = [("01-clean", "clip_001.wav"), ("02-exact-duplicate", "clip_001_copy.wav"),
+             ("03-near-full-scale", "clip_002.wav"), ("04-silence", "clip_003.wav"),
+             ("05-stereo", "stereo_001.wav"), ("06-overlap-a", "recording_A_01.wav"),
+             ("07-overlap-b", "recording_A_02.wav"), ("08-broken", "unreadable.wav")]
     items = [{"id": name, "path": f"{name}.wav", "label": label} for name, label in names]
     items[0]["reference_path"] = "reference.wav"
     for index in (5, 6):

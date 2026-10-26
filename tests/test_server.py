@@ -4,6 +4,7 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+import time
 from pathlib import Path
 
 from audio_review_desk.demo import write_wav
@@ -36,10 +37,10 @@ class ServerTests(unittest.TestCase):
         with urllib.request.urlopen(request) as response:
             return json.load(response)
 
-    def post(self, payload, extra=None):
+    def post(self, payload, extra=None, path="/api/review"):
         headers = {"Content-Type": "application/json", "Origin": self.origin, "X-Review-Token": self.state["session"]}
         headers.update(extra or {})
-        request = urllib.request.Request(self.origin + "/api/review", data=json.dumps(payload).encode(), headers=headers)
+        request = urllib.request.Request(self.origin + path, data=json.dumps(payload).encode(), headers=headers)
         return urllib.request.urlopen(request)
 
     def payload(self):
@@ -101,6 +102,42 @@ class ServerTests(unittest.TestCase):
             self.assertNotIn("Access-Control-Allow-Origin", response.headers)
             exported = json.load(response)
             self.assertNotIn("path", exported["items"][0])
+
+    def test_batch_and_undo_routes_preserve_audit_history(self):
+        key=self.state['items'][0]['key']
+        with self.post({'changes':[{'key':key,'expected_version':0}],'status':'fix'},path='/api/batch') as response:
+            self.assertEqual(json.load(response)['saved'],1)
+        with self.post({'key':key,'expected_version':1},path='/api/undo') as response:
+            self.assertEqual(json.load(response)['review']['status'],'pending')
+        self.assertEqual(len(self.get('/api/history/'+key)['history']),2)
+
+    def test_gui_import_and_rescan_with_session_authorization(self):
+        payload={'kind':'directory','path':str(self.root/'audio'),'append':True}
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.post(payload,{'X-Review-Token':'wrong'},path='/api/import')
+        self.assertEqual(caught.exception.code,403)
+        with self.post(payload,path='/api/import') as response:
+            self.assertEqual(response.status,202)
+        deadline=time.monotonic()+5
+        while time.monotonic()<deadline:
+            job=self.get('/api/job')
+            if job['state'] not in {'running','cancelling'}:break
+            time.sleep(.02)
+        self.assertEqual(job['state'],'succeeded')
+        self.assertTrue(self.get('/api/state')['can_rescan'])
+        with self.post({},path='/api/rescan') as response:
+            self.assertEqual(response.status,202)
+        deadline=time.monotonic()+5
+        while time.monotonic()<deadline and self.get('/api/job')['state'] in {'running','cancelling'}:
+            time.sleep(.02)
+
+    def test_csv_export_download(self):
+        with self.post(self.payload()):pass
+        with urllib.request.urlopen(self.origin+'/api/export?format=csv&status=pass') as response:
+            self.assertEqual(response.headers['Content-Type'],'text/csv; charset=utf-8')
+            text=response.read().decode('utf-8-sig')
+        self.assertIn('a.wav',text)
+        self.assertNotIn(str(self.root),text)
 
 
 if __name__ == "__main__":

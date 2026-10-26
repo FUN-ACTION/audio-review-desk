@@ -7,15 +7,18 @@ import re
 import secrets
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from .audio import AudioError
 from .workspace import Conflict, Workspace, encode
+from .jobs import ImportJobs
+from . import __version__
 
 
 def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
     workspace.initialize()
     session = secrets.token_urlsafe(32)
+    jobs = ImportJobs(workspace)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "AudioReviewDesk"
@@ -53,8 +56,21 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     return self.json_response({"error": "Use the printed 127.0.0.1 address"}, 403)
                 path = urlsplit(self.path).path
                 if path == "/api/state":
-                    return self.json_response(dict(workspace.state(), session=session))
+                    return self.json_response(dict(workspace.state(), session=session, version=__version__,
+                                                   can_rescan=workspace.import_source() is not None,
+                                                   workspace=workspace.root.name))
+                if path == "/api/job":
+                    return self.json_response(jobs.snapshot())
                 if path == "/api/export":
+                    query = parse_qs(urlsplit(self.path).query)
+                    if query.get("format", ["json"])[0] == "csv":
+                        status = query.get("status", ["all"])[0]
+                        data = ("\ufeff" + workspace.export_csv(status)).encode()
+                        self.headers_for(200, "text/csv; charset=utf-8", len(data),
+                                         {"Content-Disposition": f'attachment; filename="reviews-{status}.csv"'})
+                        if self.command != "HEAD":
+                            self.wfile.write(data)
+                        return
                     return self.json_response(workspace.export(), extra={"Content-Disposition": 'attachment; filename="audio-reviews.json"'})
                 if match := re.fullmatch(r"/api/history/([0-9a-f]{64})", path):
                     workspace.asset(match[1])
@@ -65,7 +81,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                                                "b": asset.get("reference_quality", {}).get("waveform", [])})
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
-                name = {"/": "index.html", "/app.js": "app.js", "/ui.js": "ui.js", "/style.css": "style.css"}.get(path)
+                name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
                     content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
@@ -76,10 +92,10 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 self.json_response({"error": "Not found"}, 404)
             except Conflict as exc:
                 self.json_response({"error": str(exc)}, 409)
-            except (ValueError, AudioError, OSError) as exc:
-                self.json_response({"error": str(exc) if isinstance(exc, ValueError) else "Audio file unavailable; rescan the workspace"}, 422)
             except (BrokenPipeError, ConnectionResetError):
                 pass
+            except (ValueError, AudioError, OSError) as exc:
+                self.json_response({"error": str(exc) if isinstance(exc, ValueError) else "Audio file unavailable; rescan the workspace"}, 422)
             except Exception:
                 self.json_response({"error": "Could not read workspace; check the catalog and disk space"}, 500)
 
@@ -122,16 +138,32 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if (not self.host_valid() or self.headers.get("Origin") != expected_origin
                         or not secrets.compare_digest(self.headers.get("X-Review-Token", ""), session)):
                     return self.json_response({"error": "Reload this local page before saving"}, 403)
-                if urlsplit(self.path).path != "/api/review":
+                path = urlsplit(self.path).path
+                if path not in {"/api/review", "/api/batch", "/api/undo", "/api/import", "/api/cancel-import", "/api/rescan"}:
                     return self.json_response({"error": "Not found"}, 404)
                 if self.headers.get_content_type() != "application/json":
                     return self.json_response({"error": "Expected application/json"}, 415)
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 32768:
+                if not 0 < length <= 131072:
                     return self.json_response({"error": "Review body too large or empty"}, 413)
                 payload = json.loads(self.rfile.read(length))
-                if not isinstance(payload, dict) or not isinstance(payload.get("key"), str):
+                if not isinstance(payload, dict):
+                    raise ValueError("Expected an object")
+                if path == "/api/import":
+                    return self.json_response(jobs.start(payload.get("kind"), payload.get("path"), payload.get("append", True)), 202)
+                if path == "/api/rescan":
+                    previous = workspace.import_source()
+                    if not previous:
+                        raise ValueError("Import a folder or manifest first")
+                    return self.json_response(jobs.start(previous["kind"], previous["path"], True), 202)
+                if path == "/api/cancel-import":
+                    return self.json_response(jobs.cancel(payload.get("id")))
+                if path == "/api/batch":
+                    return self.json_response({"saved": workspace.batch_review(payload.get("changes"), payload.get("status"))})
+                if not isinstance(payload.get("key"), str):
                     raise ValueError("Missing audio version key")
+                if path == "/api/undo":
+                    return self.json_response({"saved": True, "review": workspace.undo_review(payload["key"], payload.get("expected_version"))})
                 review = workspace.save_review(payload["key"], payload)
                 return self.json_response({"saved": True, "review": review})
             except Conflict as exc:

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 — 2026-10-26
+
+- Import folders and manifests from the app, with per-file progress and cancellation before catalog commit.
+- Keep multiple collections; refresh one without removing the others. Reject ambiguous clip IDs.
+- Select files for batch status changes, and undo a clip's last review without deleting history.
+- Export all or approved reviews as CSV, including hashes and source intervals.
+- Loop suggested ranges, change playback speed, mark boundaries at the playhead, and save-and-advance.
+- Replace the landing-page layout with a compact file list and listening/review workspace.
+- Start Windows users in an empty workspace; keep example audio optional.
+- Correct handling of disconnected audio clients without attempting a second HTTP response.
+- Build release archives and wheels from a clean copy of the committed tree, with SHA256 checksums.
+
 ## 0.1.0 — 2026-10-26
 
 - Initial standalone Python package and command-line interface.

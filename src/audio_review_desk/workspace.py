@@ -8,6 +8,8 @@ import math
 import sqlite3
 import threading
 import wave
+import io
+from typing import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,6 +24,10 @@ ISSUES = {"cut_start", "cut_end", "noise", "reverb", "backing_voice", "instrumen
 
 class Conflict(ValueError):
     """Another page updated this review, or its audio version is no longer current."""
+
+
+class ImportCancelled(ValueError):
+    """An import stopped before replacing the active catalog."""
 
 
 def utc() -> str:
@@ -56,7 +62,7 @@ def default_review() -> dict:
 
 
 def public_asset(asset: dict) -> dict:
-    result = {key: value for key, value in asset.items() if key not in {"path", "reference_path"}}
+    result = {key: value for key, value in asset.items() if key not in {"path", "reference_path", "collection_id"}}
     for key in ("quality", "reference_quality"):
         if isinstance(result.get(key), dict):
             result[key] = {k: v for k, v in result[key].items() if k != "waveform"}
@@ -96,7 +102,8 @@ class Workspace:
         if self.root == source or self.root.is_relative_to(source):
             raise ValueError("Workspace must be outside the source directory; inputs are read-only")
 
-    def scan(self, source: Path) -> dict:
+    def scan(self, source: Path, *, append: bool = False, progress: Callable | None = None,
+             cancelled: threading.Event | None = None) -> dict:
         source = source.resolve(strict=True)
         if not source.is_dir():
             raise ValueError("scan expects a directory; use import for a manifest")
@@ -106,9 +113,11 @@ class Workspace:
                 if path.is_file() and path.suffix.lower() in SUPPORTED and not path.is_symlink()]
         if not rows:
             raise ValueError("No supported audio files found")
-        return self.ingest(rows, source, kind="directory")
+        return self.ingest(rows, source, kind="directory", append=append, progress=progress,
+                           cancelled=cancelled, source=source)
 
-    def import_manifest(self, manifest: Path) -> dict:
+    def import_manifest(self, manifest: Path, *, append: bool = False, progress: Callable | None = None,
+                        cancelled: threading.Event | None = None) -> dict:
         manifest = manifest.resolve(strict=True)
         if manifest.suffix.lower() == ".csv":
             with manifest.open(encoding="utf-8-sig", newline="") as stream:
@@ -120,9 +129,12 @@ class Workspace:
             rows = data["items"]
         if not rows:
             raise ValueError("Manifest is empty")
-        return self.ingest(rows, manifest.parent, kind="manifest")
+        return self.ingest(rows, manifest.parent, kind="manifest", append=append, progress=progress,
+                           cancelled=cancelled, source=manifest)
 
-    def ingest(self, rows: list[dict], base: Path, kind: str) -> dict:
+    def ingest(self, rows: list[dict], base: Path, kind: str, *, append: bool = False,
+               progress: Callable | None = None, cancelled: threading.Event | None = None,
+               source: Path | None = None) -> dict:
         # Validate all rows first; a malformed manifest cannot partially replace a catalog.
         prepared = []
         ids: set[str] = set()
@@ -156,9 +168,18 @@ class Workspace:
                              "path": str(path), "source_id": source_id, "source_start": start,
                              "source_end": end, "eligible": boolean(raw.get("eligible", True)),
                              "reference_path": str(reference_path) if reference_path else None})
+        source = (source or base).resolve()
+        collection_id = hashlib.sha256(f"{kind}\0{source}".encode()).hexdigest()[:24]
         assets = []
-        for entry in prepared:
+        def report(done, label, phase="decoding"):
+            if cancelled is not None and cancelled.is_set():
+                raise ImportCancelled("Import cancelled; the previous file list is unchanged")
+            if progress:
+                progress(done, len(prepared), label, phase)
+        for index, entry in enumerate(prepared):
+            report(index, entry["label"])
             asset = dict(entry)
+            asset["collection_id"] = collection_id
             try:
                 quality = analyze(Path(asset["path"]), self.decoder)
                 if asset["source_end"] is None:
@@ -190,16 +211,37 @@ class Workspace:
                          "reference_sha256": asset.get("reference_quality", {}).get("sha256")}
             asset["key"] = hashlib.sha256(encode(signature).encode()).hexdigest()
             assets.append(asset)
+            report(index + 1, entry["label"])
+        report(len(prepared), "", "saving")
         self.initialize()
         with self.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            connection.execute("UPDATE assets SET active=0")
+            existing = self.assets(connection) if append else []
+            existing_ids = {item["id"]: item for item in existing}
+            for asset in assets:
+                previous = existing_ids.get(asset["id"])
+                if previous and previous["path"] != asset["path"]:
+                    raise Conflict(f"Clip ID {asset['id']!r} already belongs to another file; use unique manifest IDs or replace the list")
+            if append:
+                # Refresh a collection without retaining files that disappeared from it.
+                for item in existing:
+                    if item.get("collection_id") == collection_id or item["id"] in ids:
+                        connection.execute("UPDATE assets SET active=0 WHERE key=?", (item["key"],))
+            else:
+                connection.execute("UPDATE assets SET active=0")
             for asset in assets:
                 connection.execute("INSERT INTO assets VALUES(?,?,?,1) ON CONFLICT(key) DO UPDATE SET metadata=excluded.metadata,active=1",
                                    (asset["key"], asset["id"], encode(asset)))
             connection.execute("INSERT OR REPLACE INTO settings VALUES('scan',?)",
-                               (encode({"at": utc(), "kind": kind, "items": len(assets)}),))
+                               (encode({"at": utc(), "kind": kind, "items": len(assets), "label": source.name}),))
+            connection.execute("INSERT OR REPLACE INTO settings VALUES('import_source',?)",
+                               (encode({"path": str(source), "kind": kind, "append": append}),))
         return self.state()
+
+    def import_source(self) -> dict | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT payload FROM settings WHERE key='import_source'").fetchone()
+        return json.loads(row["payload"]) if row else None
 
     def assets(self, connection: sqlite3.Connection) -> list[dict]:
         return [json.loads(row["metadata"]) for row in connection.execute("SELECT metadata FROM assets WHERE active=1 ORDER BY id")]
@@ -235,6 +277,21 @@ class Workspace:
 
     def save_review(self, key: str, payload: dict, origin: str = "human_ui") -> dict:
         asset = self.asset(key)
+        clean = self.validate_review(asset, payload)
+        self.verify_current(asset)
+        with self.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            active = connection.execute("SELECT active FROM assets WHERE key=?", (key,)).fetchone()
+            if not active or not active["active"]:
+                raise Conflict("Audio version changed while saving")
+            current = self.review(connection, key)
+            if payload["expected_version"] != current["version"]:
+                raise Conflict("Another page updated this review; reload before saving")
+            review = self.write_review(connection, key, clean, current["version"] + 1, origin)
+        return review
+
+    @staticmethod
+    def validate_review(asset: dict, payload: dict) -> dict:
         if not isinstance(payload, dict):
             raise ValueError("Review must be an object")
         status = payload.get("status")
@@ -261,21 +318,76 @@ class Workspace:
                 raise ValueError("Trim bounds must be finite seconds within this clip")
         if (start if start is not None else 0) >= (end if end is not None else duration) and duration > 0:
             raise ValueError("Trim start must be before trim end")
-        self.verify_current(asset)
+        return {"status": status, "score": score, "issues": sorted(set(issues)), "note": note,
+                "trim_start": start, "trim_end": end}
+
+    @staticmethod
+    def write_review(connection, key: str, clean: dict, version: int, origin: str) -> dict:
+        review = dict(clean, version=version, updated_utc=utc(), origin=origin)
+        connection.execute("INSERT OR REPLACE INTO reviews VALUES(?,?)", (key, encode(review)))
+        connection.execute("INSERT INTO history(key,payload) VALUES(?,?)", (key, encode(review)))
+        return review
+
+    def batch_review(self, changes: list[dict], status: str) -> int:
+        if not isinstance(status, str) or status not in {"pending", "fix", "exclude"}:
+            raise ValueError("Batch changes support pending, fix, and exclude; approval is per clip")
+        if not isinstance(changes, list) or not 1 <= len(changes) <= 500:
+            raise ValueError("Select between 1 and 500 clips")
+        if any(not isinstance(row, dict) or not isinstance(row.get("key"), str)
+               or type(row.get("expected_version")) is not int for row in changes):
+            raise ValueError("Each batch item needs a key and an integer expected_version")
+        if len({row["key"] for row in changes}) != len(changes):
+            raise ValueError("Duplicate clip in batch")
         with self.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            active = connection.execute("SELECT active FROM assets WHERE key=?", (key,)).fetchone()
-            if not active or not active["active"]:
-                raise Conflict("Audio version changed while saving")
-            current = self.review(connection, key)
-            if expected != current["version"]:
-                raise Conflict("Another page updated this review; reload before saving")
-            review = {"status": status, "score": score, "issues": sorted(set(issues)), "note": note,
-                      "trim_start": start, "trim_end": end, "version": current["version"] + 1,
-                      "updated_utc": utc(), "origin": origin}
-            connection.execute("INSERT OR REPLACE INTO reviews VALUES(?,?)", (key, encode(review)))
-            connection.execute("INSERT INTO history(key,payload) VALUES(?,?)", (key, encode(review)))
-        return review
+            validated = []
+            for change in changes:
+                row = connection.execute("SELECT metadata FROM assets WHERE key=? AND active=1", (change["key"],)).fetchone()
+                if row is None:
+                    raise Conflict("One of the selected audio versions changed; no batch changes were saved")
+                asset = json.loads(row["metadata"])
+                current = self.review(connection, change["key"])
+                if current["version"] != change["expected_version"]:
+                    raise Conflict("One selected review was updated elsewhere; no batch changes were saved")
+                self.verify_current(asset)
+                clean = self.validate_review(asset, dict(current, status=status, expected_version=current["version"]))
+                validated.append((change["key"], clean, current["version"] + 1))
+            for key, clean, version in validated:
+                self.write_review(connection, key, clean, version, "batch_ui")
+        return len(validated)
+
+    def undo_review(self, key: str, expected_version: int) -> dict:
+        history = self.history(key)
+        if not history:
+            raise ValueError("No saved review to undo")
+        previous = history[-2] if len(history) > 1 else default_review()
+        return self.save_review(key, dict(previous, expected_version=expected_version), origin="undo")
+
+    def export_csv(self, status: str = "all", include_paths: bool = False) -> str:
+        if status != "all" and status not in STATUSES:
+            raise ValueError("Unknown export status")
+        exported = self.export(include_paths)
+        columns = ["id", "label", "source_id", "source_start", "source_end", "sha256", "pcm_sha256",
+                   "status", "score", "issues", "note", "trim_start", "trim_end"]
+        if include_paths:
+            columns.append("path")
+        stream = io.StringIO(newline="")
+        writer = csv.DictWriter(stream, fieldnames=columns)
+        writer.writeheader()
+        for item in exported["items"]:
+            review = item["review"]
+            if status != "all" and review["status"] != status:
+                continue
+            row = {name: item.get(name, "") for name in columns}
+            row.update({name: review.get(name, "") for name in ("status", "score", "note", "trim_start", "trim_end")})
+            row.update(sha256=item["quality"].get("sha256", ""), pcm_sha256=item["quality"].get("pcm_sha256", ""),
+                       issues=";".join(review["issues"]))
+            # Keep spreadsheet programs from evaluating user-supplied cell contents.
+            for name, value in row.items():
+                if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+                    row[name] = "'" + value
+            writer.writerow(row)
+        return stream.getvalue()
 
     def history(self, key: str) -> list[dict]:
         with self.connect() as connection:

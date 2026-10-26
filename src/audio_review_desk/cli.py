@@ -17,15 +17,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (("scan", "Analyze a directory without modifying its audio"),
+                            ("init", "Create an empty review workspace"),
                             ("import", "Import a JSON or CSV audio manifest"),
                             ("serve", "Open a local listening review workspace"),
-                            ("export", "Export current reviews to portable JSON"),
+                            ("export", "Export current reviews to JSON or CSV"),
                             ("restore", "Import reviews for matching current audio versions"),
                             ("demo", "Create synthetic demo audio and a fresh workspace")):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("--workspace", type=Path, required=True)
         if name in {"scan", "import", "restore"}:
             command.add_argument("input", type=Path)
+        if name in {"scan", "import"}:
+            command.add_argument("--append", action="store_true", help="Keep other collections in this workspace")
         if name in {"scan", "import", "serve"}:
             command.add_argument("--ffmpeg", help="FFmpeg executable (default: find on PATH)")
             command.add_argument("--ffprobe", help="ffprobe executable (default: find on PATH)")
@@ -36,23 +39,28 @@ def main(argv: list[str] | None = None) -> int:
         if name == "export":
             command.add_argument("--output", type=Path, required=True)
             command.add_argument("--include-paths", action="store_true", help="Include private absolute input paths")
+            command.add_argument("--format", choices=["json", "csv"], default="json")
+            command.add_argument("--status", choices=["all", "pending", "pass", "fix", "exclude"], default="all")
     args = parser.parse_args(argv)
     try:
         if hasattr(args, "timeout") and (not 0 < args.timeout <= 86400):
             raise ValueError("timeout must be between 0 and 86400 seconds")
         decoder = Decoder(getattr(args, "ffmpeg", None), getattr(args, "ffprobe", None), getattr(args, "timeout", 120))
         workspace = Workspace(args.workspace, decoder)
-        if args.command == "demo":
+        if args.command == "init":
+            workspace.initialize()
+            print(f"Workspace ready: {workspace.root}")
+        elif args.command == "demo":
             from .demo import create_demo
             result = create_demo(args.workspace)
             print(encode(result["stats"]))
         elif args.command == "scan":
-            print(encode(workspace.scan(args.input)["stats"]))
+            print(encode(workspace.scan(args.input, append=args.append)["stats"]))
         elif args.command == "import":
-            print(encode(workspace.import_manifest(args.input)["stats"]))
+            print(encode(workspace.import_manifest(args.input, append=args.append)["stats"]))
         else:
             if not workspace.db.is_file():
-                raise ValueError("Workspace not found; run demo, scan, or import first")
+                raise ValueError("Workspace not found; run init, scan, import, or demo first")
             if args.command == "serve":
                 from .server import make_server
                 server = make_server(workspace, args.port)
@@ -70,7 +78,15 @@ def main(argv: list[str] | None = None) -> int:
                 # Exclusive creation also prevents accidental overwrites of source audio or manifests.
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 with args.output.open("x", encoding="utf-8") as stream:
-                    stream.write(json.dumps(workspace.export(args.include_paths), ensure_ascii=False, indent=2, allow_nan=False))
+                    if args.format == "csv":
+                        stream.write("\ufeff" + workspace.export_csv(args.status, args.include_paths))
+                    else:
+                        result = workspace.export(args.include_paths)
+                        if args.status != "all":
+                            from .workspace import statistics
+                            result["items"] = [row for row in result["items"] if row["review"]["status"] == args.status]
+                            result["stats"] = statistics(result["items"])
+                        stream.write(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
                 print(f"Exported reviews to {args.output}")
             elif args.command == "restore":
                 count = workspace.import_reviews(json.loads(args.input.read_text(encoding="utf-8-sig")))

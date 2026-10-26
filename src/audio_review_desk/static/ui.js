@@ -32,3 +32,29 @@ export function reviewPayload(item, values) {
     note: values.note,
   };
 }
+
+export function sortItems(items, order) {
+  return [...items].sort((a, b) => {
+    if (order === "duration")
+      return (
+        (b.quality.duration || 0) - (a.quality.duration || 0) ||
+        a.id.localeCompare(b.id)
+      );
+    if (order === "level")
+      return (
+        (b.quality.rms_dbfs ?? -999) - (a.quality.rms_dbfs ?? -999) ||
+        a.id.localeCompare(b.id)
+      );
+    return (
+      a.label.localeCompare(b.label, undefined, { numeric: true }) ||
+      a.id.localeCompare(b.id)
+    );
+  });
+}
+export function playbackRange(duration, start, end) {
+  const left =
+    Number.isFinite(start) && start >= 0 && start < duration ? start : 0;
+  const right =
+    Number.isFinite(end) && end > left && end <= duration ? end : duration;
+  return [left, right];
+}

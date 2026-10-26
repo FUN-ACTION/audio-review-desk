@@ -1,4 +1,8 @@
 import test from "node:test";
+import {
+  sortItems,
+  playbackRange,
+} from "../src/audio_review_desk/static/ui.js";
 import assert from "node:assert/strict";
 import {
   formatTime,
@@ -60,4 +64,30 @@ test("a real zero score is preserved and an empty score stays unscored", () => {
   assert.equal(result.trim_start, null);
   assert.equal(result.trim_end, null);
   assert.equal(reviewPayload(rows[0], { ...values, score: "" }).score, null);
+});
+
+test("file sorting leaves the original catalog order intact", () => {
+  const input = [
+    { id: "b", label: "take 10", quality: { duration: 1, rms_dbfs: -20 } },
+    { id: "a", label: "take 2", quality: { duration: 3, rms_dbfs: -40 } },
+  ];
+  assert.deepEqual(
+    sortItems(input, "name").map((x) => x.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(
+    sortItems(input, "duration").map((x) => x.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(
+    sortItems(input, "level").map((x) => x.id),
+    ["b", "a"],
+  );
+  assert.equal(input[0].id, "b");
+});
+test("loop ranges clamp invalid suggestions without zero-length playback", () => {
+  assert.deepEqual(playbackRange(5, 1, 3), [1, 3]);
+  assert.deepEqual(playbackRange(5, -1, NaN), [0, 5]);
+  assert.deepEqual(playbackRange(5, 6, 2), [0, 2]);
+  assert.deepEqual(playbackRange(5, 2, 1), [2, 5]);
 });

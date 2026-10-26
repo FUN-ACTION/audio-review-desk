@@ -36,6 +36,25 @@ review-workspace/
 
 Back up the entire workspace with the server stopped. Audio paths remain references to original files; audio is not copied into the database. Moving source files requires a new manifest with the same stable IDs and unchanged source metadata to preserve matching review keys.
 
+## Starting an empty workspace
+
+```sh
+audio-review-desk init --workspace review-workspace
+audio-review-desk serve --workspace review-workspace --open
+```
+
+Click **Import audio**, choose folder or manifest, and enter a path on the same computer as the server. Imports run in the background. Stop requests take effect after the current file finishes; the old catalog remains active until the new catalog commits.
+
+The app keeps other collections by default. Reimporting a collection updates its members and removes missing members from the active list, while retaining historical versions. Different files with the same clip ID are rejected in append mode; give them unique IDs in a manifest or explicitly replace the active list.
+
+## Upgrading from 0.1
+
+Stop the old server and back up its entire workspace. Install the new source or wheel in the app's existing virtual environment with `python -m pip install --upgrade .` (or the new wheel path). No training environment is involved.
+
+Existing databases and review keys remain valid; no tables are dropped. The Windows launcher now uses `review-workspace` instead of `.ard-demo`. To reopen an older workspace, run `audio-review-desk serve --workspace .ard-demo --open` or supply its original path. A source imported through the 0.1 interface may need importing once before the new Rescan button is available.
+
+The workspace stores collection membership from 0.2 onward. Earlier catalog rows have no membership tag, so an appended first rescan preserves legacy rows that it cannot confidently associate. An explicit replace import can refresh the whole active list without deleting history.
+
 ## Troubleshooting
 
 - **No supported files:** only supported audio extensions are scanned. Symbolic-link files are skipped; no audio is downloaded.

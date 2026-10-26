@@ -10,6 +10,14 @@ from audio_review_desk.demo import write_wav
 
 
 class CliTests(unittest.TestCase):
+    def test_empty_workspace_initialization_and_csv_export(self):
+        with tempfile.TemporaryDirectory() as temporary, contextlib.redirect_stdout(io.StringIO()):
+            root=Path(temporary)
+            self.assertEqual(main(['init','--workspace',str(root/'workspace')]),0)
+            self.assertTrue((root/'workspace'/'reviews.sqlite').exists())
+            target=root/'empty.csv'
+            self.assertEqual(main(['export','--workspace',str(root/'workspace'),'--format','csv','--output',str(target)]),0)
+            self.assertIn('source_id',target.read_text(encoding='utf-8-sig'))
     def test_demo_export_restore_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as temporary, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             root = Path(temporary)

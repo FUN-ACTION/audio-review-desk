@@ -1,97 +1,59 @@
 # Audio Review Desk
 
-**Local audio quality checks and a listening review queue that keeps decisions attached to the right audio version.**
+[中文说明](docs/README.zh-CN.md) · [Install](docs/installation.md) · [Manifest format](docs/manifests.md) · [Changelog](CHANGELOG.md)
 
-[简体中文](docs/README.zh-CN.md) · [Installation](docs/installation.md) · [Manifest format](docs/manifests.md) · [How counts work](docs/counting.md) · [Contributing](CONTRIBUTING.md)
+A local app for reviewing audio clips before they enter a dataset. Import a folder, check files that need attention, compare a reference, and save your decisions.
 
-![Audio Review Desk showing a synthetic audio workspace](docs/screenshot.png)
+![Audio Review Desk — file list, playback and review controls](docs/screenshot.png)
 
-Use it to inspect speech or singing clips before assembling a dataset: find corrupt files, flag silence and near-full-scale samples, compare an aligned reference, record listening decisions, and export a portable review record. It runs on your computer and does not need an account, an API key, a GPU, or a model download.
+The screenshot uses generated test signals; no voice recordings are included.
 
-## What it does
+## Start the app
 
-- Streams a full decode and reports sample rate, channels, peak, RMS, quiet edges, and technical flags.
-- Finds identical decoded PCM in a documented common comparison format, even when container bytes differ.
-- Offers A/B listening copies with constant attenuation for RMS matching. Sources are never rewritten.
-- Stores scores, issue labels, trim suggestions, and append-only review history in a separate SQLite workspace.
-- Resets the current review when audio, reference, eligibility, or source interval changes. Old history remains in the database.
-- Counts source timeline overlaps once and distinguishes candidates from explicit human approvals.
-- Provides English and Simplified Chinese interfaces, filters, keyboard controls, audio seeking, and JSON export/restore.
+**Windows:** download and unzip the [latest source release](https://github.com/FUN-ACTION/audio-review-desk/releases/latest), then double-click `start-windows.cmd`. Python 3.11+ is required. The launcher creates its own environment and opens an empty workspace.
 
-## Try the synthetic demo
-
-Requires Python 3.11 or later. Create a dedicated virtual environment; keep it separate from training or inference environments.
+**macOS / Linux:**
 
 ```sh
 git clone https://github.com/FUN-ACTION/audio-review-desk.git
 cd audio-review-desk
-python -m venv .venv
-```
-
-**Windows PowerShell** (activation is not required):
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install .
-.\.venv\Scripts\python.exe -m audio_review_desk demo --workspace .ard-demo
-.\.venv\Scripts\python.exe -m audio_review_desk serve --workspace .ard-demo --open
-```
-
-**macOS / Linux**:
-
-```sh
+python3 -m venv .venv
 .venv/bin/python -m pip install .
-.venv/bin/python -m audio_review_desk demo --workspace .ard-demo
-.venv/bin/python -m audio_review_desk serve --workspace .ard-demo --open
+.venv/bin/python -m audio_review_desk init --workspace review-workspace
+.venv/bin/python -m audio_review_desk serve --workspace review-workspace --open
 ```
 
-Open **http://127.0.0.1:8765/**. The demo generates its own tones, silence, overlap examples, an unreadable file, and a pair with equal PCM but different WAV container bytes. It never downloads or uses recorded voices. Demo creation refuses to overwrite a nonempty directory.
+In the app, choose **Import audio** and enter a folder path on your computer. Use a CSV or JSON manifest if your clips already have recording IDs, source times, or aligned references. WAV works without extra runtime libraries. Other formats need [FFmpeg and ffprobe](docs/installation.md#optional-ffmpeg).
 
-On Windows, you can also double-click **start-windows.cmd** in the source checkout. It prepares a dedicated environment on first use and opens the synthetic demo. If the app is already running on the default port, it opens that existing workspace.
+## Working through a collection
 
-## Analyze your audio
+| Task | Where to do it |
+| --- | --- |
+| Find corrupt, quiet or near-full-scale audio | **Technical flags** filter |
+| Compare a processed clip with its reference | **A / B**, at the same playback position |
+| Listen closely to a word or boundary | Set start/end, turn on **Loop range**, adjust speed |
+| Keep the queue moving | **Save & next**, or J/K to move between files |
+| Mark a group for repair or exclusion | Select files, choose a status, then **Apply to selection** |
+| Recover from a wrong decision | **Undo last review**; the change stays in history |
+| Hand reviewed clips to another tool | **Export → Approved clips · CSV** |
 
-After installation, use the environment's `audio-review-desk` executable, or `python -m audio_review_desk` with that environment's Python.
+Batch changes preserve notes and scores. Approval is per clip. CSV exports include file hashes and source intervals; JSON also preserves the full current review record.
 
-```sh
-audio-review-desk scan /path/to/audio --workspace /path/to/review-workspace
-audio-review-desk serve --workspace /path/to/review-workspace
-```
+## What happens to your files
 
-The workspace must be **outside** the scanned directory. The tool opens source files only for reading. Analysis results, the database, and generated listening copies stay in the workspace. It has no training, source deletion, or source modification command.
+The app reads source audio. It writes its database and listening copies to a separate workspace; suggested cuts do not cut the source file. No account, API key, model download or network upload is needed.
 
-PCM WAV works with Python's standard library. FLAC, MP3, M4A, OGG, Opus, AIFF, and other WAV encodings need optional **FFmpeg and ffprobe** on `PATH`. You can also supply `--ffmpeg /path/to/ffmpeg --ffprobe /path/to/ffprobe` to both the import/scan and serve commands. Binaries are not bundled or downloaded automatically.
+If you replace a clip or its reference, the new version starts pending. Previous decisions stay attached to the old version. Concurrent edits from an older page are rejected rather than silently overwriting a newer review.
 
-For existing clips with recording timelines or A/B references, [import a manifest](docs/manifests.md):
+Duration totals merge overlapping clips from the same recording. Exact PCM copies have a separate deduplicated total. [Counting and precision](docs/counting.md) explains the difference; technical flags alone do not establish identity or listening quality.
 
-```sh
-audio-review-desk import clips.csv --workspace review-workspace
-audio-review-desk export --workspace review-workspace --output reviews.json
-audio-review-desk restore reviews.json --workspace review-workspace
-```
+## Updates
 
-Exports omit the explicit absolute file-path fields by default. Labels and notes are user content: review them before sharing. `--include-paths` is an explicit opt-in. Export creates a new file and refuses to overwrite an existing one. Restore validates matching current version keys and appends an `imported_review` history entry; a rejected batch leaves existing reviews unchanged.
+**0.2.0:** import folders from the app, watch or stop a scan, keep multiple collections in one workspace, mark files in batches, undo a review, export CSV, and loop a selected range. The interface and Windows startup now open on the actual file workflow rather than the example collection.
 
-## Listening workflow
+Existing 0.1 workspaces remain readable. Stop the old server before upgrading, install the new version in the same app environment, then reopen your workspace. See [upgrading](docs/installation.md#upgrading-from-01).
 
-1. Scan a folder or import a manifest. Technical flags help choose what to inspect; they do not approve anything.
-2. Select a clip. Listen to A, then B if you supplied a time-aligned reference.
-3. Choose **Approved**, **Needs work**, **Excluded**, or **Pending**. Score and notes are optional. A score of zero is valid.
-4. Save. Another tab editing the same review produces a conflict, so a stale tab cannot overwrite newer decisions.
-5. Export the reviewed catalog. Keep the original workspace for full history, including inactive audio versions.
-
-Suggested trim boundaries affect duration statistics after saving; they do not cut any file. Existing source files are hash-checked before saving a review or serving a preview. If a source changed, rescan it before proceeding.
-
-Keyboard shortcuts outside form controls: **Space** play/pause, **B** compare, **J/K** next/previous clip. **Ctrl+Enter** saves the current form.
-
-## Scope and limits
-
-This is an **alpha release** for single-user, local datasets. It is not a multi-user annotation server. It binds only to `127.0.0.1`, serves packaged assets and catalog audio only, and has no remote hosting mode or telemetry.
-
-The PCM hash compares decoded **signed 32-bit integer PCM**, with the sample rate and channel count included. It does not resample, downmix, fingerprint performances, or establish that two different recordings contain the same singer. Float audio is quantized by the optional decoder to this comparison precision; see [counting and precision](docs/counting.md). Near-full-scale detection is a threshold warning, not proof of clipping. RMS matching is not a perceptual loudness measurement.
-
-Technical success does not establish intelligibility, recording identity, copyright permission, clean vocals, or training readiness. Large previews are prepared locally on first playback, which may take time. Human listening remains necessary.
-
-## Development and tests
+## Development
 
 ```sh
 python -m pip install -e .
@@ -99,8 +61,6 @@ python -m unittest discover -s tests -v
 node --test tests-js/*.test.mjs
 ```
 
-The Python tests use temporary directories and generated signals. Optional FFmpeg integration tests skip when FFmpeg is absent. JavaScript unit tests need Node.js 22+; Node.js is not required to use the app. CI runs the core tests across Windows, Linux, and macOS, and a separate FFmpeg job exercises compressed input. See [verification notes](docs/verification.md) for the checks actually performed on this release.
+Tests use generated audio and temporary workspaces. Node.js 22+ is only needed for frontend tests; normal use needs Python. [Verification notes](docs/verification.md) record release checks. To try generated example files, run `audio-review-desk demo --workspace .ard-demo`, then serve that workspace.
 
-## License and origin
-
-MIT. This standalone implementation grew out of practical audio dataset QA and listening review workflows. It includes no model weights, third-party song recordings, private review databases, or training pipeline. FFmpeg is an optional external program with its own licensing. No upstream speech or singing model code is vendored.
+Issues with a small reproduction are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). MIT license; no recordings, models or private review databases are included in the repository.
