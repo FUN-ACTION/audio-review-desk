@@ -71,3 +71,8 @@ The workspace stores collection membership from 0.2 onward. Earlier catalog rows
 ## Version 0.5 time notes
 
 Time notes are optional fields in the existing review JSON. Existing databases and keys stay valid. When an older page sends no annotation field to the new server, current notes are retained. Older installed servers do not understand the new field and may omit it when rewriting a review, so keep a full backup before downgrading. See [0.5 upgrade notes](releases/0.5.0.md).
+
+
+## Version 0.6 walkthrough
+
+The empty workspace has a click-to-play recording. Open the full walkthrough from that preview or from keyboard help. Videos, posters and the studio backdrop are included in the wheel and work without external media services. The separate public walkthrough is a static site; it has no connection to a local workspace. See [0.6 upgrade notes](releases/0.6.0.md).

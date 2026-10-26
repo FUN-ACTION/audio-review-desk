@@ -38,7 +38,7 @@ Export approved clips as CSV, or save the full review data as JSON. Both include
 
 Source files are read-only. The workspace holds the database and listening copies. A replacement clip or reference starts a new review version; previous decisions remain in history. Use stable manifest IDs when moving files between locations.
 
-Version 0.5 adds multi-file selection, timestamped notes, a command menu and a rebuilt interface using bundled Motion. See [changes and upgrade steps](releases/0.5.0.md). Stop the old server, back up the entire workspace, install in the app's existing environment, and reopen the original workspace path.
+Version 0.6 adds three recorded workflows in both languages, a studio walkthrough and a click-to-play preview on the empty workspace. See [changes and upgrade steps](releases/0.6.0.md) and [media sources](showcase-media.md). Stop the old server, back up the entire workspace, install in the app's existing environment, and reopen the original workspace path.
 
 ## Development
 
