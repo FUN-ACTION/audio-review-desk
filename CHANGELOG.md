@@ -2,6 +2,12 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.6.0 — 2026-10-26
+
+Three recorded workflows in Chinese and English, a warm studio walkthrough and a playable preview on the empty workspace. Videos pause out of view and respect reduced motion. Includes a static-site build and the capture/encoding tools.
+
+[Changes and upgrade steps](docs/releases/0.6.0.md).
+
 ## 0.5.0 — 2026-10-26
 
 - Select multiple local audio files, with stable per-path IDs and repeatable rescan.

@@ -19,8 +19,8 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="/style.css?v=0.5.0" />
-    <script type="module" src="/app.js?v=0.5.0"></script>
+    <link rel="stylesheet" href="/style.css?v=0.6.0" />
+    <script type="module" src="/app.js?v=0.6.0"></script>
   </head>
   <body class="is-empty">
     <svg class="svg-defs" aria-hidden="true">
@@ -106,7 +106,7 @@
             <option value="zh">中文</option>
             <option value="en">English</option>
           </select>
-          <span id="version">0.5.0</span>
+          <span id="version">0.6.0</span>
         </div>
         <div class="app-actions">
           <button id="rescan" class="icon-button" data-title="rescan">
@@ -600,43 +600,86 @@
           </div>
         </section>
         <section id="emptyDetail" class="intake" aria-labelledby="intakeTitle">
-          <div class="intake-heading">
-            <span class="intake-symbol"
-              ><svg><use href="#i-wave" /></svg
-            ></span>
-            <div>
-              <h1 id="intakeTitle" data-t="welcome">添加待审音频</h1>
-              <p data-t="welcomeHelp">选择文件、文件夹，或导入已有清单。</p>
+          <div class="intake-controls">
+            <div class="intake-heading">
+              <span class="intake-symbol"
+                ><svg><use href="#i-wave" /></svg
+              ></span>
+              <div>
+                <h1 id="intakeTitle" data-t="welcome">添加待审音频</h1>
+                <p data-t="welcomeHelp">选择文件、文件夹，或导入已有清单。</p>
+              </div>
+            </div>
+            <div class="source-grid">
+              <button
+                id="chooseFiles"
+                class="source-card featured"
+                type="button"
+              >
+                <span class="source-icon"
+                  ><svg><use href="#i-file" /></svg></span
+                ><strong data-t="chooseFiles">选择音频文件</strong
+                ><span data-t="filesHelp">一次添加多个文件</span
+                ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
+              </button>
+              <button id="chooseFolder" class="source-card" type="button">
+                <span class="source-icon"
+                  ><svg><use href="#i-folder" /></svg></span
+                ><strong data-t="chooseFolder">选择文件夹</strong
+                ><span data-t="folderHelp">包含子文件夹中的音频</span
+                ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
+              </button>
+              <button id="chooseManifest" class="source-card" type="button">
+                <span class="source-icon"
+                  ><svg><use href="#i-import" /></svg></span
+                ><strong data-t="chooseManifest">导入清单</strong
+                ><span data-t="manifestHelp">CSV / JSON</span
+                ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
+              </button>
+            </div>
+            <div class="intake-bottom">
+              <span>WAV · FLAC · MP3 · M4A · OGG</span
+              ><button
+                id="welcomeImport"
+                class="text-button"
+                data-t="enterPath"
+              >
+                输入路径
+              </button>
             </div>
           </div>
-          <div class="source-grid">
-            <button id="chooseFiles" class="source-card featured" type="button">
-              <span class="source-icon"
-                ><svg><use href="#i-file" /></svg></span
-              ><strong data-t="chooseFiles">选择音频文件</strong
-              ><span data-t="filesHelp">一次添加多个文件</span
-              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
-            </button>
-            <button id="chooseFolder" class="source-card" type="button">
-              <span class="source-icon"
-                ><svg><use href="#i-folder" /></svg></span
-              ><strong data-t="chooseFolder">选择文件夹</strong
-              ><span data-t="folderHelp">包含子文件夹中的音频</span
-              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
-            </button>
-            <button id="chooseManifest" class="source-card" type="button">
-              <span class="source-icon"
-                ><svg><use href="#i-import" /></svg></span
-              ><strong data-t="chooseManifest">导入清单</strong
-              ><span data-t="manifestHelp">CSV / JSON</span
-              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
-            </button>
-          </div>
-          <div class="intake-bottom">
-            <span>WAV · FLAC · MP3 · M4A · OGG</span
-            ><button id="welcomeImport" class="text-button" data-t="enterPath">
-              输入路径
-            </button>
+          <div class="intake-preview">
+            <div class="preview-scene">
+              <div class="preview-window">
+                <div class="preview-chrome" aria-hidden="true">
+                  <span>● ● ●</span><span>Audio Review Desk</span><span></span>
+                </div>
+                <video
+                  id="workflowPreview"
+                  muted
+                  playsinline
+                  preload="none"
+                  poster="/tour/media/workflow-zh.webp"
+                  data-title="previewVideo"
+                ></video>
+              </div>
+            </div>
+            <div class="preview-caption">
+              <button
+                id="previewToggle"
+                class="text-button"
+                data-t="previewPlay"
+                aria-pressed="false"
+              >
+                播放实机演示</button
+              ><a
+                href="/tour/"
+                target="_blank"
+                rel="noreferrer"
+                data-t="watchTour"
+                >完整演示 ↗</a
+              >
+            </div>
           </div>
         </section>
         <footer class="workspace-footer">
@@ -738,6 +781,14 @@
         </button>
       </div>
       <div class="help-content">
+        <a
+          href="/tour/"
+          class="release-link"
+          target="_blank"
+          rel="noreferrer"
+          data-t="watchTour"
+          >操作演示 ↗</a
+        >
         <dl class="shortcut-list">
           <div>
             <dt>Space</dt>

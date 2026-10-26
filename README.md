@@ -4,7 +4,9 @@
 
 [English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [版本记录](docs/releases/README.md)
 
-![试听、时间批注和审核](docs/screenshot-zh-CN.png)
+[![实机操作短片](docs/walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
+
+[看完整演示](https://fun-action.github.io/audio-review-desk/tour/) · [工作台截图](docs/screenshot-zh-CN.png)
 
 截图使用生成的测试信号，审核内容仅作操作示例。
 
@@ -42,7 +44,7 @@ python3 -m venv .venv
 
 ## 更新
 
-0.5 增加多文件导入、时间批注和快捷操作，重新整理了界面与双语提示，动效使用随包提供的 Motion。[本版变化与升级步骤](docs/releases/0.5.0.md)中记录了兼容处理；[设计笔记](docs/design.md)列出参考和实现。
+0.6 加入中英文实机短片、完整展示页和首页视频预览。[本版变化与升级步骤](docs/releases/0.6.0.md)记录兼容处理；[媒体说明](docs/showcase-media.md)记录录制方式与背景来源。
 
 升级前停止旧服务，备份整个工作区，在应用原有虚拟环境中安装新版，再指定原路径启动。每个版本都有独立说明。
 

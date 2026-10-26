@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-review-desk"
-version = "0.5.0"
+version = "0.6.0"
 description = "Listen, compare and annotate audio collections on your computer."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,4 +30,4 @@ Issues = "https://github.com/FUN-ACTION/audio-review-desk/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-audio_review_desk = ["static/*"]
+audio_review_desk = ["static/*", "static/tour/*", "static/tour/media/*"]

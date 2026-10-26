@@ -1489,97 +1489,94 @@ fieldset {
   min-height: calc(100dvh - 64px);
 }
 .intake {
-  width: min(900px, 100%);
-  margin: 92px auto 60px;
+  width: min(1160px, 100%);
+  margin: 72px auto 60px;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.3fr);
+  gap: 64px;
+  align-items: center;
 }
 .intake-heading {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 34px;
+  margin-bottom: 26px;
 }
 .intake-symbol {
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  border: 1px solid var(--line);
-  background: var(--sidebar);
-  border-radius: 14px;
-  color: var(--blue);
-}
-.intake-symbol svg {
-  width: 25px;
-  height: 25px;
+  display: none;
 }
 .intake h1 {
-  font-size: 27px;
-  font-weight: 550;
-  letter-spacing: 0;
-  line-height: 1.35;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
 }
 .intake-heading p {
   font-size: 13px;
+  line-height: 1.8;
   color: var(--muted);
-  margin-top: 7px;
+  margin-top: 13px;
 }
 .source-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-top: 1px solid var(--line);
 }
 .source-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 14px;
   position: relative;
   white-space: normal;
   text-align: left;
-  padding: 24px 22px;
-  min-height: 202px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 20px 32px 20px 0;
+  min-height: 94px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
   isolation: isolate;
 }
 .source-card.featured {
-  background: var(--blue-soft);
-  border-color: color-mix(in srgb, var(--blue) 18%, var(--line));
+  background: transparent;
+  border-color: var(--line);
 }
 .source-icon {
+  grid-row: 1/3;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   background: var(--subtle);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--muted);
-  margin-bottom: 23px;
 }
 .source-icon svg {
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
 }
 .featured .source-icon {
   color: var(--blue);
-  background: var(--surface);
+  background: var(--blue-soft);
   border-color: transparent;
 }
 .source-card strong {
-  font-size: 16px;
+  grid-column: 2;
+  font-size: 15px;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .source-card > span:not(.source-icon) {
+  grid-column: 2;
   font-size: 11px;
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: 1px;
 }
 .source-card .source-arrow {
   position: absolute;
-  right: 20px;
-  top: 27px;
+  right: 6px;
+  top: 38px;
   width: 17px;
   height: 17px;
   color: var(--muted);
@@ -1588,13 +1585,78 @@ fieldset {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 18px;
-  font-size: 10px;
+  gap: 8px;
+  margin-top: 15px;
+  font-size: 9px;
   color: var(--muted);
 }
 .intake-bottom .text-button {
+  font-size: 10px;
+}
+.intake-preview {
+  min-width: 0;
+}
+.preview-scene {
+  aspect-ratio: 1.22;
+  background: #dacbb6 url("/tour/media/studio-scene.webp") center/cover;
+  border-radius: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7%;
+}
+.preview-window {
+  width: 100%;
+  overflow: hidden;
+  border: 5px solid #323531;
+  border-radius: 10px;
+  box-shadow: 0 24px 28px -14px #30271880;
+}
+.preview-chrome {
+  height: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  background: #f8f9f8;
+  color: #99a39b;
+  font-size: 6px;
+}
+.preview-chrome span:first-child {
+  font-size: 5px;
+  letter-spacing: 1px;
+}
+.preview-chrome span:last-child {
+  width: 23px;
+}
+#workflowPreview {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: contain;
+  background: #fff;
+}
+.preview-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 13px;
+  color: var(--muted);
   font-size: 11px;
+}
+.preview-caption .text-button {
+  font-size: 11px;
+}
+@media (max-width: 980px) and (min-width: 701px) {
+  .intake {
+    gap: 30px;
+    grid-template-columns: minmax(280px, 1fr) minmax(0, 1fr);
+  }
+  .intake h1 {
+    font-size: 28px;
+  }
 }
 .is-empty .toast {
   left: 50%;
@@ -2229,63 +2291,33 @@ dialog > p {
     min-height: calc(100dvh - 58px);
   }
   .intake {
-    margin: 42px auto 34px;
-    width: min(440px, 100%);
+    margin: 34px auto;
+    width: min(540px, 100%);
+    grid-template-columns: 1fr;
+    gap: 35px;
   }
   .intake-heading {
-    gap: 13px;
-    margin-bottom: 25px;
-  }
-  .intake-symbol {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    flex-shrink: 0;
+    margin-bottom: 21px;
   }
   .intake h1 {
-    font-size: 23px;
+    font-size: 28px;
   }
   .intake-heading p {
-    font-size: 11px;
-  }
-  .source-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    font-size: 12px;
   }
   .source-card {
-    min-height: 92px;
-    padding: 18px 52px 18px 70px;
-    justify-content: center;
-    gap: 0;
-    border-radius: 10px;
-  }
-  .source-icon {
-    position: absolute;
-    left: 18px;
-    top: 25px;
-    width: 34px;
-    height: 34px;
-    margin: 0;
-    border-radius: 8px;
-  }
-  .source-card strong {
-    font-size: 15px;
-  }
-  .source-card > span:not(.source-icon) {
-    font-size: 11px;
-    margin-top: 4px;
+    min-height: 84px;
+    padding-top: 15px;
+    padding-bottom: 15px;
   }
   .source-card .source-arrow {
-    right: 20px;
-    top: 36px;
-    width: 15px;
-    height: 15px;
+    top: 33px;
   }
   .intake-bottom {
     font-size: 9px;
   }
-  .intake-bottom .text-button {
-    font-size: 10px;
+  .preview-scene {
+    aspect-ratio: 1.35;
   }
   .toast {
     left: 50%;

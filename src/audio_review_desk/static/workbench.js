@@ -6,6 +6,7 @@ import { mountIntake } from "./intake.js";
 import { mountMarkers } from "./markers.js";
 import { mountCommands } from "./commands.js";
 import { errorText } from "./errors.js";
+import { mountPreview } from "./tour/preview.js";
 import {
   formatTime,
   filterItems,
@@ -45,6 +46,11 @@ const issueNames = [
   "other",
 ];
 const t = (key) => words[language][key] || key;
+const preview = mountPreview({
+  video: $("workflowPreview"),
+  button: $("previewToggle"),
+  t,
+});
 const precise = (seconds) =>
   `${formatTime(seconds)}.${Math.floor(((seconds || 0) % 1) * 1000)
     .toString()
@@ -220,6 +226,7 @@ const importing = () => job && ["running", "cancelling"].includes(job.state);
 
 function translate() {
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  preview.language(language);
   if (!$("importError").hidden && $("importError").dataset.code)
     $("importError").textContent = errorText(
       { code: $("importError").dataset.code },
@@ -289,7 +296,7 @@ function renderSummary() {
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
   $("collectionName").textContent = t("library");
   $("collectionName").title = state.scan?.label || "";
-  $("version").textContent = state.version || "0.5.0";
+  $("version").textContent = state.version || "0.6.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -1187,7 +1194,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.5.0";
+    $("updateNotice").hidden = result.version === "0.6.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

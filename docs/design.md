@@ -14,7 +14,7 @@ Version 0.5 directly reuses the MIT-licensed [Motion library](https://motion.dev
 
 The app has a 64 px toolbar, a scrollable library, a listening area and a review inspector. The empty library uses a compact source selector rather than a marketing heading. Status and progress have one header row. Audio IDs stay out of the main title.
 
-Inter handles Latin; Chinese interface text prefers the platform UI font, with bundled Noto Sans SC as a fallback. Chinese headings use normal tracking. The intake title is 27 px, clip titles 23 px, controls mostly 12–14 px. A narrow viewport stacks the inspector and collapses the library after selection.
+Inter handles Latin; Chinese interface text prefers the platform UI font, with bundled Noto Sans SC as a fallback. Chinese headings use normal tracking. The intake title is 32 px, clip titles 23 px, controls mostly 12–14 px. A narrow viewport stacks the inspector and collapses the library after selection.
 
 ## Motion behaviour
 
@@ -34,3 +34,12 @@ Time notes are version-bound review fields. Their text is rendered with `textCon
 ![Empty library](screenshot-intake.png)
 
 ![Command menu](screenshot-commands.png)
+
+
+## 0.6: recorded walkthrough
+
+The empty view now pairs a compact source list with a click-to-play recording. The separate walkthrough uses a warm-white canvas, larger type, a studio backdrop and two alternating close-ups. Its page title is the product name rather than a slogan. Windows remain upright. The app does not autoplay its preview.
+
+Showcase videos are visible-only and mutually exclusive. Manual pause is remembered for the visit. Reduced motion and data saving prevent automatic playback; an explicit play action still works. The reference, original background prompt, source signals and encoding choices are in [the media notes](showcase-media.md).
+
+![Recorded walkthrough](screenshot-tour.png)

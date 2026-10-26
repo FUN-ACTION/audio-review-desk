@@ -1,5 +1,10 @@
 export const words = {
   zh: {
+    watchTour: "完整演示 ↗",
+    previewPlay: "播放实机演示",
+    previewPause: "暂停演示",
+    previewVideo: "试听和保存的实机录屏",
+    previewUnavailable: "视频暂时无法播放",
     position: "播放位置",
     selectClip: "选择",
     expandLibrary: "展开素材库",
@@ -172,6 +177,11 @@ export const words = {
     reviewProgress: "审核进度",
   },
   en: {
+    watchTour: "Full walkthrough ↗",
+    previewPlay: "Play recording",
+    previewPause: "Pause recording",
+    previewVideo: "Recording of playback and saving a review",
+    previewUnavailable: "Video is unavailable",
     position: "Playback position",
     selectClip: "Select",
     expandLibrary: "Expand library",

@@ -71,6 +71,20 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(response.read(4), b'wOF2')
                 self.assertIn('font', response.headers['Content-Type'])
 
+    def test_walkthrough_assets_ranges_and_path_boundary(self):
+        for path in ('/tour/', '/tour/tour.js', '/tour/tour.css', '/tour/preview.js', '/tour/media/studio-scene.webp'):
+            with urllib.request.urlopen(self.origin + path) as response:
+                self.assertEqual(response.status, 200)
+                self.assertIn("frame-ancestors 'none'", response.headers['Content-Security-Policy'])
+        request=urllib.request.Request(self.origin+'/tour/media/workflow-zh.mp4',headers={'Range':'bytes=0-31'})
+        with urllib.request.urlopen(request) as response:
+            self.assertEqual(response.status,206)
+            self.assertEqual(len(response.read()),32)
+            self.assertEqual(response.headers['Content-Type'],'video/mp4')
+        for path in ('/tour/../reviews.sqlite','/tour/media/../../reviews.sqlite','/tour/media/unlisted.mp4'):
+            with self.assertRaises(urllib.error.HTTPError) as caught:self.get(path)
+            self.assertEqual(caught.exception.code,404)
+
     def test_import_errors_have_stable_translation_codes(self):
         with self.assertRaises(urllib.error.HTTPError) as caught:
             self.post({'kind':'directory','path':str(self.root),'append':True},path='/api/import')

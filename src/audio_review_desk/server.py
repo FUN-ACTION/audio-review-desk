@@ -16,6 +16,12 @@ from .picker import choose
 from .errors import error_code
 from . import __version__
 
+TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "playback-policy.js", "preview.js"}
+TOUR_MEDIA = {"studio-scene.webp", "workflow-zh.mp4", "workflow-en.mp4",
+              "notes-zh.mp4", "notes-en.mp4", "range-zh.mp4", "range-en.mp4",
+              "workflow-zh.webp", "workflow-en.webp", "notes-zh.webp", "notes-en.webp",
+              "range-zh.webp", "range-en.webp"}
+
 
 def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
     workspace.initialize()
@@ -67,6 +73,18 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                                                    workspace=workspace.root.name))
                 if path == "/api/job":
                     return self.json_response(jobs.snapshot())
+                if path in {"/tour", "/tour/"}:
+                    if path == "/tour":
+                        return self.json_response({}, 308, {"Location": "/tour/"})
+                    path = "/tour/index.html"
+                if path.startswith("/tour/"):
+                    relative = path.removeprefix("/tour/")
+                    if relative in TOUR_FILES or (relative.startswith("media/") and relative[6:] in TOUR_MEDIA):
+                        resource = files("audio_review_desk").joinpath("static", "tour", relative)
+                        content_type = mimetypes.guess_type(relative)[0] or "application/octet-stream"
+                        if relative.endswith((".html", ".css", ".js")):
+                            content_type += "; charset=utf-8"
+                        return self.serve_audio(resource, content_type)
                 if path == "/api/export":
                     query = parse_qs(urlsplit(self.path).query)
                     if query.get("format", ["json"])[0] == "csv":
@@ -104,14 +122,14 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 self.json_response({"error": "Not found"}, 404)
             except Conflict as exc:
                 self.json_response({"error": str(exc)}, 409)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
             except (ValueError, AudioError, OSError) as exc:
                 self.json_response({"error": str(exc) if isinstance(exc, ValueError) else "Audio file unavailable; rescan the workspace"}, 422)
             except Exception:
                 self.json_response({"error": "Could not read workspace; check the catalog and disk space"}, 500)
 
-        def serve_audio(self, path):
+        def serve_audio(self, path, content_type="audio/wav"):
             size = path.stat().st_size
             start, end, status = 0, size - 1, 200
             header = self.headers.get("Range")
@@ -131,7 +149,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
             headers = {"Accept-Ranges": "bytes"}
             if status == 206:
                 headers["Content-Range"] = f"bytes {start}-{end}/{size}"
-            self.headers_for(status, "audio/wav", end - start + 1, headers)
+            self.headers_for(status, content_type, end - start + 1, headers)
             if self.command == "HEAD":
                 return
             with path.open("rb") as stream:

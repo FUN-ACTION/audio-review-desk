@@ -1,0 +1,79 @@
+{
+  "version": "0.6.0",
+  "recording": "Chromium UI with generated test signals",
+  "timing": "capture timestamps retained; pointer follows actual input trace",
+  "clips": [
+    {
+      "file": "notes-en.mp4",
+      "sha256": "8e5372487ba19a8c85fe9c5b4097fe20e734b13a00e1a1ac2f71885430bc5467",
+      "bytes": 105408,
+      "seconds": 10.166667,
+      "width": 710,
+      "height": 610,
+      "capture_frames": 197,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    },
+    {
+      "file": "notes-zh.mp4",
+      "sha256": "8d15fcd430d99e2876d558196c693deedea720ce2d53a78705aaa4e0c4de863d",
+      "bytes": 102046,
+      "seconds": 9.833333,
+      "width": 710,
+      "height": 610,
+      "capture_frames": 168,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    },
+    {
+      "file": "range-en.mp4",
+      "sha256": "b9257f17f651a767c402b1fd53ac8447f3dd1442a3585184209a6f6f801062ad",
+      "bytes": 134918,
+      "seconds": 10.966667,
+      "width": 710,
+      "height": 610,
+      "capture_frames": 244,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    },
+    {
+      "file": "range-zh.mp4",
+      "sha256": "13fc99e5cfa49fd4fb981335c0761865c1e986a731f03f21d5ab51eb3acbcf0c",
+      "bytes": 139308,
+      "seconds": 12.8,
+      "width": 710,
+      "height": 610,
+      "capture_frames": 223,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    },
+    {
+      "file": "workflow-en.mp4",
+      "sha256": "dd18abb772262e46a58585961fbb9b7d9ad8bf0357f5a0d97ba40dab7c1be6aa",
+      "bytes": 246675,
+      "seconds": 14.833333,
+      "width": 1280,
+      "height": 720,
+      "capture_frames": 240,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    },
+    {
+      "file": "workflow-zh.mp4",
+      "sha256": "5fe3eaac4f29544a3616635bfd44ec02870a280be6983e48042feb73f84a3afc",
+      "bytes": 228155,
+      "seconds": 11.8,
+      "width": 1280,
+      "height": 720,
+      "capture_frames": 310,
+      "encoded_fps": "30/1",
+      "audio_track": false
+    }
+  ],
+  "background": {
+    "file": "studio-scene.webp",
+    "source": "built-in image generation",
+    "bytes": 104406,
+    "sha256": "b2398273b4beb5ae4ad0ade29c016005ab6020cf0b5028e989daa12dba798931"
+  }
+}

@@ -1,5 +1,7 @@
 # Audio Review Desk
 
+[Watch the app in action](https://fun-action.github.io/audio-review-desk/tour/) · [0.6 release notes](releases/0.6.0.md)
+
 Review a collection of audio clips, compare references, and leave keep ranges and timestamped notes. Export the decisions when the collection is ready for the next tool.
 
 [中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [Release notes](releases/README.md)

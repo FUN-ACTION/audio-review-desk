@@ -1,0 +1,118 @@
+export const copy = {
+  zh: {
+    title: "Audio Review Desk · 操作演示",
+    skip: "跳到内容",
+    navigation: "导航",
+    navTour: "操作演示",
+    navInstall: "安装",
+    eyebrow: "本机音频审核",
+    heroLead: "Audio Review",
+    heroEnd: "Desk.",
+    heroIntro:
+      "打开音频，对照参考。在需要回看的位置留一句批注，把审核结果一起保存。",
+    openApp: "打开工作台 ↗",
+    download: "下载并开始 ↗",
+    seeWorkflow: "看看操作 ↓",
+    platforms: "Windows · macOS · Linux　/　MIT 开源",
+    heroMedia: "操作演示",
+    workflowVideo: "播放音频、切换参考和保存审核的实机录屏",
+    workflowCaption: "试听 · A/B 对照 · 保存并继续",
+    play: "播放演示",
+    pause: "暂停演示",
+    replay: "重新播放",
+    videoError: "视频暂时无法播放",
+    workflowEyebrow: "三个操作",
+    workflowTitle: "从播放，到保存。",
+    workflowIntro: "需要反复听的，留在波形上。已经决定的，收进审核记录。",
+    noteEyebrow: "01 / 时间批注",
+    noteTitle: "在播放位置，\n留一句批注。",
+    noteBody:
+      "听到需要回看的地方，按 M 写一句批注。点一下时间，就能接着听，不必在另一份表格里找位置。",
+    noteKey: "在播放位置写批注",
+    noteWindow: "时间批注",
+    notesVideo: "添加、保存和定位时间批注的实机录屏",
+    rangeEyebrow: "02 / 保留区间",
+    rangeTitle: "拖动边界，\n听这一段。",
+    rangeBody:
+      "拖动两端，圈出要保留的部分。打开循环，慢一点再听一遍。区间、批注和审核决定一起保存。",
+    rangeKey: "也可以用播放位置标记边界",
+    rangeWindow: "保留区间",
+    rangeVideo: "拖动保留区间和循环试听的实机录屏",
+    installEyebrow: "开始使用",
+    installTitle: "准备好耳机。\n打开下一批音频。",
+    installBody:
+      "选择文件、文件夹，或导入 CSV / JSON 清单。审核结束后，导出带区间和批注的记录。",
+    getRelease: "下载最新版本 ↗",
+    installGuide: "安装说明 ↗",
+    transcriptTitle: "阅读演示步骤",
+    transcriptOne:
+      "试听：播放一条音频，切换 A / B 对照参考，填写审核决定并保存。",
+    transcriptTwo:
+      "批注：暂停在需要回看的位置，写入一句批注，保存后点时间返回。",
+    transcriptThree: "区间：拖动起点和终点，打开循环试听，再保存保留区间。",
+    mediaNote: "操作录自应用，使用生成的测试信号；桌面背景为生成图像。",
+    mediaDetails: "媒体来源",
+    releases: "版本记录",
+  },
+  en: {
+    title: "Audio Review Desk · In action",
+    skip: "Skip to content",
+    navigation: "Navigation",
+    navTour: "In action",
+    navInstall: "Get started",
+    eyebrow: "LOCAL AUDIO REVIEWS",
+    heroLead: "Audio Review",
+    heroEnd: "Desk.",
+    heroIntro:
+      "Play a take. Compare a reference. Leave a note at the right moment, and save the review with it.",
+    openApp: "Open workspace ↗",
+    download: "Download and start ↗",
+    seeWorkflow: "See it in action ↓",
+    platforms: "Windows · macOS · Linux　/　Open source, MIT",
+    heroMedia: "Workflow recording",
+    workflowVideo:
+      "Screen recording of playback, reference comparison and saving a review",
+    workflowCaption: "Listen · Compare A/B · Save and continue",
+    play: "Play recording",
+    pause: "Pause recording",
+    replay: "Replay",
+    videoError: "Video is unavailable",
+    workflowEyebrow: "THREE EVERYDAY ACTIONS",
+    workflowTitle: "From playback to a saved review.",
+    workflowIntro:
+      "Keep the places you want to hear again on the waveform. Keep your decisions in the review.",
+    noteEyebrow: "01 / TIME NOTES",
+    noteTitle: "A note, right\nwhere you heard it.",
+    noteBody:
+      "Press M when something needs another listen. Write a note, then click its time to come back. No matching timestamps in another spreadsheet.",
+    noteKey: "Write a note at the playhead",
+    noteWindow: "Time notes",
+    notesVideo:
+      "Screen recording of adding, saving and returning to a time note",
+    rangeEyebrow: "02 / REVIEW RANGES",
+    rangeTitle: "Set the edges.\nListen to this part.",
+    rangeBody:
+      "Drag either edge to choose the part to keep. Loop it or slow it down for another listen. The range, notes and decision stay together.",
+    rangeKey: "Or mark an edge at the playhead",
+    rangeWindow: "Review range",
+    rangeVideo:
+      "Screen recording of dragging a review range and looping playback",
+    installEyebrow: "GET STARTED",
+    installTitle: "Headphones on.\nNext batch ready.",
+    installBody:
+      "Choose files, a folder or a CSV / JSON manifest. Export the finished reviews with their ranges and time notes.",
+    getRelease: "Get the latest release ↗",
+    installGuide: "Installation guide ↗",
+    transcriptTitle: "Read the recording steps",
+    transcriptOne:
+      "Listen: play a file, switch between A and B to compare a reference, choose a decision and save.",
+    transcriptTwo:
+      "Annotate: pause at a useful moment, add a note, save it, then click its time to return.",
+    transcriptThree:
+      "Set a range: drag the start and end, loop the selection and save the range.",
+    mediaNote:
+      "Recorded in the app with generated test signals. The studio backdrop is a generated image.",
+    mediaDetails: "Media sources",
+    releases: "Release notes",
+  },
+};
