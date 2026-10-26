@@ -3,6 +3,9 @@ import { springValue, reveal, openDialog, closeDialog } from "./motion.js";
 import { mountWaveform } from "./waveform.js";
 import { mountTransport } from "./transport.js";
 import { mountIntake } from "./intake.js";
+import { mountMarkers } from "./markers.js";
+import { mountCommands } from "./commands.js";
+import { errorText } from "./errors.js";
 import {
   formatTime,
   filterItems,
@@ -48,6 +51,8 @@ const precise = (seconds) =>
     .padStart(3, "0")}`;
 const number = (value) => (value.trim() === "" ? null : Number(value));
 
+let markersView;
+let queueHasPosition = false;
 let noticeTimer,
   choosing = false;
 const revealIntake = mountIntake($("emptyDetail"));
@@ -67,6 +72,7 @@ const waveformView = mountWaveform(
       markDirty();
     },
     onView(start, end, zoom) {
+      markersView?.view(start, end);
       $("rulerStart").textContent = precise(start);
       $("rulerMid").textContent = precise((start + end) / 2);
       $("rulerEnd").textContent = precise(end);
@@ -79,6 +85,9 @@ const waveformView = mountWaveform(
 const moveGlider = springValue((value) => {
   $("abGlider").style.transform = `translateX(${value}px)`;
 });
+const moveQueue = springValue((y) => {
+  $("queueHighlight").style.transform = `translateY(${y}px)`;
+});
 const transport = mountTransport({
   player,
   button: $("play"),
@@ -89,8 +98,74 @@ const transport = mountTransport({
   range,
   loop: $("loop"),
   onTime: updateTime,
-  onError: (message) => notice(message),
+  onError: () => notice(t("audioError")),
   labels: () => ({ play: t("play"), pause: t("pause") }),
+});
+markersView = mountMarkers({
+  input: $("markerText"),
+  add: $("addMarker"),
+  list: $("markerList"),
+  ticks: $("markerTicks"),
+  player,
+  duration: () => selected?.quality.duration || 0,
+  t,
+  onChange: markDirty,
+  onError: (message) => notice(message),
+});
+const commandMenu = mountCommands({
+  dialog: $("commandDialog"),
+  input: $("commandInput"),
+  list: $("commandList"),
+  emptyText: () => t("commandEmpty"),
+  onError: (error) => notice(errorText(error, language)),
+  rows: () => {
+    if (!state) return [];
+    const actions = [
+      { label: t("chooseFiles"), run: () => browse("files", true) },
+      { label: t("import"), run: openImport },
+      { label: t("help"), run: () => openDialog($("helpDialog")) },
+    ];
+    if (selected?.quality.decoded)
+      actions.push(
+        { label: t("addMarker"), hint: "M", run: () => markersView.focus() },
+        {
+          label: t(player.paused ? "play" : "pause"),
+          hint: "Space",
+          run: () => $("play").click(),
+        },
+      );
+    if (selected)
+      actions.push({
+        label: t("save"),
+        hint: "Ctrl ↵",
+        run: () => save(false),
+      });
+    if (state.items.length)
+      actions.push(
+        {
+          label: t("nextPending"),
+          run: async () => {
+            const item = state.items.find(
+              (row) =>
+                row.key !== selected?.key && row.review.status === "pending",
+            );
+            if (item) await select(item);
+            else notice(t("noPending"), true);
+          },
+        },
+        { label: t("focus"), run: () => $("focusMode").click() },
+        { label: t("rescan"), run: () => $("rescan").click() },
+      );
+    return [
+      ...actions,
+      ...state.items.map((item) => ({
+        label: item.label,
+        search: item.id,
+        hint: t(item.review.status),
+        run: () => select(item),
+      })),
+    ];
+  },
 });
 function notice(message = "", success = false) {
   clearTimeout(noticeTimer);
@@ -101,21 +176,19 @@ function notice(message = "", success = false) {
   if (message && success) noticeTimer = setTimeout(() => notice(), 3200);
 }
 async function request(path, options) {
-  const response = await fetch(path, options);
-  const result = await response.json();
+  let response, result;
+  try {
+    response = await fetch(path, options);
+    result = await response.json();
+  } catch {
+    const error = new Error(errorText({ code: "network" }, language));
+    error.code = "network";
+    throw error;
+  }
   if (!response.ok) {
-    let message = result.error || `HTTP ${response.status}`;
-    if (
-      language === "zh" &&
-      /Another page updated|updated elsewhere/.test(message)
-    )
-      message = "这条审核刚被另一页更新。先刷新，再核对更改。";
-    if (
-      language === "zh" &&
-      /Source changed|Audio version changed/.test(message)
-    )
-      message = "音频已有变化，重新扫描后再保存。";
-    throw new Error(message);
+    const error = new Error(errorText(result, language));
+    error.code = result.code;
+    throw error;
   }
   return result;
 }
@@ -147,6 +220,11 @@ const importing = () => job && ["running", "cancelling"].includes(job.state);
 
 function translate() {
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  if (!$("importError").hidden && $("importError").dataset.code)
+    $("importError").textContent = errorText(
+      { code: $("importError").dataset.code },
+      language,
+    );
   $("language").value = language;
   document.querySelectorAll("[data-t]").forEach((element) => {
     element.textContent = t(element.dataset.t);
@@ -180,6 +258,7 @@ function translate() {
     if (selected) renderDetails(false);
   }
   if (job) renderJob();
+  markersView?.refresh(busy || !selected?.quality.decoded);
   transport.refresh();
   updateLibraryToggle();
 }
@@ -197,6 +276,11 @@ for (const name of issueNames) {
 function renderSummary() {
   const stats = state.stats;
   document.body.classList.toggle("is-empty", state.items.length === 0);
+  const done = stats.files - stats.review_counts.pending;
+  $("reviewProgressText").textContent =
+    `${t("reviewed")} ${done} / ${stats.files}`;
+  $("reviewProgress").max = stats.files || 1;
+  $("reviewProgress").value = done;
   $("fileCount").textContent = stats.files;
   $("pendingCount").textContent = stats.review_counts.pending;
   $("approvedCount").textContent = stats.review_counts.pass;
@@ -205,14 +289,19 @@ function renderSummary() {
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
   $("collectionName").textContent = t("library");
   $("collectionName").title = state.scan?.label || "";
-  $("version").textContent = state.version || "0.4.0";
+  $("version").textContent = state.version || "0.5.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
   $("duplicateInfo").textContent =
     `${stats.duplicate_groups.length} ${language === "en" && stats.duplicate_groups.length === 1 ? "duplicate group" : t("duplicateGroups")}`;
   $("duplicateInfo").hidden = stats.duplicate_groups.length === 0;
-  for (const id of ["chooseFolder", "chooseManifest", "browsePath"])
+  for (const id of [
+    "chooseFiles",
+    "chooseFolder",
+    "chooseManifest",
+    "browsePath",
+  ])
     $(id).disabled = choosing || busy || Boolean(importing());
   $("rescan").disabled = !state.can_rescan || busy || Boolean(importing());
   $("openImport").disabled = busy || Boolean(importing());
@@ -254,7 +343,7 @@ function renderQueue() {
       checkbox.type = "checkbox";
       checkbox.checked = selectedKeys.has(item.key);
       checkbox.disabled = busy;
-      checkbox.setAttribute("aria-label", `${t("selected")}: ${item.id}`);
+      checkbox.setAttribute("aria-label", `${t("selectClip")}: ${item.label}`);
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) selectedKeys.add(item.key);
         else selectedKeys.delete(item.key);
@@ -281,6 +370,13 @@ function renderQueue() {
       return row;
     }),
   );
+  const activeRow = $("items").querySelector(".selected");
+  $("queueHighlight").hidden = !activeRow;
+  if (activeRow) {
+    $("queueHighlight").style.height = `${activeRow.offsetHeight}px`;
+    moveQueue(activeRow.offsetTop, !queueHasPosition);
+    queueHasPosition = true;
+  }
   renderSelection();
 }
 function markDirty() {
@@ -333,7 +429,7 @@ function renderDetails(restore = true) {
   $("detailPanel").hidden = false;
   $("emptyDetail").hidden = true;
   $("clipTitle").textContent = item.label;
-  $("clipId").textContent = item.id;
+  $("clipId").textContent = t(review.status);
   const names = {
     silence_or_very_quiet: "quiet",
     near_full_scale: "nearClip",
@@ -341,10 +437,15 @@ function renderDetails(restore = true) {
     decode_error: "decodeError",
   };
   const flags = q.flags.length
-    ? q.flags.map((flag) => t(names[flag] || flag))
+    ? q.flags.map((flag) => t(names[flag] || "flagged"))
     : [t("noFlags")];
   if (!item.eligible) flags.push(t("ineligible"));
-  if (item.error) flags.push(item.error);
+  if (item.error) {
+    flags.length = 0;
+    flags.push(
+      errorText({ code: item.error_code || "decode_failed" }, language),
+    );
+  }
   $("qualityFlags").replaceChildren(
     ...flags.map((text) => {
       const span = document.createElement("span");
@@ -417,7 +518,11 @@ function renderDetails(restore = true) {
   ])
     $(id).disabled = busy || !q.decoded;
   $("undo").disabled = busy || review.version === 0;
+  if (!restore) markersView.refresh(busy || !q.decoded);
   if (restore) {
+    for (const id of ["score", "trimStart", "trimEnd"])
+      $(id).setCustomValidity("");
+    markersView.set(review.markers || [], busy || !q.decoded);
     $("score").value = review.score ?? "";
     $("trimStart").value = review.trim_start ?? "";
     $("trimEnd").value = review.trim_end ?? "";
@@ -478,7 +583,7 @@ async function select(item) {
         drawWave();
       }
     } catch (error) {
-      if (turn === generation) notice(error.message);
+      if (turn === generation) notice(errorText(error, language));
     }
   } else {
     player.removeAttribute("src");
@@ -513,7 +618,7 @@ async function refresh(force = false) {
       revealIntake();
     }
   } catch (error) {
-    notice(`${t("loadError")} ${error.message}`);
+    notice(errorText(error, language));
   }
 }
 function setBusy(value) {
@@ -529,9 +634,11 @@ function setBusy(value) {
 }
 async function save(advance = false) {
   if (busy || !selected || !$("reviewForm").reportValidity()) return;
+  const focusBeforeSave = document.activeElement;
   const target = selected,
     ordered = visibleItems(),
     index = ordered.findIndex((item) => item.key === target.key);
+  if (!markersView.flush()) return;
   const payload = reviewPayload(target, {
     status: document.querySelector("input[name=decision]:checked")?.value,
     score: $("score").value,
@@ -541,6 +648,7 @@ async function save(advance = false) {
       (input) => input.value,
     ),
     note: $("note").value,
+    markers: markersView.get(),
   });
   setBusy(true);
   $("saveState").textContent = t("saving");
@@ -560,10 +668,12 @@ async function save(advance = false) {
     }
   } catch (error) {
     dirty = true;
-    notice(error.message);
+    notice(errorText(error, language));
   } finally {
     setBusy(false);
     if (success) renderDetails(false);
+    if (!advance && focusBeforeSave?.isConnected && !focusBeforeSave.disabled)
+      focusBeforeSave.focus({ preventScroll: true });
   }
   if (success && advance) {
     const next =
@@ -593,13 +703,16 @@ async function batch() {
     count = result.saved;
     selectedKeys.clear();
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   } finally {
     setBusy(false);
   }
   if (count) {
     await refresh(true);
-    notice(`${count} ${t("batchSaved")}`, true);
+    notice(
+      `${count} ${language === "en" && count === 1 ? "review updated" : t("batchSaved")}`,
+      true,
+    );
   }
 }
 async function undo() {
@@ -615,7 +728,7 @@ async function undo() {
     dirty = false;
     success = true;
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   } finally {
     setBusy(false);
   }
@@ -639,15 +752,23 @@ async function switchVariant(next) {
   player.onloadedmetadata = () => {
     player.currentTime = Math.min(time, player.duration || 0);
     player.playbackRate = Number($("speed").value);
-    if (resume) player.play().catch((error) => notice(error.message));
+    if (resume)
+      player.play().catch((error) => notice(errorText(error, language)));
   };
   player.load();
   renderDetails(false);
   updateTime(time);
 }
+function showImportError(error) {
+  $("importError").dataset.code = error.code || "operation_failed";
+  $("importError").textContent = errorText(error, language);
+  $("importError").hidden = false;
+}
 async function openImport() {
   if (busy || importing() || !(await discardAllowed())) return;
   $("importError").hidden = true;
+  $("appendOptions").hidden = !state.items.length;
+  $("replaceHint").hidden = $("appendImport").checked;
   openDialog($("importDialog"));
   $("importPath").focus();
 }
@@ -670,10 +791,11 @@ function renderJob() {
   }
   if (state) renderSummary();
 }
-async function poll() {
+async function poll(restoring = false) {
   clearTimeout(pollTimer);
   try {
     job = await request("/api/job");
+    if (restoring && !importing()) handledJob = job.id;
     renderJob();
     if (importing()) {
       pollTimer = setTimeout(poll, 700);
@@ -688,28 +810,37 @@ async function poll() {
           notice(t("jobDone"), true);
         }
       } else if (job.state === "cancelled") notice(t("jobCancelled"));
-      else if (job.state === "failed")
-        notice(`${t("jobFailed")}: ${job.error}`);
+      else if (job.state === "failed") notice(errorText(job, language));
     }
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   }
 }
 async function startImport(event) {
   event.preventDefault();
   $("importError").hidden = true;
+  if (!$("importPath").value.trim()) {
+    showImportError({ code: "path_required" });
+    $("importPath").focus();
+    return;
+  }
   try {
     job = await post("/api/import", {
       kind: $("importKind").value,
-      path: $("importPath").value.trim(),
+      path:
+        $("importKind").value === "files"
+          ? $("importPath")
+              .value.split(/\r?\n/)
+              .map((p) => p.trim())
+              .filter(Boolean)
+          : $("importPath").value.trim(),
       append: $("appendImport").checked,
     });
     closeDialog($("importDialog"));
     renderJob();
     pollTimer = setTimeout(poll, 200);
   } catch (error) {
-    $("importError").textContent = error.message;
-    $("importError").hidden = false;
+    showImportError(error);
   }
 }
 function markBoundary(side) {
@@ -729,17 +860,36 @@ async function loadHistory() {
     $("history").replaceChildren(
       ...result.history.map((review) => {
         const p = document.createElement("p");
-        p.textContent = `v${review.version} · ${t(review.status)} · ${new Date(review.updated_utc).toLocaleString()}\n${review.note}`;
+        const detail = [
+          review.score !== null ? `${t("score")}: ${review.score}` : "",
+          review.note,
+          ...(review.markers || []).map(
+            (row) => `${precise(row.time)} · ${row.text}`,
+          ),
+        ]
+          .filter(Boolean)
+          .join("\n");
+        p.textContent = `v${review.version} · ${t(review.status)} · ${new Date(review.updated_utc).toLocaleString(language === "zh" ? "zh-CN" : "en")}\n${detail}`;
         return p;
       }),
     );
     if (!result.history.length) $("history").textContent = t("noHistory");
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   }
 }
 
 $("reviewForm").addEventListener("input", markDirty);
+for (const [id, code] of [
+  ["score", "score_range"],
+  ["trimStart", "trim_invalid"],
+  ["trimEnd", "trim_invalid"],
+]) {
+  $(id).addEventListener("invalid", () =>
+    $(id).setCustomValidity(errorText({ code }, language)),
+  );
+  $(id).addEventListener("input", () => $(id).setCustomValidity(""));
+}
 for (const id of ["trimStart", "trimEnd"])
   $(id).addEventListener("input", markDirty);
 $("reviewForm").addEventListener("submit", (event) => {
@@ -760,12 +910,14 @@ async function browse(kind, importNow = false) {
   let picked = false;
   renderSummary();
   try {
-    const result = await post("/api/browse", { kind });
+    const result = await post("/api/browse", { kind, language });
     if (!result.path) return;
     picked = true;
     $("importError").hidden = true;
     $("importKind").value = kind;
-    $("importPath").value = result.path;
+    $("importPath").value = Array.isArray(result.path)
+      ? result.path.join("\n")
+      : result.path;
     if (importNow) {
       job = await post("/api/import", {
         kind,
@@ -778,13 +930,20 @@ async function browse(kind, importNow = false) {
   } catch (error) {
     await openImport();
     $("importKind").value = kind;
-    $("importError").textContent = picked ? error.message : t("pickerFallback");
-    $("importError").hidden = false;
+    showImportError(
+      picked ? error : { code: error.code || "picker_unavailable" },
+    );
   } finally {
     choosing = false;
     renderSummary();
   }
 }
+$("chooseFiles").addEventListener("click", () => browse("files", true));
+$("appendImport").addEventListener("change", () => {
+  $("replaceHint").hidden = $("appendImport").checked;
+});
+$("openCommands").addEventListener("click", () => commandMenu.open());
+$("closeCommands").addEventListener("click", () => $("commandDialog").close());
 $("chooseFolder").addEventListener("click", () => browse("directory", true));
 $("chooseManifest").addEventListener("click", () => browse("manifest", true));
 $("browsePath").addEventListener("click", () => browse($("importKind").value));
@@ -799,7 +958,7 @@ $("cancelImport").addEventListener("click", async () => {
     job = await post("/api/cancel-import", { id: job.id });
     renderJob();
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   }
 });
 $("rescan").addEventListener("click", async () => {
@@ -809,7 +968,7 @@ $("rescan").addEventListener("click", async () => {
     renderJob();
     pollTimer = setTimeout(poll, 200);
   } catch (error) {
-    notice(error.message);
+    notice(errorText(error, language));
   }
 });
 $("language").addEventListener("change", () => {
@@ -897,15 +1056,30 @@ document.addEventListener("click", (event) => {
   if (!$("exportMenu").contains(event.target)) $("exportMenu").open = false;
 });
 document.addEventListener("keydown", (event) => {
-  if ($("importDialog").open || $("discardDialog").open || $("helpDialog").open)
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    if (
+      !$("importDialog").open &&
+      !$("discardDialog").open &&
+      !$("helpDialog").open
+    )
+      $("commandDialog").open ? $("commandDialog").close() : commandMenu.open();
     return;
-  if (event.ctrlKey && event.key === "Enter") {
+  }
+  if (
+    $("importDialog").open ||
+    $("discardDialog").open ||
+    $("helpDialog").open ||
+    $("commandDialog").open
+  )
+    return;
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     event.preventDefault();
     save(false);
     return;
   }
   if (
-    event.target.closest("input,textarea,select,button,a,summary") ||
+    event.target.closest("input,textarea,select") ||
     event.ctrlKey ||
     event.metaKey ||
     event.altKey ||
@@ -917,12 +1091,18 @@ document.addEventListener("keydown", (event) => {
     openDialog($("helpDialog"));
     return;
   }
+  if (event.key.toLowerCase() === "m") {
+    event.preventDefault();
+    markersView.focus();
+    return;
+  }
   if (event.key.toLowerCase() === "f") {
     event.preventDefault();
     $("focusMode").click();
     return;
   }
   if (event.code === "Space") {
+    if (event.target.closest("button,a,summary")) return;
     event.preventDefault();
     if (selected?.quality.decoded) {
       if (player.paused) {
@@ -932,7 +1112,7 @@ document.addEventListener("keydown", (event) => {
           (player.currentTime < start || player.currentTime >= end)
         )
           player.currentTime = start;
-        player.play().catch((error) => notice(error.message));
+        player.play().catch((error) => notice(errorText(error, language)));
       } else player.pause();
     }
   }
@@ -1000,13 +1180,14 @@ $("exportMenu").addEventListener("toggle", () => {
 });
 for (const dialog of document.querySelectorAll("dialog"))
   dialog.addEventListener("cancel", (event) => {
+    if (dialog.id === "commandDialog") return;
     event.preventDefault();
     closeDialog(dialog, dialog.id === "discardDialog" ? "keep" : "");
   });
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.4.0";
+    $("updateNotice").hidden = result.version === "0.5.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);
@@ -1019,6 +1200,6 @@ $("reloadApp").addEventListener("click", async () => {
 translate();
 refresh(true).then(() => {
   syncGlider(true);
-  poll();
+  poll(true);
   checkVersion();
 });

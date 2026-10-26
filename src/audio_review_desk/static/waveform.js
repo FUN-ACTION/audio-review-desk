@@ -83,9 +83,16 @@ export function mountWaveform(canvas, seek, selection, playhead, controls) {
     [controls.start, "start"],
     [controls.end, "end"],
   ]) {
-    let dragging = false;
+    let dragging = false,
+      grabOffset = 0;
     handle.addEventListener("pointerdown", (event) => {
-      if (handle.disabled) return;
+      if (handle.disabled || dragging) return;
+      const box = canvas.getBoundingClientRect(),
+        [a, b] = view();
+      grabOffset =
+        event.clientX -
+        box.left -
+        (((side === "start" ? left : right) - a) / (b - a || 1)) * box.width;
       event.preventDefault();
       handle.focus();
       dragging = true;
@@ -98,7 +105,9 @@ export function mountWaveform(canvas, seek, selection, playhead, controls) {
         [a, b] = view();
       change(
         side,
-        a + clamp((event.clientX - box.left) / box.width, 0, 1) * (b - a),
+        a +
+          clamp((event.clientX - box.left - grabOffset) / box.width, 0, 1) *
+            (b - a),
       );
     });
     const finish = () => {

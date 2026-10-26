@@ -30,11 +30,18 @@ export function reviewPayload(item, values) {
     trim_end: number(values.trimEnd),
     issues: values.issues,
     note: values.note,
+    markers: (values.markers || []).map((row) => ({ ...row })),
   };
 }
 
 export function sortItems(items, order) {
   return [...items].sort((a, b) => {
+    if (order === "recent")
+      return (
+        (b.review.updated_utc || "").localeCompare(
+          a.review.updated_utc || "",
+        ) || a.id.localeCompare(b.id)
+      );
     if (order === "duration")
       return (
         (b.quality.duration || 0) - (a.quality.duration || 0) ||

@@ -56,3 +56,9 @@ The JSON export includes current item metadata, current decisions, audio hashes,
 CSV exports are convenient review tables, not input manifests or full workspace backups. They contain clip IDs, labels, source intervals, hashes, status, score, issues, notes, and suggested bounds. Use `export --format csv --status pass` to export approved rows. Potential spreadsheet formulas in text cells are prefixed with an apostrophe. Absolute paths remain opt-in through the CLI.
 
 Batch status changes support `pending`, `fix`, and `exclude`, preserve existing notes/scores, and commit all selected rows or none. Undo appends a new revision containing the preceding decision; it never removes history. These operations refuse stale versions or changed source files.
+
+## Time notes in review exports
+
+Reviews may include `markers`, an array such as `[{"time": 0.65, "text": "Check the word ending"}]`. Times are clip-relative seconds. Up to 100 notes of 1–240 characters are accepted. The field belongs to the reviewed audio version, participates in undo/history, and is included as JSON text in the CSV `markers` column. A missing field in older review data is supported.
+
+Individual-file selection uses stable path-derived clip IDs. To keep IDs across moved files, import a manifest with explicit IDs instead.

@@ -13,6 +13,7 @@ from .audio import AudioError
 from .workspace import Conflict, Workspace, encode
 from .jobs import ImportJobs
 from .picker import choose
+from .errors import error_code
 from . import __version__
 
 
@@ -43,6 +44,8 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
             self.end_headers()
 
         def json_response(self, payload: object, status: int = 200, extra: dict | None = None):
+            if isinstance(payload, dict) and payload.get("error"):
+                payload = dict(payload, code=payload.get("code") or error_code(payload["error"]))
             data = encode(payload).encode()
             self.headers_for(status, "application/json; charset=utf-8", len(data), extra)
             if self.command != "HEAD":
@@ -85,7 +88,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
-                if path in {"/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
+                if path in {"/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
@@ -159,7 +162,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if not isinstance(payload, dict):
                     raise ValueError("Expected an object")
                 if path == "/api/browse":
-                    return self.json_response({"path": choose(payload.get("kind"))})
+                    return self.json_response({"path": choose(payload.get("kind"), payload.get("language", "en"))})
                 if path == "/api/import":
                     return self.json_response(jobs.start(payload.get("kind"), payload.get("path"), payload.get("append", True)), 202)
                 if path == "/api/rescan":
@@ -181,8 +184,8 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 self.json_response({"error": str(exc)}, 409)
             except (ValueError, KeyError, json.JSONDecodeError) as exc:
                 self.json_response({"error": str(exc)}, 422)
-            except OSError:
-                self.json_response({"error": "Source is unavailable; rescan before saving"}, 409)
+            except OSError as exc:
+                self.json_response({"error": "Source is unavailable; rescan before saving", "code": error_code(exc)}, 409)
             except Exception:
                 self.json_response({"error": "Save failed; your draft is still in this page"}, 500)
 

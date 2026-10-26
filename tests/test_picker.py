@@ -41,3 +41,10 @@ class PickerTests(unittest.TestCase):
             finally:
                 picker._lock.release()
             run.assert_not_called()
+
+    def test_multiple_files_and_localized_title_are_passed_to_helper(self):
+        paths=['D:/音频/a.wav','D:/音频/b.wav']
+        result=SimpleNamespace(returncode=0,stdout=json.dumps(paths))
+        with patch.object(picker.subprocess,'run',return_value=result) as run:
+            self.assertEqual(picker.choose('files','zh'),paths)
+            self.assertEqual(run.call_args.args[0][-2:],['files','zh'])

@@ -43,7 +43,7 @@ audio-review-desk init --workspace review-workspace
 audio-review-desk serve --workspace review-workspace --open
 ```
 
-Choose a folder or manifest in the local selection window, or enter a path on the same computer as the server. The chooser uses Python's optional Tk support; if it is absent or no desktop is available, manual path entry still works. Imports run in the background. Stop requests take effect after the current file finishes; the old catalog remains active until the new catalog commits.
+Choose one or more audio files, a folder, or a manifest in the local selection window, or enter a path on the same computer as the server. The chooser uses Python's optional Tk support; if it is absent or no desktop is available, manual path entry still works. Imports run in the background. Stop requests take effect after the current file finishes; the old catalog remains active until the new catalog commits.
 
 The app keeps other collections by default. Reimporting a collection updates its members and removes missing members from the active list, while retaining historical versions. Different files with the same clip ID are rejected in append mode; give them unique IDs in a manifest or explicitly replace the active list.
 
@@ -67,3 +67,7 @@ The workspace stores collection membership from 0.2 onward. Earlier catalog rows
 - **No sound:** prepare a preview by pressing play, check your system audio, and check the technical error message. The first preview of a large file can take time.
 - **Export file already exists:** choose a new filename. The CLI intentionally does not overwrite existing files.
 - **Out of disk space:** stop the server, back up the database, and remove generated preview copies if necessary. They can be regenerated; do not remove original audio to clear a workspace cache.
+
+## Version 0.5 time notes
+
+Time notes are optional fields in the existing review JSON. Existing databases and keys stay valid. When an older page sends no annotation field to the new server, current notes are retained. Older installed servers do not understand the new field and may omit it when rewriting a review, so keep a full backup before downgrading. See [0.5 upgrade notes](releases/0.5.0.md).

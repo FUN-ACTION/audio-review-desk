@@ -2,6 +2,18 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.5.0 — 2026-10-26
+
+- Select multiple local audio files, with stable per-path IDs and repeatable rescan.
+- Add timestamped notes to reviews, waveform pins, history, undo and JSON/CSV exports.
+- Preserve optional annotations when an older client saves through the new server.
+- Add a searchable command menu, review progress and recently-reviewed ordering.
+- Rebuild the intake, import dialog, review inspector and responsive shell.
+- Vendor pinned MIT-licensed Motion for native style transitions and velocity-aware springs.
+- Add stable API/job error codes and matching English/Chinese messages; localize accessibility labels and chooser titles.
+- Fix transform endpoints, rapid dialog reopening and waveform grab offsets.
+- See [changes and upgrade instructions](docs/releases/0.5.0.md).
+
 ## 0.4.0 — 2026-10-26
 
 - Open local folder/manifest selection windows; retain manual path entry when a chooser is unavailable.

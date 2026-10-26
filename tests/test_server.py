@@ -71,6 +71,14 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(response.read(4), b'wOF2')
                 self.assertIn('font', response.headers['Content-Type'])
 
+    def test_import_errors_have_stable_translation_codes(self):
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.post({'kind':'directory','path':str(self.root),'append':True},path='/api/import')
+        self.assertEqual(caught.exception.code,422)
+        self.assertEqual(json.load(caught.exception)['code'],'source_contains_workspace')
+        for path in ('/motion-vendor.js','/commands.js','/markers.js','/errors.js','/motion-LICENSE.txt'):
+            with urllib.request.urlopen(self.origin+path) as response:self.assertEqual(response.status,200)
+
     def test_same_origin_and_review_token_required(self):
         for headers in ({"Origin": "http://evil.example"}, {"X-Review-Token": "wrong"}, {"Origin": "null"}):
             with self.assertRaises(urllib.error.HTTPError) as caught:
@@ -87,7 +95,7 @@ class ServerTests(unittest.TestCase):
             choose.assert_not_called()
             with self.post({'kind': 'manifest'}, path='/api/browse') as response:
                 self.assertIsNone(json.load(response)['path'])
-            choose.assert_called_once_with('manifest')
+            choose.assert_called_once_with('manifest', 'en')
         self.assertEqual(self.get('/api/state')['items'], self.state['items'])
         self.assertIsNone(self.get('/api/job')['id'])
 

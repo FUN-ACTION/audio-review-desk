@@ -19,12 +19,21 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="/style.css?v=0.4.0" />
-    <script type="module" src="/app.js?v=0.4.0"></script>
+    <link rel="stylesheet" href="/style.css?v=0.5.0" />
+    <script type="module" src="/app.js?v=0.5.0"></script>
   </head>
   <body class="is-empty">
     <svg class="svg-defs" aria-hidden="true">
       <defs>
+        <symbol id="i-file" viewBox="0 0 24 24">
+          <path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 13h8m-8 4h5" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M3 7V5h6l2 3h10v12H3V7Z" />
+        </symbol>
+        <symbol id="i-marker" viewBox="0 0 24 24">
+          <path d="M6 3h12v18l-6-4-6 4V3Z" />
+        </symbol>
         <symbol id="i-wave" viewBox="0 0 24 24">
           <path d="M3 10v4m4-8v12m5-15v18m5-15v12m4-8v4" />
         </symbol>
@@ -77,6 +86,14 @@
           ><svg><use href="#i-wave" /></svg></span
         ><strong>Audio Review Desk</strong></a
       >
+      <button
+        id="openCommands"
+        class="command-trigger"
+        data-title="commandMenu"
+      >
+        <svg><use href="#i-search" /></svg
+        ><span data-t="commandSearch">搜索或执行操作</span><kbd>Ctrl K</kbd>
+      </button>
       <div class="header-controls">
         <div class="workspace-tools">
           <button id="theme" class="icon-button" data-title="appearance">
@@ -85,18 +102,18 @@
           <button id="openHelp" class="icon-button" data-title="help">
             <svg><use href="#i-help" /></svg>
           </button>
-          <select id="language" aria-label="Language">
+          <select id="language" data-title="language">
             <option value="zh">中文</option>
             <option value="en">English</option>
           </select>
-          <span id="version">0.4.0</span>
+          <span id="version">0.5.0</span>
         </div>
         <div class="app-actions">
           <button id="rescan" class="icon-button" data-title="rescan">
             <svg><use href="#i-refresh" /></svg>
           </button>
           <details class="export-menu" id="exportMenu">
-            <summary>
+            <summary data-title="export">
               <svg><use href="#i-export" /></svg
               ><span data-t="export">导出</span>
             </summary>
@@ -118,7 +135,7 @@
               >
             </div>
           </details>
-          <button id="openImport" class="primary">
+          <button id="openImport" class="primary" data-title="import">
             <svg><use href="#i-plus" /></svg
             ><span data-t="import">导入素材</span>
           </button>
@@ -164,6 +181,7 @@
             <option value="name" data-t="byName">名称</option>
             <option value="duration" data-t="byDuration">时长</option>
             <option value="level" data-t="byLevel">电平</option>
+            <option value="recent" data-t="byRecent">最近审核</option>
           </select>
         </div>
         <div class="selection-row">
@@ -181,7 +199,10 @@
             <option value="pending" data-t="pending">待审</option></select
           ><button id="applyBatch" data-t="apply">应用</button>
         </div>
-        <div id="items" class="items" aria-label="Audio files"></div>
+        <div class="queue-shell">
+          <div id="queueHighlight" class="queue-highlight" hidden></div>
+          <div id="items" class="items" data-title="library"></div>
+        </div>
         <div id="emptyLibrary" class="empty-library" hidden>
           <svg><use href="#i-wave" /></svg>
           <p data-t="emptyTitle">还没有素材</p>
@@ -201,8 +222,14 @@
       </aside>
       <section class="workspace">
         <div class="workspace-topline">
-          <div class="breadcrumb">
-            <span data-t="listening">听审</span>
+          <div class="review-progress">
+            <span id="reviewProgressText"></span
+            ><progress
+              id="reviewProgress"
+              max="1"
+              value="0"
+              data-title="reviewProgress"
+            ></progress>
           </div>
           <div>
             <button id="focusMode" class="icon-button" data-title="focus">
@@ -212,6 +239,7 @@
             </button>
           </div>
         </div>
+
         <div class="summary-bar">
           <span
             ><b id="pendingCount">0</b> <span data-t="pending">待审</span></span
@@ -262,7 +290,7 @@
                     id="abSwitch"
                     class="variants"
                     role="group"
-                    aria-label="A/B audio"
+                    data-title="compare"
                   >
                     <i id="abGlider" aria-hidden="true"></i
                     ><button
@@ -295,6 +323,7 @@
                   </div>
                 </div>
                 <div id="waveArea" class="wave-area">
+                  <div id="markerTicks" class="marker-ticks"></div>
                   <div class="wave-grid" aria-hidden="true"></div>
                   <div
                     id="waveSelection"
@@ -304,7 +333,7 @@
                   <canvas
                     id="waveform"
                     height="240"
-                    aria-label="Audio waveform"
+                    data-title="waveform"
                   ></canvas>
                   <div id="playhead" class="playhead" aria-hidden="true">
                     <i></i>
@@ -352,11 +381,7 @@
                   value="0"
                   data-title="panWave"
                 />
-                <audio
-                  id="player"
-                  preload="metadata"
-                  aria-label="Clip audio player"
-                ></audio>
+                <audio id="player" preload="metadata" data-title="play"></audio>
                 <div class="transport">
                   <div class="transport-main">
                     <button
@@ -408,7 +433,7 @@
                     ><span data-t="loop">循环</span></label
                   ><label class="speed-label"
                     ><span data-t="speed">速度</span
-                    ><select id="speed" aria-label="Playback speed">
+                    ><select id="speed" data-title="speed">
                       <option value="0.5">0.5×</option>
                       <option value="0.75">0.75×</option>
                       <option value="1" selected>1×</option>
@@ -416,10 +441,28 @@
                       <option value="1.5">1.5×</option>
                     </select></label
                   ><span class="playback-shortcut"
-                    ><kbd>space</kbd
+                    ><kbd>Space</kbd
                     ><span data-t="playPause">播放 / 暂停</span></span
                   >
                 </div>
+              </section>
+              <section class="marker-editor">
+                <div class="section-heading">
+                  <h3 data-t="timeNotes">时间批注</h3>
+                  <span class="marker-shortcut"><kbd>M</kbd></span>
+                </div>
+                <div class="marker-compose">
+                  <input
+                    id="markerText"
+                    maxlength="240"
+                    type="text"
+                    data-placeholder="markerPlaceholder"
+                    data-title="markerText"
+                  /><button id="addMarker" data-title="addMarker" type="button">
+                    <svg><use href="#i-plus" /></svg>
+                  </button>
+                </div>
+                <div id="markerList" class="marker-list"></div>
               </section>
               <section class="range-editor">
                 <div class="section-heading">
@@ -441,7 +484,7 @@
                         form="reviewForm"
                         type="number"
                         min="0"
-                        step="0.001"
+                        step="any"
                         placeholder="0.000"
                       /><span>s</span
                       ><button
@@ -461,7 +504,7 @@
                         form="reviewForm"
                         type="number"
                         min="0"
-                        step="0.001"
+                        step="any"
                       /><span>s</span
                       ><button
                         id="markOut"
@@ -513,7 +556,7 @@
                   ><span data-t="pending">待审</span><kbd>4</kbd></label
                 >
               </fieldset>
-              <label class="score-label"
+              <label class="score-row"
                 ><span data-t="score">评分</span>
                 <div>
                   <input
@@ -521,7 +564,7 @@
                     type="number"
                     min="0"
                     max="10"
-                    step="0.1"
+                    step="any"
                     placeholder="—"
                   /><span>/ 10</span>
                 </div></label
@@ -530,7 +573,7 @@
                 <legend data-t="issues">问题标记</legend>
                 <div id="issues"></div>
               </fieldset>
-              <label class="notes-label"
+              <label class="note-field"
                 ><span data-t="notes">备注</span
                 ><textarea
                   id="note"
@@ -557,48 +600,43 @@
           </div>
         </section>
         <section id="emptyDetail" class="intake" aria-labelledby="intakeTitle">
-          <div class="intake-copy">
-            <span class="intake-reveal intake-index"
-              ><span data-t="library">素材库</span></span
-            >
-            <h1 id="intakeTitle" class="intake-reveal" data-t="welcome">
-              导入音频
-            </h1>
-            <p class="intake-reveal" data-t="welcomeHelp">
-              选择文件夹，或载入已有清单。
-            </p>
-            <div class="intake-reveal intake-footnote">
-              <span class="workspace-dot"></span
-              ><span data-t="localFiles">本机文件 · 原文件只读</span>
+          <div class="intake-heading">
+            <span class="intake-symbol"
+              ><svg><use href="#i-wave" /></svg
+            ></span>
+            <div>
+              <h1 id="intakeTitle" data-t="welcome">添加待审音频</h1>
+              <p data-t="welcomeHelp">选择文件、文件夹，或导入已有清单。</p>
             </div>
           </div>
-          <div class="intake-choices intake-reveal">
-            <button id="chooseFolder" class="intake-action" type="button">
-              <span class="intake-number">01</span
-              ><span class="intake-action-copy"
-                ><strong data-t="folder">音频文件夹</strong
-                ><small data-t="folderHelp">扫描目录中的音频</small></span
-              ><svg class="intake-arrow"><use href="#i-diagonal" /></svg>
+          <div class="source-grid">
+            <button id="chooseFiles" class="source-card featured" type="button">
+              <span class="source-icon"
+                ><svg><use href="#i-file" /></svg></span
+              ><strong data-t="chooseFiles">选择音频文件</strong
+              ><span data-t="filesHelp">一次添加多个文件</span
+              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
             </button>
-            <button id="chooseManifest" class="intake-action" type="button">
-              <span class="intake-number">02</span
-              ><span class="intake-action-copy"
-                ><strong data-t="manifest">CSV / JSON 清单</strong
-                ><small data-t="manifestHelp"
-                  >载入片段、来源和参考音频</small
-                ></span
-              ><svg class="intake-arrow"><use href="#i-diagonal" /></svg>
+            <button id="chooseFolder" class="source-card" type="button">
+              <span class="source-icon"
+                ><svg><use href="#i-folder" /></svg></span
+              ><strong data-t="chooseFolder">选择文件夹</strong
+              ><span data-t="folderHelp">包含子文件夹中的音频</span
+              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
             </button>
-            <div class="intake-meta">
-              <span>WAV / FLAC / MP3 / M4A / OGG</span
-              ><button
-                id="welcomeImport"
-                class="text-button"
-                data-t="enterPath"
-              >
-                填写路径
-              </button>
-            </div>
+            <button id="chooseManifest" class="source-card" type="button">
+              <span class="source-icon"
+                ><svg><use href="#i-import" /></svg></span
+              ><strong data-t="chooseManifest">导入清单</strong
+              ><span data-t="manifestHelp">CSV / JSON</span
+              ><svg class="source-arrow"><use href="#i-diagonal" /></svg>
+            </button>
+          </div>
+          <div class="intake-bottom">
+            <span>WAV · FLAC · MP3 · M4A · OGG</span
+            ><button id="welcomeImport" class="text-button" data-t="enterPath">
+              输入路径
+            </button>
           </div>
         </section>
         <footer class="workspace-footer">
@@ -637,57 +675,57 @@
       </div>
     </dialog>
     <dialog id="importDialog" aria-labelledby="importTitle">
-      <form id="importForm">
+      <form id="importForm" novalidate>
         <div class="dialog-heading">
-          <span class="dialog-mark"
-            ><svg><use href="#i-import" /></svg></span
-          ><button
+          <h2 id="importTitle" data-t="import">添加音频</h2>
+          <button
             id="closeImport"
             type="button"
             class="icon-button"
-            aria-label="Close import"
+            data-title="close"
           >
             <svg><use href="#i-close" /></svg>
           </button>
         </div>
-        <h2 id="importTitle" data-t="import">导入素材</h2>
-        <p data-t="importHelp">选择目录或清单，加入当前工作区。</p>
+        <div class="import-source-row">
+          <label class="field-label"
+            ><span data-t="importType">来源</span
+            ><select id="importKind">
+              <option value="files" data-t="audioFiles">音频文件</option>
+              <option value="directory" data-t="folder">文件夹</option>
+              <option value="manifest" data-t="manifest">
+                CSV / JSON 清单
+              </option>
+            </select></label
+          ><button id="browsePath" type="button" data-t="browse">选择…</button>
+        </div>
         <label class="field-label"
-          ><span data-t="importType">类型</span
-          ><select id="importKind">
-            <option value="directory" data-t="folder">音频目录</option>
-            <option value="manifest" data-t="manifest">CSV / JSON 清单</option>
-          </select></label
-        ><label class="field-label"
-          ><span data-t="path">本机路径</span
-          ><input
+          ><span data-t="path">路径</span
+          ><textarea
             id="importPath"
-            type="text"
+            rows="2"
             required
             autocomplete="off"
             spellcheck="false"
-            placeholder="D:\Audio\Clips" /></label
-        ><button
-          id="browsePath"
-          type="button"
-          class="browse-path"
-          data-t="browse"
-        >
-          浏览本机…</button
-        ><label class="append-option"
-          ><input id="appendImport" type="checkbox" checked /><span
-            data-t="append"
-            >保留已有素材</span
-          ></label
-        >
-        <p class="hint" data-t="replaceHelp">
-          关闭后替换当前列表，审核历史仍保留。
-        </p>
-        <div id="importError" role="alert" hidden></div>
+            data-placeholder="pathPlaceholder"
+          ></textarea>
+        </label>
+        <div id="appendOptions">
+          <label class="append-option"
+            ><input id="appendImport" type="checkbox" checked /><span
+              data-t="append"
+              >追加到素材库</span
+            ></label
+          >
+          <p id="replaceHint" class="hint" data-t="replaceHelp" hidden>
+            替换当前列表，保留审核历史。
+          </p>
+        </div>
+        <div id="importError" class="inline-error" role="alert" hidden></div>
         <div class="dialog-actions">
           <button id="dismissImport" type="button" data-t="cancel">取消</button
           ><button type="submit" class="primary" data-t="startImport">
-            开始导入
+            添加
           </button>
         </div>
       </form>
@@ -695,12 +733,11 @@
     <dialog id="helpDialog" aria-labelledby="helpTitle">
       <div class="dialog-heading">
         <h2 id="helpTitle" data-t="help">使用帮助</h2>
-        <button id="closeHelp" class="icon-button" aria-label="Close help">
+        <button id="closeHelp" class="icon-button" data-title="close">
           <svg><use href="#i-close" /></svg>
         </button>
       </div>
       <div class="help-content">
-        <h3 data-t="keyboard">快捷键</h3>
         <dl class="shortcut-list">
           <div>
             <dt>Space</dt>
@@ -723,7 +760,7 @@
             <dd data-t="boundaries">标记起止位置</dd>
           </div>
           <div>
-            <dt>Ctrl + Enter</dt>
+            <dt>Ctrl / ⌘ Enter</dt>
             <dd data-t="save">保存</dd>
           </div>
           <div>
@@ -731,14 +768,55 @@
             <dd data-t="focus">专注试听</dd>
           </div>
         </dl>
-        <h3 data-t="aboutRecords">文件与记录</h3>
-        <p data-t="recordsHelp">
-          区间和标记写入工作区，不会裁剪原文件。更换音频后，新版本重新进入待审。
-        </p>
-        <p data-t="checksHelp">
-          检测项包含电平、静音和解码情况。评分由你听后填写。
-        </p>
-        <p class="help-version">Audio Review Desk · 0.4.0</p>
+        <dl class="shortcut-list">
+          <div>
+            <dt>Ctrl / ⌘ K</dt>
+            <dd data-t="commandMenu">快捷操作</dd>
+          </div>
+          <div>
+            <dt>M</dt>
+            <dd data-t="addMarker">在播放位置添加批注</dd>
+          </div>
+          <div>
+            <dt>← / →</dt>
+            <dd data-t="adjustBoundary">微调已选中的区间边界</dd>
+          </div>
+        </dl>
+        <a
+          class="release-link"
+          href="https://github.com/FUN-ACTION/audio-review-desk/releases"
+          target="_blank"
+          rel="noreferrer"
+          data-t="releaseNotes"
+          >版本记录 ↗</a
+        >
+      </div>
+    </dialog>
+
+    <dialog
+      id="commandDialog"
+      class="command-dialog"
+      aria-labelledby="commandTitle"
+    >
+      <h2 id="commandTitle" class="sr-only" data-t="commandMenu">快捷操作</h2>
+      <div class="command-input-row">
+        <svg><use href="#i-search" /></svg
+        ><input
+          id="commandInput"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="commandList"
+          aria-expanded="true"
+          data-placeholder="commandSearch"
+          data-title="commandSearch"
+          autocomplete="off"
+        /><button id="closeCommands" class="text-button" data-title="close">
+          <kbd>Esc</kbd>
+        </button>
+      </div>
+      <div id="commandList" role="listbox"></div>
+      <div class="command-footer" data-t="commandKeys">
+        ↑↓ 选择　↵ 执行　Esc 关闭
       </div>
     </dialog>
   </body>

@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .audio import AudioError, Decoder, SUPPORTED, analyze, file_sha256, write_preview
+from .errors import error_code
 
 SCHEMA = "audio-review-desk/v1"
 STATUSES = {"pending", "pass", "fix", "exclude"}
@@ -58,7 +59,7 @@ def merge_ranges(intervals: list[tuple[float, float]]) -> list[list[float]]:
 
 def default_review() -> dict:
     return {"status": "pending", "score": None, "issues": [], "note": "", "trim_start": None,
-            "trim_end": None, "version": 0, "updated_utc": None, "origin": None}
+            "trim_end": None, "markers": [], "version": 0, "updated_utc": None, "origin": None}
 
 
 def public_asset(asset: dict) -> dict:
@@ -132,9 +133,22 @@ class Workspace:
         return self.ingest(rows, manifest.parent, kind="manifest", append=append, progress=progress,
                            cancelled=cancelled, source=manifest)
 
+    def import_files(self, paths: list[str], *, append: bool = False, progress: Callable | None = None,
+                     cancelled: threading.Event | None = None) -> dict:
+        if not isinstance(paths, list) or not 1 <= len(paths) <= 500 or any(not isinstance(p, str) or not p.strip() for p in paths):
+            raise ValueError("Select between 1 and 500 audio files")
+        if any(Path(p).is_symlink() for p in paths):
+            raise ValueError("Symbolic links are not supported")
+        sources = sorted({Path(p).expanduser().resolve(strict=True) for p in paths})
+        if any(not p.is_file() for p in sources):
+            raise ValueError("The path does not match the selected import type")
+        rows = [{"id": "file:" + hashlib.sha256(str(p).encode()).hexdigest()[:24], "path": str(p), "label": p.name} for p in sources]
+        return self.ingest(rows, Path.cwd(), kind="files", append=append, progress=progress,
+                           cancelled=cancelled, source=sources)
+
     def ingest(self, rows: list[dict], base: Path, kind: str, *, append: bool = False,
                progress: Callable | None = None, cancelled: threading.Event | None = None,
-               source: Path | None = None) -> dict:
+               source: Path | list[Path] | None = None) -> dict:
         # Validate all rows first; a malformed manifest cannot partially replace a catalog.
         prepared = []
         ids: set[str] = set()
@@ -168,8 +182,10 @@ class Workspace:
                              "path": str(path), "source_id": source_id, "source_start": start,
                              "source_end": end, "eligible": boolean(raw.get("eligible", True)),
                              "reference_path": str(reference_path) if reference_path else None})
-        source = (source or base).resolve()
-        collection_id = hashlib.sha256(f"{kind}\0{source}".encode()).hexdigest()[:24]
+        source = source if isinstance(source, list) else (source or base).resolve()
+        source_value = [str(p) for p in source] if isinstance(source, list) else str(source)
+        source_key = encode(source_value) if isinstance(source_value, list) else source_value
+        collection_id = hashlib.sha256(f"{kind}\0{source_key}".encode()).hexdigest()[:24]
         assets = []
         def report(done, label, phase="decoding"):
             if cancelled is not None and cancelled.is_set():
@@ -202,6 +218,7 @@ class Workspace:
                     pass
                 asset["error"] = (f"Audio file unavailable ({type(exc).__name__})" if isinstance(exc, OSError)
                                   else str(exc)[:500])
+                asset["error_code"] = error_code(exc)
                 asset["eligible"] = False
                 asset["source_id"] = asset["source_id"] or "unreadable:" + asset["id"]
                 asset["source_end"] = asset["source_start"]
@@ -233,9 +250,9 @@ class Workspace:
                 connection.execute("INSERT INTO assets VALUES(?,?,?,1) ON CONFLICT(key) DO UPDATE SET metadata=excluded.metadata,active=1",
                                    (asset["key"], asset["id"], encode(asset)))
             connection.execute("INSERT OR REPLACE INTO settings VALUES('scan',?)",
-                               (encode({"at": utc(), "kind": kind, "items": len(assets), "label": source.name}),))
+                               (encode({"at": utc(), "kind": kind, "items": len(assets), "label": "" if isinstance(source, list) else source.name}),))
             connection.execute("INSERT OR REPLACE INTO settings VALUES('import_source',?)",
-                               (encode({"path": str(source), "kind": kind, "append": append}),))
+                               (encode({"path": source_value, "kind": kind, "append": append}),))
         return self.state()
 
     def import_source(self) -> dict | None:
@@ -256,7 +273,7 @@ class Workspace:
     @staticmethod
     def review(connection: sqlite3.Connection, key: str) -> dict:
         row = connection.execute("SELECT payload FROM reviews WHERE key=?", (key,)).fetchone()
-        return json.loads(row["payload"]) if row else default_review()
+        return dict(default_review(), **json.loads(row["payload"])) if row else default_review()
 
     def state(self) -> dict:
         with self.connect() as connection:
@@ -287,6 +304,8 @@ class Workspace:
             current = self.review(connection, key)
             if payload["expected_version"] != current["version"]:
                 raise Conflict("Another page updated this review; reload before saving")
+            if "markers" not in payload:
+                clean["markers"] = current.get("markers", [])
             review = self.write_review(connection, key, clean, current["version"] + 1, origin)
         return review
 
@@ -318,8 +337,19 @@ class Workspace:
                 raise ValueError("Trim bounds must be finite seconds within this clip")
         if (start if start is not None else 0) >= (end if end is not None else duration) and duration > 0:
             raise ValueError("Trim start must be before trim end")
+        markers = payload.get("markers", [])
+        if not isinstance(markers, list) or len(markers) > 100:
+            raise ValueError("Use at most 100 time notes")
+        clean_markers = []
+        for marker in markers:
+            if (not isinstance(marker, dict) or type(marker.get("time")) not in (int, float)
+                    or not math.isfinite(marker["time"]) or not 0 <= marker["time"] <= duration
+                    or not isinstance(marker.get("text"), str) or not 1 <= len(marker["text"].strip()) <= 240
+                    or not asset["quality"]["decoded"]):
+                raise ValueError("Time notes need a position within the clip and text of 1 to 240 characters")
+            clean_markers.append({"time": marker["time"], "text": marker["text"].strip()})
         return {"status": status, "score": score, "issues": sorted(set(issues)), "note": note,
-                "trim_start": start, "trim_end": end}
+                "trim_start": start, "trim_end": end, "markers": sorted(clean_markers, key=lambda row: row["time"])}
 
     @staticmethod
     def write_review(connection, key: str, clean: dict, version: int, origin: str) -> dict:
@@ -360,7 +390,7 @@ class Workspace:
         history = self.history(key)
         if not history:
             raise ValueError("No saved review to undo")
-        previous = history[-2] if len(history) > 1 else default_review()
+        previous = dict(default_review(), **history[-2]) if len(history) > 1 else default_review()
         return self.save_review(key, dict(previous, expected_version=expected_version), origin="undo")
 
     def export_csv(self, status: str = "all", include_paths: bool = False) -> str:
@@ -368,7 +398,7 @@ class Workspace:
             raise ValueError("Unknown export status")
         exported = self.export(include_paths)
         columns = ["id", "label", "source_id", "source_start", "source_end", "sha256", "pcm_sha256",
-                   "status", "score", "issues", "note", "trim_start", "trim_end"]
+                   "status", "score", "issues", "note", "trim_start", "trim_end", "markers"]
         if include_paths:
             columns.append("path")
         stream = io.StringIO(newline="")
@@ -381,7 +411,7 @@ class Workspace:
             row = {name: item.get(name, "") for name in columns}
             row.update({name: review.get(name, "") for name in ("status", "score", "note", "trim_start", "trim_end")})
             row.update(sha256=item["quality"].get("sha256", ""), pcm_sha256=item["quality"].get("pcm_sha256", ""),
-                       issues=";".join(review["issues"]))
+                       issues=";".join(review["issues"]), markers=encode(review.get("markers", [])))
             # Keep spreadsheet programs from evaluating user-supplied cell contents.
             for name, value in row.items():
                 if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
