@@ -54,7 +54,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 403)
 
     def test_static_assets_are_packaged_and_private_paths_not_served(self):
-        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js"):
+        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/listening.js", "/markers.js", "/fonts.css", "/transport.js"):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
@@ -66,13 +66,32 @@ class ServerTests(unittest.TestCase):
     def test_packaged_fonts_and_version_endpoint(self):
         from audio_review_desk import __version__
         self.assertEqual(self.get('/api/version'), {'version': __version__})
-        for path in ('/studio-latin.woff2', '/studio-cjk.woff2'):
+        for path in ('/studio-latin.woff2', '/studio-cjk.woff2', '/desk-display.woff2', '/desk-cjk-ui.woff2'):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.read(4), b'wOF2')
                 self.assertIn('font', response.headers['Content-Type'])
 
+    def test_workspace_scope_is_stable_opaque_and_separates_equal_folder_names(self):
+        scope = self.state['workspace_id']
+        self.assertRegex(scope, r'^[0-9a-f]{64}$')
+        self.assertEqual(self.get('/api/state')['workspace_id'], scope)
+        other = Workspace(self.root / 'another' / 'workspace')
+        server = make_server(other, 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with urllib.request.urlopen(f'http://127.0.0.1:{server.server_port}/api/state') as response:
+                state = json.load(response)
+            self.assertEqual(state['workspace'], self.state['workspace'])
+            self.assertNotEqual(state['workspace_id'], scope)
+            self.assertNotIn(str(self.root), state['workspace_id'])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_walkthrough_assets_ranges_and_path_boundary(self):
-        for path in ('/tour/', '/tour/tour.js', '/tour/tour.css', '/tour/preview.js', '/tour/media/studio-scene.webp'):
+        for path in ('/tour/', '/tour/tour.js', '/tour/tour.css', '/tour/media-info.js', '/tour/preview.js', '/tour/media/workflow-zh.webp'):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers['Content-Security-Policy'])

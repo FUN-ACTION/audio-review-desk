@@ -13,7 +13,7 @@ Clone the repository, run `python -m venv .venv`, then use the environment's Pyt
 
 No shell activation is necessary. To install a downloaded wheel, replace `.` with the wheel path. PyPI publication is not currently provided; use this repository or its release assets.
 
-The build backend is setuptools, downloaded by pip from its configured package registry when needed. After installation, the WAV-only demo can run offline. No accounts, keys, model weights, or external services are required.
+The build backend is setuptools 77 or newer, downloaded by pip from its configured package registry when needed. The minimum matches the package's SPDX licence metadata ([setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html)). After installation, the WAV-only example can run offline. No accounts, keys, model weights, or external services are required.
 
 ## Optional FFmpeg
 
@@ -47,7 +47,7 @@ Choose one or more audio files, a folder, or a manifest in the local selection w
 
 The app keeps other collections by default. Reimporting a collection updates its members and removes missing members from the active list, while retaining historical versions. Different files with the same clip ID are rejected in append mode; give them unique IDs in a manifest or explicitly replace the active list.
 
-## Upgrading from 0.1
+## Upgrading and older workspaces
 
 Version-specific changes and these compatibility instructions are archived for [every release](releases/README.md).
 
@@ -75,4 +75,11 @@ Time notes are optional fields in the existing review JSON. Existing databases a
 
 ## Version 0.6 walkthrough
 
-The empty workspace has a click-to-play recording. Open the full walkthrough from that preview or from keyboard help. Videos, posters and the studio backdrop are included in the wheel and work without external media services. The separate public walkthrough is a static site; it has no connection to a local workspace. See [0.6 upgrade notes](releases/0.6.0.md).
+The empty workspace has a click-to-play recording. Open the full walkthrough from that preview or from keyboard help. Videos and posters are included in the wheel and work without external media services. The separate public walkthrough is a static site; it has no connection to a local workspace. See [0.6 upgrade notes](releases/0.6.0.md).
+
+
+## Version 0.7 listening memory
+
+Playback position, speed, volume and loop preference are stored in this browser for the current workspace. Reloading does not start audio automatically. Position memory can be turned off in Help, which clears saved positions. Reviews, ranges and annotations remain in the workspace database regardless of that preference. A different browser or server port has separate browser storage.
+
+The walkthrough now uses direct application recordings, with replay, seeking and a larger viewer. Its videos are illustrations of the workflow; they do not contain a user's imported files. See [0.7 changes and upgrade steps](releases/0.7.0.md).

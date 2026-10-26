@@ -1,18 +1,16 @@
 # Audio Review Desk
 
-[Watch the app in action](https://fun-action.github.io/audio-review-desk/tour/) · [0.6 release notes](releases/0.6.0.md)
+Listen through audio collections, compare references, and save keep ranges and timestamped notes. Export reviews as CSV or JSON.
 
-Review a collection of audio clips, compare references, and leave keep ranges and timestamped notes. Export the decisions when the collection is ready for the next tool.
+[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.7 changes](releases/0.7.0.md)
 
-[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [Release notes](releases/README.md)
+[![Listening, notes and review decisions](walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
 
-![Listening, time notes and review decisions](screenshot.png)
-
-The screenshot uses generated signals and illustrative decisions.
+[Watch the walkthrough](https://fun-action.github.io/audio-review-desk/tour/) · [Workspace screenshot](screenshot.png)
 
 ## Start
 
-On Windows, unzip the [latest source release](https://github.com/FUN-ACTION/audio-review-desk/releases/latest) and run `start-windows.cmd`. Python 3.11+ is required.
+On Windows, unzip the [latest source release](https://github.com/FUN-ACTION/audio-review-desk/releases/latest) and run `start-windows.cmd`. Python 3.11 or newer is required.
 
 On macOS or Linux:
 
@@ -21,24 +19,33 @@ git clone https://github.com/FUN-ACTION/audio-review-desk.git
 cd audio-review-desk
 python3 -m venv .venv
 .venv/bin/python -m pip install .
+.venv/bin/python -m audio_review_desk init --workspace review-workspace
 .venv/bin/python -m audio_review_desk serve --workspace review-workspace --open
 ```
 
-Choose audio files, a folder, or a CSV/JSON manifest. Multiple files can be selected together; manual paths go on separate lines. PCM WAV works directly. Other formats need [FFmpeg and ffprobe](installation.md#optional-ffmpeg).
+Choose audio files, a folder, or a CSV / JSON manifest. Multiple files can be selected together. Integer PCM WAV works directly; other formats need [FFmpeg and ffprobe](installation.md#optional-ffmpeg).
 
 ## Review a collection
 
-Search and filter the library, or sort by recent reviews. Ctrl / Cmd K searches clips and actions. Switch A/B to compare a reference, zoom into the waveform, and drag the keep-range handles. Loop or slow a phrase down when needed.
+Find a clip on the left, listen in the middle, and save a decision on the right. Search includes filenames, review notes and time notes. Ctrl / Cmd K opens clips and common actions.
 
-Press M to add a note at the playhead. Click its timestamp to return there. Save a decision in the inspector and continue to the next clip. Undo restores the previous review without deleting history. Batch changes retain notes and scores; approval is per clip.
+| Task | Controls |
+| --- | --- |
+| Compare | Switch A / B between the original and the reference in a manifest; change speed or loop a phrase |
+| Annotate | Press M to add a note at the playhead; click its time to seek, or its text to edit the note and timestamp |
+| Set a range | Drag the waveform edges, or press `[` / `]` to mark the playhead position |
+| Decide | Approve, mark for work, or exclude; Save & continue opens the next pending clip |
+| Export | Download approved clips as CSV, or save the full review as JSON; both include ranges and time notes |
 
-Export approved clips as CSV, or save the full review data as JSON. Both include time notes. See [counting and precision](counting.md) for source overlap and PCM comparison rules.
+Undo restores an earlier review without deleting history. Batch changes keep notes and scores; approval is per clip. Listening position, speed and volume stay in this browser. Position memory can be turned off in Help.
 
 ## Files and updates
 
-Source files are read-only. The workspace holds the database and listening copies. A replacement clip or reference starts a new review version; previous decisions remain in history. Use stable manifest IDs when moving files between locations.
+0.7 adds editable time notes, search within notes, and listening-position recovery. It also reuses library rows when changing clips, and revises the type, layout and recorded walkthrough. [The release notes](releases/0.7.0.md) include changes and upgrade steps.
 
-Version 0.6 adds three recorded workflows in both languages, a studio walkthrough and a click-to-play preview on the empty workspace. See [changes and upgrade steps](releases/0.6.0.md) and [media sources](showcase-media.md). Stop the old server, back up the entire workspace, install in the app's existing environment, and reopen the original workspace path.
+Source audio is read-only. Ranges do not crop it. The separate workspace stores the database, review history and listening copies. Stop the old server, back up the **entire workspace**, install in the app's existing environment, and reopen the original path. [Every version](releases/README.md) has its own upgrade notes.
+
+Changed audio or references start a new pending version. Use stable manifest IDs when moving files. See [counting and precision](counting.md) for source overlap and PCM comparison rules.
 
 ## Development
 
@@ -48,4 +55,6 @@ python -m unittest discover -s tests -v
 node --test tests-js/*.test.mjs
 ```
 
-Tests use temporary workspaces and generated signals. Node.js 22+ is for frontend tests; normal usage needs no Node installation. See [contributing](../CONTRIBUTING.md), [verification](verification.md) and [third-party licences](../THIRD_PARTY_NOTICES.md).
+Tests use temporary workspaces and generated signals. Scores and notes in the walkthrough illustrate the controls. Node.js 22+ is needed only for frontend tests.
+
+See [contributing](../CONTRIBUTING.md), [verification](verification.md) and [third-party licences](../THIRD_PARTY_NOTICES.md). The application code is MIT-licensed.

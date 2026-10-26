@@ -6,11 +6,14 @@ export function mountPreview({ video, button, t }) {
     button.textContent = t(
       failed
         ? "previewUnavailable"
-        : video.paused
-          ? "previewPlay"
-          : "previewPause",
+        : video.ended
+          ? "previewReplay"
+          : video.paused
+            ? "previewPlay"
+            : "previewPause",
     );
     button.setAttribute("aria-pressed", String(!video.paused));
+    button.setAttribute("aria-label", button.textContent);
     button.disabled = failed;
   };
   button.addEventListener("click", () => {

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "audio-review-desk"
-version = "0.6.0"
+version = "0.7.0"
 description = "Listen, compare and annotate audio collections on your computer."
 readme = "README.md"
 requires-python = ">=3.11"

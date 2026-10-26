@@ -14,17 +14,24 @@
     />
     <link
       rel="preload"
-      href="/studio-cjk.woff2"
+      href="/desk-cjk-ui.woff2"
       as="font"
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="/style.css?v=0.6.0" />
-    <script type="module" src="/app.js?v=0.6.0"></script>
+    <link rel="stylesheet" href="/fonts.css?v=0.7.0" />
+    <link rel="stylesheet" href="/style.css?v=0.7.0" />
+    <script type="module" src="/app.js?v=0.7.0"></script>
   </head>
-  <body class="is-empty">
+  <body class="is-loading">
     <svg class="svg-defs" aria-hidden="true">
       <defs>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="M8 5h12M4 5h.01M14 12h6M4 12h6M4 19h12m4 0h.01" />
+          <circle cx="6" cy="5" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="18" cy="19" r="2" />
+        </symbol>
         <symbol id="i-file" viewBox="0 0 24 24">
           <path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 13h8m-8 4h5" />
         </symbol>
@@ -90,29 +97,43 @@
         id="openCommands"
         class="command-trigger"
         data-title="commandMenu"
+        disabled
       >
         <svg><use href="#i-search" /></svg
         ><span data-t="commandSearch">搜索或执行操作</span><kbd>Ctrl K</kbd>
       </button>
       <div class="header-controls">
-        <div class="workspace-tools">
+        <button
+          id="openSettings"
+          class="icon-button settings-toggle"
+          data-title="settings"
+          aria-controls="settingsPanel"
+          aria-expanded="false"
+        >
+          <svg><use href="#i-settings" /></svg>
+        </button>
+        <div id="settingsPanel" class="workspace-tools">
           <button id="theme" class="icon-button" data-title="appearance">
-            <svg><use href="#i-theme" /></svg>
+            <svg><use href="#i-theme" /></svg
+            ><span class="settings-label" data-t="appearance">切换外观</span>
           </button>
           <button id="openHelp" class="icon-button" data-title="help">
-            <svg><use href="#i-help" /></svg>
+            <svg><use href="#i-help" /></svg
+            ><span class="settings-label" data-t="help">键盘操作</span>
           </button>
-          <select id="language" data-title="language">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-          <span id="version">0.6.0</span>
+          <label class="settings-language"
+            ><span class="settings-label" data-t="language">语言</span
+            ><select id="language" data-title="language">
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select></label
+          >
         </div>
         <div class="app-actions">
-          <button id="rescan" class="icon-button" data-title="rescan">
+          <button id="rescan" class="icon-button" data-title="rescan" disabled>
             <svg><use href="#i-refresh" /></svg>
           </button>
-          <details class="export-menu" id="exportMenu">
+          <details class="export-menu" id="exportMenu" inert>
             <summary data-title="export">
               <svg><use href="#i-export" /></svg
               ><span data-t="export">导出</span>
@@ -135,14 +156,18 @@
               >
             </div>
           </details>
-          <button id="openImport" class="primary" data-title="import">
+          <button id="openImport" class="primary" data-title="import" disabled>
             <svg><use href="#i-plus" /></svg
             ><span data-t="import">导入素材</span>
           </button>
         </div>
       </div>
     </header>
-    <main>
+    <div id="bootStatus" class="boot-status" role="status">
+      <p data-t="loadingWorkspace">正在打开工作区…</p>
+      <button id="retryLoad" data-t="retryLoad" hidden>重新连接</button>
+    </div>
+    <main inert>
       <aside class="library">
         <div class="library-heading">
           <h1 data-t="library">素材库</h1>
@@ -174,8 +199,9 @@
             <option value="fix" data-t="fix">待处理</option>
             <option value="exclude" data-t="exclude">排除</option>
             <option value="warnings" data-t="flags">需关注</option>
-            <option value="duplicates" data-t="duplicates">
-              重复文件
+            <option value="duplicates" data-t="duplicates">重复文件</option>
+            <option value="noted" data-t="withNotes">
+              有批注或备注
             </option></select
           ><select id="sort" aria-label="Sort audio">
             <option value="name" data-t="byName">名称</option>
@@ -210,49 +236,61 @@
             导入素材
           </button>
         </div>
-        <p id="emptyFilter" class="empty-filter" data-t="emptyFilter" hidden>
-          没有匹配的文件
-        </p>
-        <footer class="library-footer">
-          <div class="workspace-label">
-            <span class="workspace-dot"></span
-            ><span id="collectionName">工作区</span>
-          </div>
-        </footer>
+        <div id="emptyFilter" class="empty-filter" hidden>
+          <p data-t="emptyFilter">没有符合条件的文件</p>
+          <button id="clearFilters" class="text-button" data-t="clearFilters">
+            清除筛选
+          </button>
+        </div>
       </aside>
       <section class="workspace">
         <div class="workspace-topline">
-          <div class="review-progress">
-            <span id="reviewProgressText"></span
-            ><progress
-              id="reviewProgress"
-              max="1"
-              value="0"
-              data-title="reviewProgress"
-            ></progress>
+          <div class="summary-bar">
+            <div class="review-progress">
+              <span id="reviewProgressText"></span
+              ><progress
+                id="reviewProgress"
+                max="1"
+                value="0"
+                data-title="reviewProgress"
+              ></progress>
+            </div>
+            <button
+              class="summary-filter"
+              data-queue-filter="pending"
+              aria-pressed="false"
+            >
+              <b id="pendingCount">0</b> <span data-t="pending">待审</span>
+            </button>
+            <button
+              class="summary-filter positive"
+              data-queue-filter="pass"
+              aria-pressed="false"
+            >
+              <b id="approvedCount">0</b> <span data-t="pass">通过</span>
+            </button>
+            <button
+              class="summary-filter warning"
+              data-queue-filter="warnings"
+              aria-pressed="false"
+            >
+              <b id="flagCount">0</b> <span data-t="flagged">需关注</span>
+            </button>
+            <span class="summary-duration" data-title="timelineSummary"
+              ><span data-t="approvedDuration">已通过</span>
+              <b id="approvedTime">0:00</b><span class="muted"> / </span
+              ><span data-t="candidateDuration">候选时长</span>
+              <b id="candidateTime">0:00</b></span
+            >
           </div>
-          <div>
+          <div class="workspace-view-tools">
             <button id="focusMode" class="icon-button" data-title="focus">
-              <svg><use href="#i-focus" /></svg></button
-            ><button id="refresh" class="icon-button" data-title="refresh">
+              <svg><use href="#i-focus" /></svg>
+            </button>
+            <button id="refresh" class="icon-button" data-title="refresh">
               <svg><use href="#i-refresh" /></svg>
             </button>
           </div>
-        </div>
-
-        <div class="summary-bar">
-          <span
-            ><b id="pendingCount">0</b> <span data-t="pending">待审</span></span
-          ><span class="positive"
-            ><b id="approvedCount">0</b> <span data-t="pass">通过</span></span
-          ><span class="warning"
-            ><b id="flagCount">0</b> <span data-t="flagged">需关注</span></span
-          ><span class="summary-duration" data-title="timelineSummary"
-            ><span data-t="approvedDuration">已通过</span>
-            <b id="approvedTime">0:00</b><span class="muted"> / </span
-            ><span data-t="candidateDuration">可选</span>
-            <b id="candidateTime">0:00</b></span
-          >
         </div>
         <section id="jobStrip" class="job-strip" hidden>
           <div>
@@ -265,6 +303,12 @@
           </button>
         </section>
         <section id="detailPanel" aria-labelledby="clipTitle" hidden>
+          <div id="outsideFilter" class="filter-context" hidden>
+            <span data-t="outsideFilter">当前音频不在筛选结果中</span>
+            <button id="showAllAudio" class="text-button" data-t="showAllAudio">
+              查看全部
+            </button>
+          </div>
           <div class="clip-header">
             <div>
               <div class="eyebrow">
@@ -569,15 +613,22 @@
                   /><span>/ 10</span>
                 </div></label
               >
-              <fieldset class="issue-list">
-                <legend data-t="issues">问题标记</legend>
-                <div id="issues"></div>
-              </fieldset>
+              <details id="issuePanel" class="issue-panel">
+                <summary>
+                  <span data-t="issues">问题标记</span
+                  ><span id="issueCount" class="count" hidden></span
+                  ><svg aria-hidden="true"><use href="#i-arrow" /></svg>
+                </summary>
+                <fieldset class="issue-list">
+                  <legend class="sr-only" data-t="issues">问题标记</legend>
+                  <div id="issues"></div>
+                </fieldset>
+              </details>
               <label class="note-field"
                 ><span data-t="notes">备注</span
                 ><textarea
                   id="note"
-                  rows="4"
+                  rows="3"
                   maxlength="4000"
                   data-placeholder="notesPlaceholder"
                 ></textarea>
@@ -597,6 +648,31 @@
                 </button>
               </div>
             </form>
+          </div>
+        </section>
+        <section
+          id="queueComplete"
+          class="queue-complete"
+          aria-labelledby="queueCompleteTitle"
+          hidden
+        >
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="14" />
+            <path d="m9 16 5 5 9-10" />
+          </svg>
+          <h2 id="queueCompleteTitle" tabindex="-1" data-t="queueComplete">
+            这批音频审完了
+          </h2>
+          <p id="queueCompleteSummary"></p>
+          <div class="complete-actions">
+            <a
+              href="/api/export?format=csv&amp;status=pass"
+              download
+              class="button-link primary"
+              data-t="exportPass"
+              >通过的素材 · CSV</a
+            >
+            <button id="reopenLast" data-t="reopenLast">查看刚才的音频</button>
           </div>
         </section>
         <section id="emptyDetail" class="intake" aria-labelledby="intakeTitle">
@@ -651,9 +727,6 @@
           <div class="intake-preview">
             <div class="preview-scene">
               <div class="preview-window">
-                <div class="preview-chrome" aria-hidden="true">
-                  <span>● ● ●</span><span>Audio Review Desk</span><span></span>
-                </div>
                 <video
                   id="workflowPreview"
                   muted
@@ -663,16 +736,18 @@
                   data-title="previewVideo"
                 ></video>
               </div>
-            </div>
-            <div class="preview-caption">
               <button
                 id="previewToggle"
-                class="text-button"
+                class="preview-toggle"
                 data-t="previewPlay"
                 aria-pressed="false"
               >
-                播放实机演示</button
-              ><a
+                播放演示
+              </button>
+            </div>
+            <div class="preview-caption">
+              <span data-t="previewLabel">操作演示</span>
+              <a
                 href="/tour/"
                 target="_blank"
                 rel="noreferrer"
@@ -781,6 +856,12 @@
         </button>
       </div>
       <div class="help-content">
+        <label class="remember-option"
+          ><input id="rememberPosition" type="checkbox" checked /><span
+            data-t="rememberPosition"
+            >重新打开时记住播放位置</span
+          ></label
+        >
         <a
           href="/tour/"
           class="release-link"
@@ -833,6 +914,10 @@
             <dd data-t="adjustBoundary">微调已选中的区间边界</dd>
           </div>
         </dl>
+        <p class="help-version">
+          <span data-t="versionLabel">版本</span>
+          <span id="version">0.7.0</span>
+        </p>
         <a
           class="release-link"
           href="https://github.com/FUN-ACTION/audio-review-desk/releases"

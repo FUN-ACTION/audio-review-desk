@@ -1,79 +1,135 @@
 {
-  "version": "0.6.0",
-  "recording": "Chromium UI with generated test signals",
-  "timing": "capture timestamps retained; pointer follows actual input trace",
+  "version": "0.7.0",
+  "recording": "Chromium UI with procedural test signals",
+  "timing": "capture timestamps retained; cursor follows actual input coordinates",
   "clips": [
     {
-      "file": "notes-en.mp4",
-      "sha256": "8e5372487ba19a8c85fe9c5b4097fe20e734b13a00e1a1ac2f71885430bc5467",
-      "bytes": 105408,
-      "seconds": 10.166667,
-      "width": 710,
-      "height": 610,
-      "capture_frames": 197,
+      "file": "workflow-zh.mp4",
+      "sha256": "f583a74d042fac39874162837c012b4dce1b3d32c5da368dc22df79dad361c28",
+      "bytes": 258321,
+      "seconds": 14.133333,
+      "capture_seconds": 14.137,
+      "width": 1280,
+      "height": 720,
+      "capture_frames": 311,
       "encoded_fps": "30/1",
-      "audio_track": false
-    },
-    {
-      "file": "notes-zh.mp4",
-      "sha256": "8d15fcd430d99e2876d558196c693deedea720ce2d53a78705aaa4e0c4de863d",
-      "bytes": 102046,
-      "seconds": 9.833333,
-      "width": 710,
-      "height": 610,
-      "capture_frames": 168,
-      "encoded_fps": "30/1",
-      "audio_track": false
-    },
-    {
-      "file": "range-en.mp4",
-      "sha256": "b9257f17f651a767c402b1fd53ac8447f3dd1442a3585184209a6f6f801062ad",
-      "bytes": 134918,
-      "seconds": 10.966667,
-      "width": 710,
-      "height": 610,
-      "capture_frames": 244,
-      "encoded_fps": "30/1",
-      "audio_track": false
-    },
-    {
-      "file": "range-zh.mp4",
-      "sha256": "13fc99e5cfa49fd4fb981335c0761865c1e986a731f03f21d5ab51eb3acbcf0c",
-      "bytes": 139308,
-      "seconds": 12.8,
-      "width": 710,
-      "height": 610,
-      "capture_frames": 223,
-      "encoded_fps": "30/1",
-      "audio_track": false
+      "audio_track": false,
+      "crop": null,
+      "poster": {
+        "file": "workflow-zh.webp",
+        "bytes": 42724,
+        "sha256": "3db241bdf5759c984659b9bc46bd4b035a9f2a52d386a07b2fb615ad8675d4ac"
+      }
     },
     {
       "file": "workflow-en.mp4",
-      "sha256": "dd18abb772262e46a58585961fbb9b7d9ad8bf0357f5a0d97ba40dab7c1be6aa",
-      "bytes": 246675,
-      "seconds": 14.833333,
+      "sha256": "32d7039719e363dfe58c4ac00938063cf36b5a0ab7f4b238895f2ac6c2920087",
+      "bytes": 267269,
+      "seconds": 13.733333,
+      "capture_seconds": 13.74,
       "width": 1280,
       "height": 720,
-      "capture_frames": 240,
+      "capture_frames": 318,
       "encoded_fps": "30/1",
-      "audio_track": false
+      "audio_track": false,
+      "crop": null,
+      "poster": {
+        "file": "workflow-en.webp",
+        "bytes": 45216,
+        "sha256": "81bae66b1d3594f591c4321ad2f80934145f6b6bf1f82a4bef219a4b1c5761d7"
+      }
     },
     {
-      "file": "workflow-zh.mp4",
-      "sha256": "5fe3eaac4f29544a3616635bfd44ec02870a280be6983e48042feb73f84a3afc",
-      "bytes": 228155,
-      "seconds": 11.8,
-      "width": 1280,
-      "height": 720,
-      "capture_frames": 310,
+      "file": "notes-zh.mp4",
+      "sha256": "68560263a9312d99396d2c52f3294a809591667f482ae1bcd14b5ddbdfc5c6fa",
+      "bytes": 87298,
+      "seconds": 11.666667,
+      "capture_seconds": 11.651,
+      "width": 600,
+      "height": 480,
+      "capture_frames": 210,
       "encoded_fps": "30/1",
-      "audio_track": false
+      "audio_track": false,
+      "crop": [
+        284,
+        180,
+        600,
+        480
+      ],
+      "poster": {
+        "file": "notes-zh.webp",
+        "bytes": 9662,
+        "sha256": "9b7cc3dd408920bbfb1acc13ae63223f8fc2eda6716bbe5401493895bd7bd246"
+      }
+    },
+    {
+      "file": "notes-en.mp4",
+      "sha256": "91c35073ed63ac76c801c48b711c9f2e677245d4ce9042ddbf9ff9294ba7caa2",
+      "bytes": 105971,
+      "seconds": 15.033333,
+      "capture_seconds": 15.045,
+      "width": 600,
+      "height": 480,
+      "capture_frames": 239,
+      "encoded_fps": "30/1",
+      "audio_track": false,
+      "crop": [
+        284,
+        180,
+        600,
+        480
+      ],
+      "poster": {
+        "file": "notes-en.webp",
+        "bytes": 9098,
+        "sha256": "20fba4e31a38e7dde067cccd702f8ebd9ee69b2f38b614f5b451ccfd2949f660"
+      }
+    },
+    {
+      "file": "range-zh.mp4",
+      "sha256": "bf64397a46fc110e0b366ba3df409b8b56c16a4790cc2bc747a8cfcc7b85c5fe",
+      "bytes": 147837,
+      "seconds": 12.933333,
+      "capture_seconds": 12.918,
+      "width": 600,
+      "height": 600,
+      "capture_frames": 287,
+      "encoded_fps": "30/1",
+      "audio_track": false,
+      "crop": [
+        284,
+        70,
+        600,
+        600
+      ],
+      "poster": {
+        "file": "range-zh.webp",
+        "bytes": 16278,
+        "sha256": "d81fba7de7651e4f87a908178005b0fc9dbb4050848afb6a661678fd41b25a73"
+      }
+    },
+    {
+      "file": "range-en.mp4",
+      "sha256": "eb78e9c8f99de12d410b823e3230c4b1e718430f5c6e2f08fa2e57f3b261f316",
+      "bytes": 148544,
+      "seconds": 12.966667,
+      "capture_seconds": 12.951,
+      "width": 600,
+      "height": 600,
+      "capture_frames": 281,
+      "encoded_fps": "30/1",
+      "audio_track": false,
+      "crop": [
+        284,
+        70,
+        600,
+        600
+      ],
+      "poster": {
+        "file": "range-en.webp",
+        "bytes": 16358,
+        "sha256": "b58723f922f4478c0e700406e196ddc0fe02c25722ef00469889537b78285b3a"
+      }
     }
-  ],
-  "background": {
-    "file": "studio-scene.webp",
-    "source": "built-in image generation",
-    "bytes": 104406,
-    "sha256": "b2398273b4beb5ae4ad0ade29c016005ab6020cf0b5028e989daa12dba798931"
-  }
+  ]
 }

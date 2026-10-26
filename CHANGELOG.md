@@ -2,6 +2,12 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.7.0 — 2026-10-27
+
+Editable time notes, search within review text, listening-position recovery and clearer queue completion. Large libraries reuse existing rows when selecting clips. Revised local typography, intake and walkthrough, with one-shot recordings, seeking and a larger viewer. Fresh-install commands now create a workspace before starting the server.
+
+[Changes and upgrade steps](docs/releases/0.7.0.md).
+
 ## 0.6.0 — 2026-10-26
 
 Three recorded workflows in Chinese and English, a warm studio walkthrough and a playable preview on the empty workspace. Videos pause out of view and respect reduced motion. Includes a static-site build and the capture/encoding tools.

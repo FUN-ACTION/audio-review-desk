@@ -2,10 +2,10 @@ import { words } from "./copy.js";
 import { springValue, reveal, openDialog, closeDialog } from "./motion.js";
 import { mountWaveform } from "./waveform.js";
 import { mountTransport } from "./transport.js";
-import { mountIntake } from "./intake.js";
 import { mountMarkers } from "./markers.js";
 import { mountCommands } from "./commands.js";
 import { errorText } from "./errors.js";
+import { createListeningMemory, resumedTime } from "./listening.js";
 import { mountPreview } from "./tour/preview.js";
 import {
   formatTime,
@@ -13,6 +13,10 @@ import {
   sortItems,
   reviewPayload,
   playbackRange,
+  searchText,
+  sameReview,
+  queueStamp,
+  continueQueue,
 } from "./ui.js";
 
 const $ = (id) => document.getElementById(id);
@@ -57,11 +61,16 @@ const precise = (seconds) =>
     .padStart(3, "0")}`;
 const number = (value) => (value.trim() === "" ? null : Number(value));
 
-let markersView;
-let queueHasPosition = false;
+let markersView,
+  listeningMemory,
+  persistedAt = 0;
+let queueHasPosition = false,
+  renderedQueueStamp = "",
+  highlightedKey = null;
+const queueRows = new Map();
+let visibleCache = null;
 let noticeTimer,
   choosing = false;
-const revealIntake = mountIntake($("emptyDetail"));
 const waveformView = mountWaveform(
   $("waveform"),
   $("seek"),
@@ -166,7 +175,7 @@ const commandMenu = mountCommands({
       ...actions,
       ...state.items.map((item) => ({
         label: item.label,
-        search: item.id,
+        search: searchText(item),
         hint: t(item.review.status),
         run: () => select(item),
       })),
@@ -225,6 +234,7 @@ async function discardAllowed() {
 const importing = () => job && ["running", "cancelling"].includes(job.state);
 
 function translate() {
+  const completed = !$("queueComplete").hidden;
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   preview.language(language);
   if (!$("importError").hidden && $("importError").dataset.code)
@@ -264,6 +274,7 @@ function translate() {
     renderQueue();
     if (selected) renderDetails(false);
   }
+  if (completed) showCompletion();
   if (job) renderJob();
   markersView?.refresh(busy || !selected?.quality.decoded);
   transport.refresh();
@@ -281,6 +292,11 @@ for (const name of issueNames) {
 }
 
 function renderSummary() {
+  document.body.classList.remove("is-loading");
+  document.querySelector("main").removeAttribute("inert");
+  $("exportMenu").removeAttribute("inert");
+  $("openCommands").disabled = false;
+  $("bootStatus").hidden = true;
   const stats = state.stats;
   document.body.classList.toggle("is-empty", state.items.length === 0);
   const done = stats.files - stats.review_counts.pending;
@@ -294,9 +310,7 @@ function renderSummary() {
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("collectionName").textContent = t("library");
-  $("collectionName").title = state.scan?.label || "";
-  $("version").textContent = state.version || "0.6.0";
+  $("version").textContent = state.version || "0.7.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -314,15 +328,28 @@ function renderSummary() {
   $("openImport").disabled = busy || Boolean(importing());
 }
 function visibleItems() {
-  return sortItems(
+  const query = $("search").value,
+    filter = $("filter").value,
+    order = $("sort").value;
+  if (
+    visibleCache &&
+    visibleCache.source === state.items &&
+    visibleCache.query === query &&
+    visibleCache.filter === filter &&
+    visibleCache.order === order
+  )
+    return visibleCache.items;
+  const items = sortItems(
     filterItems(
       state.items,
-      $("search").value,
-      $("filter").value,
+      query,
+      filter,
       new Set(state.stats.duplicate_groups.flat()),
     ),
-    $("sort").value,
+    order,
   );
+  visibleCache = { source: state.items, query, filter, order, items };
+  return items;
 }
 function renderSelection() {
   const list = visibleItems(),
@@ -337,47 +364,72 @@ function renderSelection() {
   $("applyBatch").disabled = busy || selectedKeys.size > 500;
 }
 function renderQueue() {
+  for (const button of document.querySelectorAll("[data-queue-filter]"))
+    button.setAttribute(
+      "aria-pressed",
+      String($("filter").value === button.dataset.queueFilter),
+    );
   const list = visibleItems();
   $("queueCount").textContent = `${list.length} / ${state.items.length}`;
   $("emptyLibrary").hidden = state.items.length > 0;
   $("emptyFilter").hidden = !state.items.length || list.length > 0;
-  $("items").replaceChildren(
-    ...list.map((item) => {
-      const row = document.createElement("div");
-      row.className = "clip-row";
-      row.classList.toggle("selected", item.key === selected?.key);
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = selectedKeys.has(item.key);
-      checkbox.disabled = busy;
-      checkbox.setAttribute("aria-label", `${t("selectClip")}: ${item.label}`);
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) selectedKeys.add(item.key);
-        else selectedKeys.delete(item.key);
-        renderSelection();
-      });
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "clip";
-      button.setAttribute("aria-current", String(item.key === selected?.key));
-      const name = document.createElement("span");
-      name.className = "clip-name";
-      name.textContent = item.label;
-      const meta = document.createElement("span");
-      meta.className = "clip-meta";
-      const duration = document.createElement("span"),
-        status = document.createElement("span");
-      duration.textContent = `${formatTime(item.quality.duration)}${item.quality.flags.length ? " · !" : ""}`;
-      status.textContent = t(item.review.status);
-      status.className = `status-${item.review.status}`;
-      meta.append(duration, status);
-      button.append(name, meta);
-      button.addEventListener("click", () => select(item));
-      row.append(checkbox, button);
-      return row;
-    }),
-  );
-  const activeRow = $("items").querySelector(".selected");
+  const stamp = queueStamp(list, language);
+  if (stamp !== renderedQueueStamp) {
+    renderedQueueStamp = stamp;
+    queueRows.clear();
+    $("items").replaceChildren(
+      ...list.map((item) => {
+        const row = document.createElement("div");
+        row.className = "clip-row";
+        queueRows.set(item.key, row);
+        row.classList.toggle("selected", item.key === selected?.key);
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = selectedKeys.has(item.key);
+        checkbox.disabled = busy;
+        checkbox.setAttribute(
+          "aria-label",
+          `${t("selectClip")}: ${item.label}`,
+        );
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) selectedKeys.add(item.key);
+          else selectedKeys.delete(item.key);
+          renderSelection();
+        });
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "clip";
+        button.setAttribute("aria-current", String(item.key === selected?.key));
+        const name = document.createElement("span");
+        name.className = "clip-name";
+        name.textContent = item.label;
+        const meta = document.createElement("span");
+        meta.className = "clip-meta";
+        const duration = document.createElement("span"),
+          status = document.createElement("span");
+        duration.textContent = `${formatTime(item.quality.duration)}${item.quality.flags.length ? " · !" : ""}`;
+        status.textContent = t(item.review.status);
+        status.className = `status-${item.review.status}`;
+        meta.append(duration, status);
+        button.append(name, meta);
+        button.addEventListener("click", () => select(item));
+        row.append(checkbox, button);
+        return row;
+      }),
+    );
+  }
+  const oldRow = queueRows.get(highlightedKey);
+  oldRow?.classList.remove("selected");
+  oldRow?.querySelector(".clip")?.setAttribute("aria-current", "false");
+  const activeRow = queueRows.get(selected?.key);
+  activeRow?.classList.add("selected");
+  activeRow?.querySelector(".clip")?.setAttribute("aria-current", "true");
+  highlightedKey = selected?.key || null;
+  for (const [key, row] of queueRows) {
+    const checkbox = row.querySelector("input");
+    checkbox.checked = selectedKeys.has(key);
+    checkbox.disabled = busy;
+  }
   $("queueHighlight").hidden = !activeRow;
   if (activeRow) {
     $("queueHighlight").style.height = `${activeRow.offsetHeight}px`;
@@ -386,10 +438,36 @@ function renderQueue() {
   }
   renderSelection();
 }
+function draftValues() {
+  return {
+    status: document.querySelector("input[name=decision]:checked")?.value,
+    score: $("score").value,
+    trimStart: $("trimStart").value,
+    trimEnd: $("trimEnd").value,
+    issues: [...$("issues").querySelectorAll("input:checked")].map(
+      (input) => input.value,
+    ),
+    note: $("note").value,
+    markers: markersView.get(),
+  };
+}
+function updateIssueCount() {
+  const count = $("issues").querySelectorAll("input:checked").length;
+  $("issueCount").textContent = count;
+  $("issueCount").hidden = count === 0;
+}
 function markDirty() {
+  updateIssueCount();
   if (!busy && selected) {
-    dirty = true;
-    $("saveState").textContent = t("unsaved");
+    dirty =
+      !sameReview(reviewPayload(selected, draftValues()), selected.review) ||
+      markersView.hasChanges(selected.review.markers) ||
+      Boolean($("reviewForm").querySelector(":invalid"));
+    $("saveState").textContent = dirty
+      ? t("unsaved")
+      : selected.review.version
+        ? t("saved")
+        : t("notReviewed");
     if (["trimStart", "trimEnd"].includes(document.activeElement?.id))
       drawWave();
   }
@@ -433,6 +511,7 @@ function renderDetails(restore = true) {
   const item = selected,
     review = item.review,
     q = item.quality;
+  $("queueComplete").hidden = true;
   $("detailPanel").hidden = false;
   $("emptyDetail").hidden = true;
   $("clipTitle").textContent = item.label;
@@ -527,6 +606,7 @@ function renderDetails(restore = true) {
   $("undo").disabled = busy || review.version === 0;
   if (!restore) markersView.refresh(busy || !q.decoded);
   if (restore) {
+    $("issuePanel").open = false;
     for (const id of ["score", "trimStart", "trimEnd"])
       $(id).setCustomValidity("");
     markersView.set(review.markers || [], busy || !q.decoded);
@@ -540,6 +620,7 @@ function renderDetails(restore = true) {
         input.checked = review.issues.includes(input.value);
       });
   }
+  updateIssueCount();
   for (const id of ["trimStart", "trimEnd"]) $(id).max = q.duration || 0;
   $("trimEnd").placeholder = q.duration?.toFixed(3) || "—";
   $("saveState").textContent = dirty
@@ -551,19 +632,25 @@ function renderDetails(restore = true) {
     index = list.findIndex((row) => row.key === item.key);
   $("previous").disabled = busy || index <= 0;
   $("next").disabled = busy || index < 0 || index >= list.length - 1;
-  $("clipPosition").textContent = `${index + 1} / ${list.length}`;
+  $("clipPosition").textContent =
+    index >= 0 ? `${index + 1} / ${list.length}` : "";
+  $("outsideFilter").hidden = index >= 0;
   syncGlider();
   updateTime();
   drawWave();
 }
 async function select(item) {
   if (busy || !(await discardAllowed())) return;
+  rememberPosition();
   const turn = ++generation;
   player.pause();
   player.onloadedmetadata = null;
   selected = item;
   try {
-    sessionStorage.setItem(`ard-current-${state.workspace}`, item.key);
+    sessionStorage.setItem(
+      `ard-current-${state.workspace_id || state.workspace}`,
+      item.key,
+    );
   } catch {}
   if (matchMedia("(max-width:720px)").matches)
     document.body.classList.add("mobile-library-collapsed");
@@ -576,9 +663,19 @@ async function select(item) {
   notice();
   renderQueue();
   renderDetails();
-  reveal($("audioSection"));
   $("historyPanel").open = false;
   if (item.quality.decoded) {
+    const position = resumedTime(
+      listeningMemory?.get() || { remember: false },
+      item.key,
+      item.quality.duration,
+    );
+    player.onloadedmetadata = () => {
+      if (turn === generation) {
+        player.currentTime = position;
+        updateTime();
+      }
+    };
     player.src = `/media/${item.key}/a.wav`;
     $("seek").disabled = true;
     player.load();
@@ -602,6 +699,21 @@ async function refresh(force = false) {
   try {
     const previous = selected?.key;
     state = await request("/api/state");
+    if (!listeningMemory) {
+      listeningMemory = createListeningMemory(
+        {
+          getItem: (key) => localStorage.getItem(key),
+          setItem: (key, value) => localStorage.setItem(key, value),
+        },
+        state.workspace_id || state.workspace,
+      );
+      const preferences = listeningMemory.get();
+      $("speed").value = String(preferences.speed);
+      $("volume").value = preferences.volume;
+      player.volume = preferences.volume;
+      $("loop").checked = preferences.loop;
+      $("rememberPosition").checked = preferences.remember;
+    }
     selected = null;
     dirty = false;
     for (const key of selectedKeys)
@@ -612,7 +724,11 @@ async function refresh(force = false) {
     let remembered = previous;
     try {
       remembered =
-        remembered || sessionStorage.getItem(`ard-current-${state.workspace}`);
+        remembered ||
+        sessionStorage.getItem(
+          `ard-current-${state.workspace_id || state.workspace}`,
+        ) ||
+        listeningMemory.get().selected;
     } catch {}
     const item =
       state.items.find((row) => row.key === remembered) ||
@@ -622,9 +738,12 @@ async function refresh(force = false) {
     else {
       $("detailPanel").hidden = true;
       $("emptyDetail").hidden = false;
-      revealIntake();
     }
   } catch (error) {
+    if (!state) {
+      $("bootStatus").querySelector("p").textContent = t("loadError");
+      $("retryLoad").hidden = false;
+    }
     notice(errorText(error, language));
   }
 }
@@ -643,26 +762,16 @@ async function save(advance = false) {
   if (busy || !selected || !$("reviewForm").reportValidity()) return;
   const focusBeforeSave = document.activeElement;
   const target = selected,
-    ordered = visibleItems(),
-    index = ordered.findIndex((item) => item.key === target.key);
+    ordered = visibleItems();
   if (!markersView.flush()) return;
-  const payload = reviewPayload(target, {
-    status: document.querySelector("input[name=decision]:checked")?.value,
-    score: $("score").value,
-    trimStart: $("trimStart").value,
-    trimEnd: $("trimEnd").value,
-    issues: [...$("issues").querySelectorAll("input:checked")].map(
-      (input) => input.value,
-    ),
-    note: $("note").value,
-    markers: markersView.get(),
-  });
+  const payload = reviewPayload(target, draftValues());
   setBusy(true);
   $("saveState").textContent = t("saving");
   let success = false;
   try {
     const result = await post("/api/review", payload);
     target.review = result.review;
+    visibleCache = null;
     dirty = false;
     success = true;
     const local = state.items.find((item) => item.key === target.key);
@@ -683,16 +792,20 @@ async function save(advance = false) {
       focusBeforeSave.focus({ preventScroll: true });
   }
   if (success && advance) {
-    const next =
-      ordered
-        .slice(index + 1)
-        .map((row) => state.items.find((item) => item.key === row.key))
-        .find(Boolean) ||
-      visibleItems().find(
-        (item) => item.key !== target.key && item.review.status === "pending",
-      );
+    const next = continueQueue(ordered, visibleItems(), target.key);
     if (next) await select(next);
+    else if (state.stats.review_counts.pending === 0) showCompletion();
   }
+}
+function showCompletion() {
+  player.pause();
+  $("detailPanel").hidden = true;
+  $("queueComplete").hidden = false;
+  $("queueCompleteSummary").textContent = t("queueCompleteSummary")
+    .replace("{total}", state.stats.files)
+    .replace("{approved}", state.stats.review_counts.pass)
+    .replace("{duration}", formatTime(state.stats.human_approved_seconds));
+  $("queueCompleteTitle").focus({ preventScroll: true });
 }
 async function batch() {
   if (busy || !selectedKeys.size || !(await discardAllowed())) return;
@@ -988,6 +1101,7 @@ $("language").addEventListener("change", () => {
   if ($("historyPanel").open) loadHistory();
 });
 $("refresh").addEventListener("click", () => refresh());
+$("retryLoad").addEventListener("click", () => refresh(true));
 $("keepEditing").addEventListener("click", () =>
   closeDialog($("discardDialog"), "keep"),
 );
@@ -1001,6 +1115,26 @@ $("discardDialog").addEventListener("close", () => {
 });
 $("discardDialog").addEventListener("cancel", () => {
   $("discardDialog").returnValue = "keep";
+});
+for (const button of document.querySelectorAll("[data-queue-filter]"))
+  button.addEventListener("click", () => {
+    $("filter").value =
+      $("filter").value === button.dataset.queueFilter
+        ? "all"
+        : button.dataset.queueFilter;
+    renderQueue();
+    if (selected) renderDetails(false);
+  });
+for (const id of ["clearFilters", "showAllAudio"])
+  $(id).addEventListener("click", () => {
+    $("search").value = "";
+    $("filter").value = "all";
+    renderQueue();
+    if (selected) renderDetails(false);
+    $("search").focus();
+  });
+$("reopenLast").addEventListener("click", () => {
+  if (selected) renderDetails(false);
 });
 for (const id of ["search", "filter", "sort"])
   $(id).addEventListener(id === "search" ? "input" : "change", () => {
@@ -1035,7 +1169,29 @@ $("resetRange").addEventListener("click", () => {
 });
 $("speed").addEventListener("change", () => {
   player.playbackRate = Number($("speed").value);
+  listeningMemory?.preferences({ speed: player.playbackRate });
 });
+$("loop").addEventListener("change", () =>
+  listeningMemory?.preferences({ loop: $("loop").checked }),
+);
+$("volume").addEventListener("change", () =>
+  listeningMemory?.preferences({ volume: player.volume }),
+);
+$("rememberPosition").addEventListener("change", () =>
+  listeningMemory?.preferences({ remember: $("rememberPosition").checked }),
+);
+function rememberPosition() {
+  if (selected?.quality.decoded && player.readyState >= 1)
+    listeningMemory?.position(selected.key, player.currentTime);
+}
+player.addEventListener("timeupdate", () => {
+  if (Date.now() - persistedAt > 1500) {
+    rememberPosition();
+    persistedAt = Date.now();
+  }
+});
+player.addEventListener("pause", rememberPosition);
+window.addEventListener("pagehide", rememberPosition);
 player.addEventListener("play", () => {
   player.playbackRate = Number($("speed").value);
   const [start, end] = range();
@@ -1050,6 +1206,7 @@ player.addEventListener("error", () => {
 });
 $("historyPanel").addEventListener("toggle", loadHistory);
 window.addEventListener("resize", () => {
+  if (!matchMedia("(max-width:720px)").matches) closeSettings();
   drawWave();
   syncGlider(true);
 });
@@ -1059,7 +1216,32 @@ window.addEventListener("beforeunload", (event) => {
     event.returnValue = "";
   }
 });
+function closeSettings() {
+  document.body.classList.remove("settings-open");
+  $("openSettings").setAttribute("aria-expanded", "false");
+}
+$("openSettings").addEventListener("click", () => {
+  const open = document.body.classList.toggle("settings-open");
+  $("openSettings").setAttribute("aria-expanded", String(open));
+  if (open) {
+    reveal($("settingsPanel"), "menu");
+    $("theme").focus();
+  }
+});
+$("settingsPanel").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeSettings();
+    $("openSettings").focus();
+  }
+});
 document.addEventListener("click", (event) => {
+  if (
+    !$("settingsPanel").contains(event.target) &&
+    !$("openSettings").contains(event.target) &&
+    !event.target.closest("dialog")
+  )
+    closeSettings();
   if (!$("exportMenu").contains(event.target)) $("exportMenu").open = false;
 });
 document.addEventListener("keydown", (event) => {
@@ -1177,7 +1359,6 @@ $("focusMode").addEventListener("click", () => {
     drawWave();
     syncGlider(true);
   });
-  reveal($("listening-pane") || document.querySelector(".listening-pane"));
 });
 for (const id of ["openHelp", "shortcuts"])
   $(id).addEventListener("click", () => openDialog($("helpDialog")));
@@ -1194,7 +1375,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.6.0";
+    $("updateNotice").hidden = result.version === "0.7.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

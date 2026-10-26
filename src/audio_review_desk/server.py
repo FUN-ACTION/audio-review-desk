@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import mimetypes
+import os
 import re
 import secrets
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,8 +18,8 @@ from .picker import choose
 from .errors import error_code
 from . import __version__
 
-TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "playback-policy.js", "preview.js"}
-TOUR_MEDIA = {"studio-scene.webp", "workflow-zh.mp4", "workflow-en.mp4",
+TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js"}
+TOUR_MEDIA = { "workflow-zh.mp4", "workflow-en.mp4",
               "notes-zh.mp4", "notes-en.mp4", "range-zh.mp4", "range-en.mp4",
               "workflow-zh.webp", "workflow-en.webp", "notes-zh.webp", "notes-en.webp",
               "range-zh.webp", "range-en.webp"}
@@ -25,6 +27,7 @@ TOUR_MEDIA = {"studio-scene.webp", "workflow-zh.mp4", "workflow-en.mp4",
 
 def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
     workspace.initialize()
+    workspace_id = hashlib.sha256(os.path.normcase(str(workspace.root)).encode("utf-8")).hexdigest()
     session = secrets.token_urlsafe(32)
     jobs = ImportJobs(workspace)
 
@@ -70,7 +73,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if path == "/api/state":
                     return self.json_response(dict(workspace.state(), session=session, version=__version__,
                                                    can_rescan=workspace.import_source() is not None,
-                                                   workspace=workspace.root.name))
+                                                   workspace=workspace.root.name, workspace_id=workspace_id))
                 if path == "/api/job":
                     return self.json_response(jobs.snapshot())
                 if path in {"/tour", "/tour/"}:
@@ -106,7 +109,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
-                if path in {"/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
+                if path in {"/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/listening.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2", "/desk-cjk-ui.woff2", "/fonts.css", "/desk-display.woff2"}:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()

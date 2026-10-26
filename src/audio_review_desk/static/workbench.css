@@ -1,23 +1,5 @@
-@font-face {
-  font-family: Studio Latin;
-  src: url("/studio-latin.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: Studio CJK;
-  src: url("/studio-cjk.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
 :root {
-  font-family:
-    Studio Latin,
-    "Segoe UI",
-    "Microsoft YaHei UI",
-    "PingFang SC",
-    Studio CJK,
-    sans-serif;
+  font-family: "Desk Text", "Desk UI CJK", "Desk CJK", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   font-synthesis: none;
@@ -35,7 +17,7 @@
   --wave: #c1cdcc;
   --wave-active: #448d83;
   --good: #16826d;
-  --warn: #ac722d;
+  --warn: #956023;
   --shadow: 0 20px 80px #15232d20;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--page);
@@ -236,7 +218,7 @@ kbd {
   background: transparent;
   border: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .appbar {
   height: 64px;
@@ -264,6 +246,7 @@ kbd {
   letter-spacing: -0.025em;
 }
 .brand-mark {
+  color: #d83d25;
   display: grid;
   place-items: center;
 }
@@ -286,23 +269,23 @@ kbd {
 .workspace-tools select {
   background: transparent;
   border: 0;
-  font-size: 12px;
+  font-size: 13px;
   padding: 4px;
 }
 .workspace-tools #version {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin-left: 4px;
 }
 .app-actions {
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .command-trigger {
   width: 270px;
   min-height: 32px;
   justify-content: flex-start;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   background: var(--sidebar);
 }
@@ -346,7 +329,7 @@ kbd {
 .menu a {
   display: block;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   padding: 9px 10px;
   border-radius: 5px;
 }
@@ -384,7 +367,7 @@ main {
   font-weight: 550;
 }
 .count {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 20px;
   color: var(--muted);
   background: var(--subtle);
@@ -411,7 +394,7 @@ main {
 .search-field input {
   width: 100%;
   padding-left: 32px !important;
-  font-size: 12px;
+  font-size: 13px;
   height: 36px;
 }
 .list-controls {
@@ -421,7 +404,7 @@ main {
   padding: 0 5px 11px;
 }
 .list-controls select {
-  font-size: 11px;
+  font-size: 12px;
   max-width: 58%;
   border-color: transparent;
   background: transparent;
@@ -434,7 +417,7 @@ main {
   padding: 10px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .selection-row label {
   display: flex;
@@ -457,14 +440,14 @@ main {
   background: var(--blue-soft);
   border-radius: 7px;
   margin: 0 4px 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .batch-bar select {
   max-width: 145px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .batch-bar button {
-  font-size: 11px;
+  font-size: 12px;
   min-height: 28px;
 }
 .queue-shell {
@@ -488,6 +471,8 @@ main {
   pointer-events: none;
 }
 .clip-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
   height: 64px;
   display: flex;
   align-items: center;
@@ -532,7 +517,7 @@ button.clip {
   white-space: normal;
 }
 .clip-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 450;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -543,7 +528,7 @@ button.clip {
   justify-content: space-between;
   gap: 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .status-pass {
@@ -561,7 +546,7 @@ button.clip {
   margin-top: 8px;
 }
 .workspace-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -578,7 +563,7 @@ button.clip {
 .empty-filter {
   text-align: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   padding: 32px 10px;
 }
 .empty-library svg {
@@ -596,7 +581,9 @@ button.clip {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
 }
 .workspace-topline > div:last-child {
   display: flex;
@@ -607,7 +594,7 @@ button.clip {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .breadcrumb svg {
   width: 12px;
@@ -617,13 +604,13 @@ button.clip {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-bottom: 0;
 }
 .review-progress progress {
   appearance: none;
-  width: 92px;
+  width: 48px;
   height: 3px;
   border: 0;
   border-radius: 5px;
@@ -642,10 +629,10 @@ progress::-moz-progress-bar {
 .summary-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+  font-size: 12px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -658,14 +645,14 @@ progress::-moz-progress-bar {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .clip-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 23px 0 21px;
+  padding: 20px 0 18px;
 }
 .clip-header > div:first-child {
   min-width: 0;
@@ -679,7 +666,7 @@ progress::-moz-progress-bar {
   overflow-wrap: anywhere;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -710,7 +697,7 @@ progress::-moz-progress-bar {
   margin-top: 9px;
 }
 .flag {
-  font-size: 10px;
+  font-size: 11px;
   border-radius: 4px;
   padding: 3px 6px;
   background: color-mix(in srgb, var(--warn) 9%, var(--page));
@@ -745,10 +732,10 @@ progress::-moz-progress-bar {
   margin-bottom: 13px;
 }
 .section-heading h3 {
-  font-size: 12px;
+  font-size: 13px;
 }
 #saveState {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .wave-header {
@@ -779,7 +766,7 @@ progress::-moz-progress-bar {
   z-index: -1;
 }
 .variants button {
-  font-size: 11px;
+  font-size: 12px;
   min-height: 28px;
   padding: 4px 10px;
   border: 0;
@@ -794,7 +781,7 @@ progress::-moz-progress-bar {
   align-items: center;
   gap: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .wave-tool {
@@ -884,7 +871,7 @@ progress::-moz-progress-bar {
   justify-content: space-between;
   padding-top: 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 .wave-pan {
@@ -951,7 +938,7 @@ audio {
   position: absolute;
   left: 10px;
   top: 12px;
-  font-size: 8px;
+  font-size: 9px;
 }
 .skip-button svg {
   width: 21px;
@@ -966,7 +953,7 @@ audio {
   white-space: nowrap;
 }
 #totalTime {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .volume-control {
@@ -989,7 +976,7 @@ audio {
   display: flex;
   align-items: center;
   gap: 18px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin: 2px 0 20px;
 }
@@ -1001,7 +988,7 @@ audio {
   cursor: pointer;
 }
 .speed-label select {
-  font-size: 10px;
+  font-size: 11px;
   background: transparent;
   border: 0;
   padding: 1px 3px;
@@ -1112,7 +1099,7 @@ audio {
   background: var(--ink);
   color: var(--page);
   border-radius: 4px;
-  font-size: 9px;
+  font-size: 10px;
   pointer-events: none;
 }
 .trim-handle.end:after {
@@ -1157,7 +1144,7 @@ audio {
 }
 .marker-compose input {
   width: 100%;
-  font-size: 12px;
+  font-size: 13px;
 }
 .marker-compose button {
   width: 34px;
@@ -1174,10 +1161,10 @@ audio {
   align-items: flex-start;
   gap: 10px;
   padding: 5px 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 .marker-time {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--blue);
   font-variant-numeric: tabular-nums;
   border: 0;
@@ -1186,9 +1173,36 @@ audio {
   padding: 3px 6px;
   flex-shrink: 0;
 }
-.marker-row p {
-  padding-top: 2px;
+.marker-note {
+  min-width: 0;
+  flex: 1;
+  padding: 3px 0;
+  min-height: 27px;
+  text-align: left;
+  justify-content: flex-start;
+  white-space: normal;
   overflow-wrap: anywhere;
+  border: 0;
+  background: transparent;
+  line-height: 1.6;
+}
+.marker-row.is-editing {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  padding: 10px;
+  background: var(--subtle);
+  border-radius: 8px;
+}
+.marker-edit-time {
+  font-variant-numeric: tabular-nums;
+}
+.marker-edit-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 14px;
+}
+.marker-edit-actions button {
+  min-height: 28px;
 }
 .marker-row .icon-button {
   margin-left: auto;
@@ -1211,7 +1225,7 @@ audio {
   flex: 1;
   min-width: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .range-fields label > div {
   display: flex;
@@ -1229,11 +1243,11 @@ audio {
   border: 0;
   background: transparent;
   padding: 8px 9px !important;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink);
 }
 .range-fields label > div > span {
-  font-size: 10px;
+  font-size: 11px;
 }
 .boundary-button {
   border: 0;
@@ -1242,7 +1256,7 @@ audio {
   width: 22px;
   min-height: 23px;
   padding: 1px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .range-dash {
   padding-bottom: 9px;
@@ -1251,7 +1265,7 @@ audio {
 .technical-panel,
 #historyPanel {
   border-top: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 12px;
 }
 .technical-panel summary,
 #historyPanel summary {
@@ -1283,7 +1297,7 @@ details[open] > summary:before {
 }
 .technical dt {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .technical dd {
   margin: 0;
@@ -1293,13 +1307,13 @@ details[open] > summary:before {
   color: var(--muted);
   padding: 0 0 14px;
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: 11px;
 }
 #history p {
   padding: 10px 0;
   border-top: 1px solid var(--line);
   white-space: pre-wrap;
-  font-size: 10px;
+  font-size: 11px;
 }
 fieldset {
   margin: 0;
@@ -1321,7 +1335,7 @@ fieldset {
   border-radius: 6px;
   position: relative;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   min-height: 36px;
   white-space: nowrap;
 }
@@ -1361,7 +1375,7 @@ fieldset {
   border: 0;
   background: transparent;
   margin-left: auto;
-  font-size: 9px;
+  font-size: 10px;
   padding: 0;
 }
 .score-row {
@@ -1369,7 +1383,7 @@ fieldset {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 20px;
 }
 .score-row > div {
@@ -1377,14 +1391,14 @@ fieldset {
   align-items: center;
   gap: 5px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .score-row input {
   width: 54px;
   padding: 5px 7px !important;
   min-height: 30px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink);
 }
 #issues {
@@ -1397,12 +1411,12 @@ fieldset {
   margin-bottom: 20px;
 }
 .issue-list legend {
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 9px;
 }
 #issues label {
   position: relative;
-  font-size: 10px;
+  font-size: 11px;
   padding: 5px 7px;
   border: 1px solid transparent;
   border-radius: 5px;
@@ -1431,11 +1445,11 @@ fieldset {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .note-field textarea {
   width: 100%;
-  font-size: 12px;
+  font-size: 13px;
   min-height: 90px;
 }
 .save-actions {
@@ -1445,7 +1459,7 @@ fieldset {
   margin-top: 14px;
 }
 .save-actions button {
-  font-size: 11px;
+  font-size: 12px;
 }
 .save-actions .primary {
   flex: 1;
@@ -1456,7 +1470,7 @@ fieldset {
   margin-top: 4px;
   text-align: left;
   justify-content: flex-start;
-  font-size: 10px;
+  font-size: 11px;
 }
 .workspace-footer {
   display: flex;
@@ -1465,11 +1479,11 @@ fieldset {
   margin-top: auto;
   padding: 25px 0 16px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 .workspace-footer button {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
   display: flex;
   gap: 6px;
 }
@@ -1489,145 +1503,100 @@ fieldset {
   min-height: calc(100dvh - 64px);
 }
 .intake {
-  width: min(1160px, 100%);
-  margin: 72px auto 60px;
+  width: min(1080px, 100%);
+  margin: 52px auto 48px;
   display: grid;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.3fr);
-  gap: 64px;
-  align-items: center;
+  gap: 34px;
+}
+.intake-controls {
+  text-align: center;
 }
 .intake-heading {
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 .intake-symbol {
   display: none;
 }
 .intake h1 {
-  font-size: 32px;
+  font-family: "Desk Display", "Desk UI CJK", "Desk CJK", sans-serif;
+  font-size: 42px;
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 .intake-heading p {
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--muted);
-  margin-top: 13px;
+  margin-top: 16px;
 }
 .source-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 .source-card {
-  display: grid;
-  grid-template-columns: 38px 1fr;
-  grid-template-rows: auto auto;
+  display: inline-flex;
+  justify-content: center;
   align-items: center;
-  column-gap: 14px;
-  position: relative;
-  white-space: normal;
-  text-align: left;
-  padding: 20px 32px 20px 0;
-  min-height: 94px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  isolation: isolate;
+  gap: 9px;
+  padding: 11px 18px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  white-space: nowrap;
 }
 .source-card.featured {
-  background: transparent;
-  border-color: var(--line);
+  background: #d83d25;
+  border-color: #d83d25;
+  color: #fff;
+}
+.source-card.featured:hover:not(:disabled) {
+  background: #c8331b;
 }
 .source-icon {
-  grid-row: 1/3;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  background: var(--subtle);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--muted);
+  display: inline-flex;
+  color: inherit;
 }
 .source-icon svg {
-  width: 17px;
-  height: 17px;
-}
-.featured .source-icon {
-  color: var(--blue);
-  background: var(--blue-soft);
-  border-color: transparent;
+  width: 18px;
+  height: 18px;
 }
 .source-card strong {
-  grid-column: 2;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.6;
 }
-.source-card > span:not(.source-icon) {
-  grid-column: 2;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 1px;
-}
+.source-card > span:not(.source-icon),
 .source-card .source-arrow {
-  position: absolute;
-  right: 6px;
-  top: 38px;
-  width: 17px;
-  height: 17px;
-  color: var(--muted);
+  display: none;
 }
 .intake-bottom {
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 15px;
-  font-size: 9px;
+  gap: 20px;
+  margin-top: 14px;
+  font-size: 11px;
   color: var(--muted);
 }
 .intake-bottom .text-button {
-  font-size: 10px;
+  font-size: 12px;
 }
 .intake-preview {
   min-width: 0;
 }
 .preview-scene {
-  aspect-ratio: 1.22;
-  background: #dacbb6 url("/tour/media/studio-scene.webp") center/cover;
-  border-radius: 19px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7%;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 10px 40px #1d1d290d;
 }
 .preview-window {
   width: 100%;
-  overflow: hidden;
-  border: 5px solid #323531;
-  border-radius: 10px;
-  box-shadow: 0 24px 28px -14px #30271880;
-}
-.preview-chrome {
-  height: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 8px;
-  background: #f8f9f8;
-  color: #99a39b;
-  font-size: 6px;
-}
-.preview-chrome span:first-child {
-  font-size: 5px;
-  letter-spacing: 1px;
-}
-.preview-chrome span:last-child {
-  width: 23px;
 }
 #workflowPreview {
   display: block;
@@ -1639,24 +1608,15 @@ fieldset {
 }
 .preview-caption {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
-  margin-top: 13px;
+  margin-top: 14px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .preview-caption .text-button {
-  font-size: 11px;
-}
-@media (max-width: 980px) and (min-width: 701px) {
-  .intake {
-    gap: 30px;
-    grid-template-columns: minmax(280px, 1fr) minmax(0, 1fr);
-  }
-  .intake h1 {
-    font-size: 28px;
-  }
+  font-size: 12px;
 }
 .is-empty .toast {
   left: 50%;
@@ -1670,7 +1630,7 @@ fieldset {
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 12px;
 }
 .job-strip > div {
   display: flex;
@@ -1715,7 +1675,7 @@ fieldset {
   box-shadow: var(--shadow);
   border-radius: 9px;
   z-index: 70;
-  font-size: 12px;
+  font-size: 13px;
 }
 .toast.success:before {
   content: "✓";
@@ -1735,7 +1695,7 @@ fieldset {
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 dialog {
   border: 1px solid var(--line);
@@ -1780,7 +1740,7 @@ dialog > p {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 26px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .dialog-actions button {
   min-height: 35px;
@@ -1790,13 +1750,13 @@ dialog > p {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .field-label input,
 .field-label textarea,
 .field-label select {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink);
   width: 100%;
 }
@@ -1810,7 +1770,7 @@ dialog > p {
   flex: 1;
 }
 .import-source-row button {
-  font-size: 12px;
+  font-size: 13px;
   min-height: 35px;
 }
 #importPath {
@@ -1825,18 +1785,18 @@ dialog > p {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 .hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 8px;
   line-height: 1.7;
 }
 .inline-error {
   color: #c34e48;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
   padding: 10px 12px;
   background: #c34e4809;
@@ -1845,7 +1805,7 @@ dialog > p {
   margin-top: 18px;
 }
 .help-content h3 {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin: 18px 0 8px;
 }
@@ -1862,10 +1822,10 @@ dialog > p {
   gap: 22px;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 13px;
 }
 .shortcut-list dt {
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1877,7 +1837,7 @@ dialog > p {
 .release-link {
   display: inline-block;
   margin-top: 22px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .command-dialog {
@@ -1930,7 +1890,7 @@ dialog > p {
   border-radius: 6px;
   background: transparent;
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   min-height: 42px;
 }
 .command-option span:first-child {
@@ -1938,7 +1898,7 @@ dialog > p {
   text-overflow: ellipsis;
 }
 .command-option small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -1950,12 +1910,12 @@ dialog > p {
   padding: 30px;
   text-align: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .command-footer {
   padding: 10px 18px;
   border-top: 1px solid var(--line);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .focus-mode main {
@@ -1982,15 +1942,6 @@ dialog > p {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@media (hover: hover) and (pointer: fine) {
-  .source-card:hover {
-    border-color: color-mix(in srgb, var(--blue) 36%, var(--line));
-    box-shadow: 0 8px 20px #12232a08;
-  }
-  .source-card:hover .source-arrow {
-    color: var(--blue);
   }
 }
 @media (min-width: 1500px) {
@@ -2043,13 +1994,13 @@ dialog > p {
     padding-left: 16px;
   }
   .summary-duration {
-    font-size: 9px;
+    font-size: 10px;
   }
   .volume-control input {
     width: 45px;
   }
   .decisions label {
-    font-size: 10px;
+    font-size: 11px;
     padding: 8px 6px;
   }
   .intake {
@@ -2072,7 +2023,7 @@ dialog > p {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .decisions label {
-    font-size: 11px;
+    font-size: 12px;
   }
   .review-pane .note-field textarea {
     min-height: 70px;
@@ -2094,7 +2045,7 @@ dialog > p {
     gap: 7px;
   }
   .brand strong {
-    font-size: 12px;
+    font-size: 13px;
   }
   .brand-mark svg {
     width: 21px;
@@ -2110,7 +2061,7 @@ dialog > p {
     width: 27px;
   }
   .workspace-tools select {
-    font-size: 11px;
+    font-size: 12px;
     width: 55px;
     padding: 3px 0;
   }
@@ -2160,7 +2111,7 @@ dialog > p {
     padding: 0 3px 12px;
   }
   .library-heading h1 {
-    font-size: 12px;
+    font-size: 13px;
   }
   #toggleLibrary {
     display: inline-flex;
@@ -2178,7 +2129,7 @@ dialog > p {
   }
   #mobileSelection {
     display: block;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2215,7 +2166,7 @@ dialog > p {
   }
   .summary-bar {
     gap: 14px;
-    font-size: 10px;
+    font-size: 11px;
     padding-bottom: 12px;
   }
   .clip-header {
@@ -2225,7 +2176,7 @@ dialog > p {
     font-size: 21px;
   }
   .eyebrow {
-    font-size: 9px;
+    font-size: 10px;
   }
   .review-layout {
     gap: 20px;
@@ -2237,7 +2188,7 @@ dialog > p {
     gap: 6px;
   }
   .variants button {
-    font-size: 10px;
+    font-size: 11px;
     padding: 4px 8px;
   }
   .wave-tools {
@@ -2250,7 +2201,7 @@ dialog > p {
     gap: 10px;
   }
   .transport-time {
-    font-size: 12px;
+    font-size: 13px;
   }
   .volume-control,
   .playback-shortcut {
@@ -2268,7 +2219,7 @@ dialog > p {
   }
   .decisions label {
     padding: 10px;
-    font-size: 12px;
+    font-size: 13px;
   }
   .trim-handle {
     width: 24px;
@@ -2303,7 +2254,7 @@ dialog > p {
     font-size: 28px;
   }
   .intake-heading p {
-    font-size: 12px;
+    font-size: 13px;
   }
   .source-card {
     min-height: 84px;
@@ -2314,7 +2265,7 @@ dialog > p {
     top: 33px;
   }
   .intake-bottom {
-    font-size: 9px;
+    font-size: 10px;
   }
   .preview-scene {
     aspect-ratio: 1.35;
@@ -2324,7 +2275,7 @@ dialog > p {
     bottom: 16px;
   }
   .job-strip {
-    font-size: 10px;
+    font-size: 11px;
     gap: 8px;
   }
   .job-strip progress {
@@ -2346,7 +2297,7 @@ dialog > p {
     margin-bottom: 20px;
   }
   .shortcut-list > div {
-    font-size: 11px;
+    font-size: 12px;
     gap: 12px;
   }
 }
@@ -2374,3 +2325,255 @@ dialog > p {
     --line: #6a747e;
   }
 }
+
+:lang(zh-CN) .intake h1 {
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+@media (max-width: 720px) {
+  :lang(zh-CN) .intake h1 {
+    font-size: 28px;
+  }
+}
+
+.empty-filter .text-button {
+  margin-top: 12px;
+  color: var(--blue);
+}
+.filter-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.queue-complete {
+  text-align: center;
+  padding: 100px 24px;
+}
+.queue-complete > svg {
+  width: 40px;
+  height: 40px;
+  color: var(--good);
+  stroke-width: 1.4;
+  margin-bottom: 24px;
+}
+.queue-complete h2 {
+  font-family: "Desk Display", "Desk UI CJK", "Desk CJK", sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.queue-complete p {
+  color: var(--muted);
+  margin-top: 14px;
+}
+.complete-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  text-decoration: none;
+}
+.button-link.primary {
+  background: var(--ink);
+  color: var(--page);
+  border-color: var(--ink);
+}
+
+.remember-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0 22px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.summary-filter {
+  min-height: 28px;
+  gap: 5px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: inherit;
+}
+.summary-filter[aria-pressed="true"] {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+@media (max-width: 1100px) {
+  .summary-bar .review-progress progress {
+    display: none;
+  }
+  .summary-duration {
+    margin-left: 0;
+  }
+}
+@media (max-width: 720px) {
+  .workspace-topline {
+    align-items: flex-start;
+  }
+  .summary-bar .review-progress {
+    width: 100%;
+  }
+  .summary-bar {
+    gap: 4px 8px;
+  }
+}
+
+.preview-toggle {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  border-radius: 100px;
+  background: #20252bee;
+  color: #fff;
+  border-color: #ffffff24;
+  box-shadow: 0 2px 8px #0002;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+.preview-toggle:before {
+  content: "▶";
+  font-size: 9px;
+}
+.preview-toggle[aria-pressed="true"]:before {
+  content: "Ⅱ";
+}
+.preview-toggle:hover:not(:disabled) {
+  background: #20252b;
+}
+
+.is-loading main {
+  visibility: hidden;
+}
+.boot-status {
+  position: absolute;
+  top: 140px;
+  inset-inline: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.boot-status button {
+  margin-top: 16px;
+}
+
+.settings-toggle,
+.settings-label {
+  display: none;
+}
+.settings-language {
+  display: contents;
+}
+@media (max-width: 720px) {
+  .settings-toggle {
+    display: inline-flex;
+    width: 32px;
+    min-height: 32px;
+  }
+  .workspace-tools {
+    display: none;
+    position: absolute;
+    right: 14px;
+    top: 53px;
+    width: 210px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+  .settings-open .workspace-tools {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .workspace-tools .settings-label {
+    display: inline;
+  }
+  .workspace-tools .icon-button {
+    width: 100%;
+    min-height: 38px;
+    gap: 12px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+  .settings-language {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  .workspace-tools select {
+    width: 94px;
+    padding: 6px;
+    min-height: 32px;
+    border: 1px solid var(--line);
+  }
+  .workspace-tools #version {
+    display: block;
+    padding: 5px 10px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .source-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    max-width: 360px;
+    margin-inline: auto;
+  }
+  .source-card {
+    min-height: 44px;
+    padding: 11px 14px;
+  }
+  .source-card.featured {
+    grid-column: 1 / -1;
+  }
+  .source-card strong {
+    font-size: 13px;
+  }
+  .intake-bottom {
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 11px;
+  }
+  .intake {
+    gap: 28px;
+  }
+}
+
+.help-version {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 20px 0 8px;
+}
+.workspace-tools {
+  transform-origin: top right;
+}
+
+.issue-panel { border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin:4px 0 20px; padding-bottom:0; }
+.issue-panel summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:11px 0; font-size:12px; }
+.issue-panel summary::-webkit-details-marker { display:none; }
+.issue-panel summary svg { width:14px; height:14px; margin-left:auto; transition:transform 140ms ease; }
+.issue-panel[open] summary svg { transform:rotate(90deg); }
+.issue-panel[open] { padding-bottom:12px; }
+.issue-panel summary:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }

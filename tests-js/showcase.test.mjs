@@ -5,10 +5,46 @@ import {
   shouldPlay,
   activeClip,
   mediaPath,
+  clampFilmTime,
+  installCommands,
 } from "../src/audio_review_desk/static/tour/playback-policy.js";
 import { copy } from "../src/audio_review_desk/static/tour/tour-copy.js";
+import { filmDurations } from "../src/audio_review_desk/static/tour/media-info.js";
+
+test("poster-only playback controls show the verified duration before loading video", () => {
+  const manifest = JSON.parse(
+    readFileSync(
+      new URL("../docs/showcase-media.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const clip of manifest.clips) {
+    const [kind, language] = clip.file.replace(".mp4", "").split("-");
+    assert.equal(filmDurations[kind][language], clip.seconds);
+  }
+});
 
 const visible = { visible: true, pageVisible: true, reducedMotion: false };
+test("completed films stay stopped and cinema playback suspends inline footage", () => {
+  assert.equal(shouldPlay({ ...visible, completed: true }), false);
+  assert.equal(
+    shouldPlay({ ...visible, modalOpen: true, choice: "play" }),
+    false,
+  );
+  assert.equal(clampFilmTime(100, 12), 12);
+  assert.equal(clampFilmTime(-1, 12), 0);
+  assert.equal(clampFilmTime(NaN, NaN), 0);
+});
+test("source installation creates a workspace before serving it", () => {
+  const commands = installCommands("linux");
+  assert.ok(
+    commands.indexOf(" init --workspace") <
+      commands.indexOf(" serve --workspace"),
+  );
+  assert.match(commands, /python -m pip install \./);
+  assert.equal(installCommands("windows"), "");
+  assert.throws(() => installCommands("unrecognized"));
+});
 test("automatic footage stays still for reduced motion or data saving", () => {
   assert.equal(shouldPlay({ ...visible, reducedMotion: true }), false);
   assert.equal(shouldPlay({ ...visible, saveData: true }), false);

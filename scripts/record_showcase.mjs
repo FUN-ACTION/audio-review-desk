@@ -84,8 +84,9 @@ export function makeRecorder(tab, cdp, root) {
       clickCount: 1,
     });
   };
-  const type = async (selector, text) => {
+  const type = async (selector, text, { replace = false } = {}) => {
     await click(selector);
+    if (replace) await tab.playwright.locator(selector).press("Control+A");
     for (const char of text) {
       await cdp.send("Input.insertText", { text: char });
       await wait(80);

@@ -1,45 +1,39 @@
 # Interface notes
 
-## Reference and reuse
+## Reference
 
-[Linear's UI redesign account](https://linear.app/now/how-we-redesigned-the-linear-ui) informed alignment, navigation density and the separation of the file list from the inspector. Its live article was inspected: it used Inter, size-specific tracking, 48 px article titles and 24 px section headings. Those are observations of the article, not measurements of the signed-in application.
+The 0.7 walkthrough follows [Superlist](https://www.superlist.com/) for type proportions, warm-white space, alternating feature sections and direct application footage. The live page was inspected in five viewport widths. At 1280 px, its heading used Haffer XH Bold at 68 px / 69.36 px, with a 700 px measure; the application image was 1120 px wide. Body text used Inter. These observations describe the inspected page, not a claim about an earlier award-winning build.
 
-[Superlist's 2021 award record](https://www.awwwards.com/unseenstudio/?library=true&previewmode=true) was reviewed as a historical reference for grouping and interaction. Its current site has changed. No claim is made that the current site is the awarded build.
+Audio Review Desk uses its own recordings and open fonts. Haffer, Superlist photographs, brand assets and site code are not included. The earlier photo surround has been removed. Recordings show the actual desktop interface, including real input and save results.
 
-The earlier [Lusion study](https://lusion.co/) inspected its custom Tween class, central animation loop, text layers and repeated easing curves. In this editor, continuous selection and clear panel transitions are useful; native list scrolling stays available.
+## Type and layout
 
-Version 0.5 directly reuses the MIT-licensed [Motion library](https://motion.dev/docs/animate). The full and mini APIs are bundled locally: numeric motion values drive the A/B and library indicators; native style animation handles dialogs, feedback and intake entry. Versions, source lock, licences and output hash are committed. No code, font or paid template from the reference sites is distributed.
+- Manrope is used for Latin display headings; Inter is used for Latin interface and body text.
+- Noto Sans SC handles Chinese before platform fallbacks. Chinese headings use weight 500. A small interface subset loads first; the larger common-character subset remains available for filenames and notes.
+- The tour uses a warm-white background, 1120 px maximum content width and two feature columns. Large headings and body copy use separate measures. Chinese and English have separate size and line-break adjustments.
+- The app keeps its toolbar, library, listening area and inspector. Optional issue tags are in a disclosure; decision, note and save stay easy to reach. On small screens, appearance, language and help share a compact settings panel.
+- Source selection is a short set of actions above a direct video preview. A filtered library never turns into the empty-workspace introduction.
 
-## Structure and type
+## Motion
 
-The app has a 64 px toolbar, a scrollable library, a listening area and a review inspector. The empty library uses a compact source selector rather than a marketing heading. Status and progress have one header row. Audio IDs stay out of the main title.
+The app bundles [Motion 14.6.0](../THIRD_PARTY_NOTICES.md). Springs move the A/B indicator and selected library highlight from their current positions, retaining velocity when interrupted. Dialogs enter in 220 ms and leave in 140 ms; menus use a shorter transition. Keyboard actions and reduced-motion preferences bypass decorative transitions.
 
-Inter handles Latin; Chinese interface text prefers the platform UI font, with bundled Noto Sans SC as a fallback. Chinese headings use normal tracking. The intake title is 32 px, clip titles 23 px, controls mostly 12–14 px. A narrow viewport stacks the inspector and collapses the library after selection.
+Repeated clip selection does not fade the player or rebuild unchanged library rows. Audio time drives the playhead. Seeking and boundary dragging track input directly, without an easing delay. Waveform drawing is separate from playback movement.
 
-## Motion behaviour
+The tour plays one visible film at a time and stops after one pass. Replay, seeking and a larger viewer are available. A larger viewer pauses inline footage and returns focus when closed. Reduced motion and data saving prevent automatic playback; manual play remains available. The app's preview always waits for a click.
 
-- Selected library rows share one moving highlight. Motion values retain current position and velocity when interrupted.
-- Dialogs enter in 220 ms and leave in 140 ms. The transform ends at explicit identity. Opening a dialog invalidates an earlier close callback before stopping its animation.
-- Intake cards enter with short staggered offsets; pointer hover shifts them by two pixels. Keyboard actions are immediate. Reduced motion bypasses these transitions.
-- Playback comes from the audio clock. Seeking and boundary dragging track input directly. Pointer capture retains the grab offset; waveform bars do not repaint on each playback frame.
+## Review behaviour
 
-## Language and annotation data
+Time notes can be added, edited, moved and removed. Invalid times keep the editor open. Cancelling an edit restores the original note and clears a false dirty state. Save includes any note being composed.
 
-Visible labels, accessibility names and known API/job errors have both languages. Error codes choose UI text; raw command-line diagnostics do not appear as English messages in a Chinese workflow. Filenames and user-written notes are retained as entered.
+Search combines saved filenames, IDs, review notes and time notes. A clip outside the current filter keeps its draft and displays a route back to the full library. Continue follows the existing queue and skips reviewed clips, including when the saved row leaves a pending filter.
 
-Time notes are version-bound review fields. Their text is rendered with `textContent`, and their timestamp buttons seek the player. A note being composed is protected as a draft and included when saving. The waveform remains a peak overview; zoom does not add sample-level detail or edit the source audio.
+Listening memory is separate from review data. It is scoped to the workspace and versioned audio key, keeps at most 64 recent positions, and always resumes paused. Turning it off clears positions. Browser storage failures leave the reviewer usable.
 
-## Views
+## Maintenance
 
-![Empty library](screenshot-intake.png)
+Font sources, licences and digests are in [third-party notices](../THIRD_PARTY_NOTICES.md). [Media notes](showcase-media.md) describe the procedural signals, capture input, crop regions and encoding. [Verification](verification.md) distinguishes automated checks, browser inspection and package checks.
 
-![Command menu](screenshot-commands.png)
+![Workspace](screenshot-zh-CN.png)
 
-
-## 0.6: recorded walkthrough
-
-The empty view now pairs a compact source list with a click-to-play recording. The separate walkthrough uses a warm-white canvas, larger type, a studio backdrop and two alternating close-ups. Its page title is the product name rather than a slogan. Windows remain upright. The app does not autoplay its preview.
-
-Showcase videos are visible-only and mutually exclusive. Manual pause is remembered for the visit. Reduced motion and data saving prevent automatic playback; an explicit play action still works. The reference, original background prompt, source signals and encoding choices are in [the media notes](showcase-media.md).
-
-![Recorded walkthrough](screenshot-tour.png)
+![Walkthrough](screenshot-tour.png)
