@@ -13,6 +13,8 @@ node --test tests-js/*.test.mjs
 
 FFmpeg integration tests are conditional on FFmpeg and ffprobe being available. The app itself does not require Node.js. Frontend files are served directly as packaged resources; no JavaScript build step is required.
 
+Frontend modules separate copy, motion, waveform drawing and media controls. See [design notes](docs/design.md) for the type and motion system. Bundled fonts are ready to use. To rebuild them, install `fonttools[woff]` in a separate build environment and run `python scripts/build_fonts.py`; source revisions and hashes are pinned in that script. The font build cache is ignored by Git.
+
 ## Invariants
 
 - Source audio and models are never changed, moved, deleted, or trained by this tool.

@@ -55,6 +55,8 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if not self.host_valid():
                     return self.json_response({"error": "Use the printed 127.0.0.1 address"}, 403)
                 path = urlsplit(self.path).path
+                if path == "/api/version":
+                    return self.json_response({"version": __version__})
                 if path == "/api/state":
                     return self.json_response(dict(workspace.state(), session=session, version=__version__,
                                                    can_rescan=workspace.import_source() is not None,
@@ -82,10 +84,16 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
+                if path in {"/copy.js", "/motion.js", "/waveform.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
+                    name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
                     content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
-                    self.headers_for(200, content_type + "; charset=utf-8", len(data))
+                    if name.endswith(".woff2"):
+                        content_type = "font/woff2"
+                    if name.endswith((".html", ".css", ".js")):
+                        content_type += "; charset=utf-8"
+                    self.headers_for(200, content_type, len(data))
                     if self.command != "HEAD":
                         self.wfile.write(data)
                     return

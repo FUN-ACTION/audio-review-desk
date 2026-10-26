@@ -1,3 +1,7 @@
+import { words } from "./copy.js";
+import { springValue, reveal, openDialog, closeDialog } from "./motion.js";
+import { mountWaveform } from "./waveform.js";
+import { mountTransport } from "./transport.js";
 import {
   formatTime,
   filterItems,
@@ -7,245 +11,6 @@ import {
 } from "./ui.js";
 
 const $ = (id) => document.getElementById(id);
-const words = {
-  zh: {
-    local: "本地工作区",
-    import: "导入素材",
-    rescan: "重新扫描",
-    export: "导出",
-    exportJson: "完整记录 · JSON",
-    exportCsv: "当前清单 · CSV",
-    exportPass: "已通过片段 · CSV",
-    collection: "素材清单",
-    refresh: "刷新",
-    files: "个文件",
-    pending: "待审",
-    pass: "通过",
-    fix: "待处理",
-    exclude: "排除",
-    flagged: "个技术提示",
-    approvedDuration: "人工通过",
-    candidateDuration: "候选",
-    library: "素材",
-    search: "搜索文件、标题",
-    all: "全部状态",
-    flags: "技术提示",
-    duplicates: "PCM 重复",
-    byName: "名称",
-    byDuration: "时长",
-    byLevel: "电平",
-    selectVisible: "选择当前列表",
-    apply: "应用到所选",
-    emptyTitle: "还没有素材",
-    emptyHelp: "导入一个音频目录，或使用已有的 CSV / JSON 清单。",
-    emptyFilter: "没有符合条件的文件",
-    readOnly: "原文件只读",
-    variantA: "A · 当前",
-    variantB: "B · 参考",
-    loop: "循环范围",
-    speed: "速度",
-    compareNote: "A/B 等 RMS 衰减试听",
-    range: "建议保留范围",
-    resetRange: "重置",
-    trimStart: "起点 / 秒",
-    trimEnd: "终点 / 秒",
-    markIn: "取当前起点 [",
-    markOut: "取当前终点 ]",
-    rangeHelp: "只记录边界，不裁剪原音频。",
-    fileInfo: "文件信息与检测",
-    checksHelp: "检测只提示电平、静音和解码问题；录音身份与听感需人工判断。",
-    history: "审核历史",
-    decision: "审核",
-    score: "评分（可选）",
-    issues: "问题标签",
-    notes: "备注",
-    notesPlaceholder: "记录听到的问题或处理方式",
-    saveNext: "保存并下一条",
-    save: "保存",
-    undo: "撤销上次审核",
-    versionHelp: "音频或参考版本变化后，需要重新审核。",
-    shortcuts: "空格 播放 · B 对照 · J/K 切换 · 1–4 状态 · Ctrl+Enter 保存",
-    welcome: "从一份素材清单开始",
-    welcomeHelp: "选择目录后，逐条试听、标记问题，再导出审核结果。",
-    importHelp: "填写这台电脑上的目录或清单文件路径，原文件保持不变。",
-    importType: "导入类型",
-    folder: "音频目录",
-    manifest: "CSV / JSON 清单",
-    path: "本机路径",
-    append: "保留工作区中其他目录的素材",
-    replaceHelp: "取消勾选会替换当前列表，原文件和已保存的审核历史仍保留。",
-    cancel: "取消",
-    startImport: "开始导入",
-    cancelImport: "停止导入",
-    selected: "已选",
-    duplicateGroups: "组重复",
-    notReviewed: "未保存",
-    saved: "已保存",
-    saving: "保存中…",
-    unsaved: "未保存的更改",
-    discard: "放弃这条尚未保存的审核草稿？",
-    discardTitle: "有未保存的更改",
-    discardAction: "放弃更改",
-    keepEditing: "继续编辑",
-    noFlags: "无技术提示",
-    quiet: "静音 / 音量很低",
-    nearClip: "接近满幅",
-    multichannel: "多声道",
-    decodeError: "无法完整解码",
-    ineligible: "不计入候选时长",
-    rate: "采样率",
-    channels: "声道",
-    rms: "RMS",
-    duration: "时长",
-    peak: "采样峰值",
-    edges: "首尾静音",
-    noHistory: "没有审核记录",
-    cut_start: "开头截断",
-    cut_end: "结尾截断",
-    noise: "噪声",
-    reverb: "混响",
-    backing_voice: "其他人声",
-    instrument: "乐器残留",
-    lyrics: "字词不清",
-    distortion: "失真",
-    identity: "身份不确定",
-    other: "其他",
-    loadError: "无法读取工作区，请确认本地服务仍在运行。",
-    audioError: "无法播放，请核对原文件并重新扫描。",
-    jobReading: "正在读取目录",
-    jobSaving: "正在更新清单",
-    jobCancel: "当前文件完成后停止",
-    jobDone: "导入完成",
-    jobCancelled: "已停止，原清单保持不变。",
-    jobFailed: "导入失败",
-    refreshDraft: "素材已导入。保存或放弃当前草稿后，刷新清单。",
-    savedRefresh: "审核已保存，统计暂未刷新。",
-    batchSaved: "条记录已更新",
-    undoSaved: "已撤销，历史记录保留。",
-  },
-  en: {
-    local: "Local workspace",
-    import: "Import audio",
-    rescan: "Rescan",
-    export: "Export",
-    exportJson: "Full review record · JSON",
-    exportCsv: "File list · CSV",
-    exportPass: "Approved clips · CSV",
-    collection: "Collection",
-    refresh: "Refresh",
-    files: "files",
-    pending: "Pending",
-    pass: "Approved",
-    fix: "Needs work",
-    exclude: "Excluded",
-    flagged: "technical flags",
-    approvedDuration: "Approved",
-    candidateDuration: "Candidate",
-    library: "Files",
-    search: "Search files or labels",
-    all: "All statuses",
-    flags: "Technical flags",
-    duplicates: "PCM duplicates",
-    byName: "Name",
-    byDuration: "Duration",
-    byLevel: "Level",
-    selectVisible: "Select visible files",
-    apply: "Apply to selection",
-    emptyTitle: "No files yet",
-    emptyHelp: "Import an audio folder or an existing CSV / JSON manifest.",
-    emptyFilter: "No matching files",
-    readOnly: "Source audio is read-only",
-    variantA: "A · Current",
-    variantB: "B · Reference",
-    loop: "Loop range",
-    speed: "Speed",
-    compareNote: "A/B previews: RMS-matched attenuation",
-    range: "Suggested keep range",
-    resetRange: "Reset",
-    trimStart: "Start / seconds",
-    trimEnd: "End / seconds",
-    markIn: "Set start [",
-    markOut: "Set end ]",
-    rangeHelp: "Records boundaries without cutting the source.",
-    fileInfo: "File details and checks",
-    checksHelp:
-      "Checks cover levels, silence and decoding. Recording identity and listening quality need review.",
-    history: "Review history",
-    decision: "Review",
-    score: "Score (optional)",
-    issues: "Issue labels",
-    notes: "Notes",
-    notesPlaceholder: "Describe what needs attention or what to keep",
-    saveNext: "Save & next",
-    save: "Save",
-    undo: "Undo last review",
-    versionHelp: "Changed audio or reference versions need a new review.",
-    shortcuts:
-      "Space Play · B Compare · J/K Navigate · 1–4 Status · Ctrl+Enter Save",
-    welcome: "Start with an audio collection",
-    welcomeHelp:
-      "Import a folder, listen to each clip, record issues, then export the results.",
-    importHelp:
-      "Enter a folder or manifest path on this computer. Source files remain unchanged.",
-    importType: "Import type",
-    folder: "Audio folder",
-    manifest: "CSV / JSON manifest",
-    path: "Local path",
-    append: "Keep files from other folders in this workspace",
-    replaceHelp:
-      "Unchecking this replaces the active list. Source audio and saved history stay intact.",
-    cancel: "Cancel",
-    startImport: "Start import",
-    cancelImport: "Stop import",
-    selected: "selected",
-    duplicateGroups: "duplicate groups",
-    notReviewed: "Not saved",
-    saved: "Saved",
-    saving: "Saving…",
-    unsaved: "Unsaved changes",
-    discard: "Discard this unsaved review draft?",
-    discardTitle: "Unsaved changes",
-    discardAction: "Discard changes",
-    keepEditing: "Keep editing",
-    noFlags: "No technical flags",
-    quiet: "Silence / very quiet",
-    nearClip: "Near full scale",
-    multichannel: "Multichannel",
-    decodeError: "Could not fully decode",
-    ineligible: "Excluded from candidate duration",
-    rate: "Sample rate",
-    channels: "Channels",
-    rms: "RMS",
-    duration: "Duration",
-    peak: "Sample peak",
-    edges: "Quiet edges",
-    noHistory: "No saved reviews",
-    cut_start: "Start cut",
-    cut_end: "End cut",
-    noise: "Noise",
-    reverb: "Reverb",
-    backing_voice: "Other voice",
-    instrument: "Instrument bleed",
-    lyrics: "Unclear words",
-    distortion: "Distortion",
-    identity: "Identity uncertain",
-    other: "Other",
-    loadError:
-      "Could not read the workspace. Check that the local server is running.",
-    audioError: "Preview unavailable. Check the source file and rescan.",
-    jobReading: "Reading folder",
-    jobSaving: "Updating file list",
-    jobCancel: "Stopping after the current file",
-    jobDone: "Import complete",
-    jobCancelled: "Import stopped. The previous file list is unchanged.",
-    jobFailed: "Import failed",
-    refreshDraft:
-      "Import complete. Save or discard this draft, then refresh the list.",
-    savedRefresh: "Review saved; counts could not refresh.",
-    batchSaved: "reviews updated",
-    undoSaved: "Review undone. History has been kept.",
-  },
-};
 let language = navigator.language.startsWith("zh") ? "zh" : "en";
 try {
   language = localStorage.getItem("ard-language") || language;
@@ -282,15 +47,54 @@ const precise = (seconds) =>
     .padStart(3, "0")}`;
 const number = (value) => (value.trim() === "" ? null : Number(value));
 
+let noticeTimer;
+const waveformView = mountWaveform(
+  $("waveform"),
+  $("seek"),
+  $("waveSelection"),
+  $("playhead"),
+);
+const moveGlider = springValue((value) => {
+  $("abGlider").style.transform = `translateX(${value}px)`;
+});
+const transport = mountTransport({
+  player,
+  button: $("play"),
+  seek: $("seek"),
+  back: $("skipBack"),
+  forward: $("skipForward"),
+  volume: $("volume"),
+  range,
+  loop: $("loop"),
+  onTime: updateTime,
+  onError: (message) => notice(message),
+  labels: () => ({ play: t("play"), pause: t("pause") }),
+});
 function notice(message = "", success = false) {
+  clearTimeout(noticeTimer);
   $("notice").textContent = message;
   $("notice").hidden = !message;
   $("notice").classList.toggle("success", success);
+  if (message) reveal($("notice"));
+  if (message && success) noticeTimer = setTimeout(() => notice(), 3200);
 }
 async function request(path, options) {
   const response = await fetch(path, options);
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  if (!response.ok) {
+    let message = result.error || `HTTP ${response.status}`;
+    if (
+      language === "zh" &&
+      /Another page updated|updated elsewhere/.test(message)
+    )
+      message = "这条审核刚被另一页更新。先刷新，再核对更改。";
+    if (
+      language === "zh" &&
+      /Source changed|Audio version changed/.test(message)
+    )
+      message = "音频已有变化，重新扫描后再保存。";
+    throw new Error(message);
+  }
   return result;
 }
 const post = (path, payload) =>
@@ -308,7 +112,7 @@ async function discardAllowed() {
   if (discardResolver) return false;
   const allowed = await new Promise((resolve) => {
     discardResolver = resolve;
-    $("discardDialog").showModal();
+    openDialog($("discardDialog"));
     $("keepEditing").focus();
   });
   if (allowed) {
@@ -328,8 +132,22 @@ function translate() {
   document.querySelectorAll("[data-placeholder]").forEach((element) => {
     element.placeholder = t(element.dataset.placeholder);
   });
+  document.querySelectorAll("[data-title]").forEach((element) => {
+    element.title = t(element.dataset.title);
+    element.setAttribute("aria-label", t(element.dataset.title));
+  });
   $("search").setAttribute("aria-label", t("search"));
   $("filter").setAttribute("aria-label", t("all"));
+  for (const [id, key] of [
+    ["seek", "position"],
+    ["volume", "volume"],
+    ["sort", "sort"],
+    ["batchStatus", "batch"],
+    ["trimStart", "trimStart"],
+    ["trimEnd", "trimEnd"],
+    ["score", "score"],
+  ])
+    $(id).setAttribute("aria-label", t(key));
   for (const label of $("issues").querySelectorAll("label"))
     label.querySelector("span").textContent = t(
       label.querySelector("input").value,
@@ -340,6 +158,8 @@ function translate() {
     if (selected) renderDetails(false);
   }
   if (job) renderJob();
+  transport.refresh();
+  updateLibraryToggle();
 }
 for (const name of issueNames) {
   const label = document.createElement("label"),
@@ -361,7 +181,7 @@ function renderSummary() {
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
   $("collectionName").textContent = state.scan?.label || state.workspace || "—";
-  $("version").textContent = state.version || "0.2.0";
+  $("version").textContent = state.version || "0.3.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -440,7 +260,8 @@ function markDirty() {
   if (!busy && selected) {
     dirty = true;
     $("saveState").textContent = t("unsaved");
-    drawWave();
+    if (["trimStart", "trimEnd"].includes(document.activeElement?.id))
+      drawWave();
   }
 }
 function range() {
@@ -450,48 +271,32 @@ function range() {
     number($("trimEnd").value),
   );
 }
-function updateTime() {
-  $("playTime").textContent =
-    `${precise(player.currentTime || 0)} / ${precise(selected?.quality.duration || 0)}`;
-}
-function drawWave() {
-  const canvas = $("waveform"),
-    width = Math.max(1, canvas.clientWidth),
-    height = canvas.clientHeight || 160,
-    ratio = window.devicePixelRatio || 1;
-  canvas.width = width * ratio;
-  canvas.height = height * ratio;
-  const context = canvas.getContext("2d");
-  context.scale(ratio, ratio);
-  context.clearRect(0, 0, width, height);
-  const data = wave[variant] || [],
-    duration = selected?.quality.duration || 1,
-    progress = (player.currentTime || 0) / duration,
-    [start, end] = range();
-  context.fillStyle = "#1d2637";
-  context.fillRect(
-    (start / duration) * width,
-    0,
-    ((end - start) / duration) * width,
-    height,
-  );
-  context.fillStyle = "#3c485d";
-  context.fillRect(0, height / 2, width, 1);
-  for (let i = 0; i < data.length; i++) {
-    const x = (i * width) / data.length,
-      bar = Math.max(1, data[i] * (height - 24));
-    context.fillStyle = i / data.length <= progress ? "#b7c7fa" : "#61779f";
-    if (i / data.length < start / duration || i / data.length > end / duration)
-      context.fillStyle = "#3a4353";
-    context.fillRect(
-      x,
-      height / 2 - bar / 2,
-      Math.max(1, width / data.length - 1),
-      bar,
+function updateTime(seconds = player.currentTime || 0, text = true) {
+  if (text) {
+    $("playTime").textContent = precise(seconds);
+    $("totalTime").textContent =
+      `/ ${formatTime(selected?.quality.duration || 0)}`;
+    $("seek").setAttribute(
+      "aria-valuetext",
+      `${precise(seconds)} / ${formatTime(selected?.quality.duration || 0)}`,
     );
   }
-  context.fillStyle = "#e9edf9";
-  context.fillRect(progress * width, 8, 1, height - 16);
+  waveformView.position(seconds);
+}
+function drawWave() {
+  const [start, end] = range();
+  waveformView.set(
+    wave[variant] || [],
+    selected?.quality.duration || 0,
+    start,
+    end,
+  );
+  waveformView.position(player.currentTime || 0);
+}
+function syncGlider(instant = false) {
+  const button = $(variant === "a" ? "variantA" : "variantB");
+  $("abGlider").style.width = `${button.offsetWidth}px`;
+  moveGlider(button.offsetLeft - 3, instant);
 }
 function renderDetails(restore = true) {
   if (!selected) return;
@@ -521,7 +326,13 @@ function renderDetails(restore = true) {
       return span;
     }),
   );
+  $("qualityFlags").hidden = !q.flags.length && !item.error && item.eligible;
   $("audioSection").hidden = !q.decoded;
+  for (const id of ["play", "skipBack", "skipForward", "volume"])
+    $(id).disabled = !q.decoded;
+  $("seek").disabled = !q.decoded || player.readyState === 0;
+  $("rulerMid").textContent = formatTime((q.duration || 0) / 2);
+  $("rulerEnd").textContent = formatTime(q.duration || 0);
   $("variantB").disabled = !item.reference_quality || busy;
   for (const [id, value] of [
     ["variantA", "a"],
@@ -586,12 +397,14 @@ function renderDetails(restore = true) {
   $("saveState").textContent = dirty
     ? t("unsaved")
     : review.version
-      ? `${t("saved")} · v${review.version}`
+      ? t("saved")
       : t("notReviewed");
   const list = visibleItems(),
     index = list.findIndex((row) => row.key === item.key);
   $("previous").disabled = busy || index <= 0;
   $("next").disabled = busy || index < 0 || index >= list.length - 1;
+  $("clipPosition").textContent = `${index + 1} / ${list.length}`;
+  syncGlider();
   updateTime();
   drawWave();
 }
@@ -601,15 +414,25 @@ async function select(item) {
   player.pause();
   player.onloadedmetadata = null;
   selected = item;
+  try {
+    sessionStorage.setItem(`ard-current-${state.workspace}`, item.key);
+  } catch {}
+  if (matchMedia("(max-width:720px)").matches)
+    document.body.classList.add("mobile-library-collapsed");
+  $("mobileSelection").textContent = item.label;
+  updateLibraryToggle();
   dirty = false;
   variant = "a";
   wave = { a: [], b: [] };
   notice();
   renderQueue();
   renderDetails();
+  reveal($("audioSection"));
   $("historyPanel").open = false;
   if (item.quality.decoded) {
     player.src = `/media/${item.key}/a.wav`;
+    $("seek").disabled = true;
+    player.load();
     player.playbackRate = Number($("speed").value);
     try {
       const result = await request(`/api/wave/${item.key}`);
@@ -637,14 +460,20 @@ async function refresh(force = false) {
         selectedKeys.delete(key);
     renderSummary();
     renderQueue();
+    let remembered = previous;
+    try {
+      remembered =
+        remembered || sessionStorage.getItem(`ard-current-${state.workspace}`);
+    } catch {}
     const item =
-      state.items.find((row) => row.key === previous) ||
+      state.items.find((row) => row.key === remembered) ||
       visibleItems()[0] ||
       state.items[0];
     if (item) await select(item);
     else {
       $("detailPanel").hidden = true;
       $("emptyDetail").hidden = false;
+      reveal($("emptyDetail"));
     }
   } catch (error) {
     notice(`${t("loadError")} ${error.message}`);
@@ -777,11 +606,12 @@ async function switchVariant(next) {
   };
   player.load();
   renderDetails(false);
+  updateTime(time);
 }
 async function openImport() {
   if (busy || importing() || !(await discardAllowed())) return;
   $("importError").hidden = true;
-  $("importDialog").showModal();
+  openDialog($("importDialog"));
   $("importPath").focus();
 }
 function renderJob() {
@@ -837,7 +667,7 @@ async function startImport(event) {
       path: $("importPath").value.trim(),
       append: $("appendImport").checked,
     });
-    $("importDialog").close();
+    closeDialog($("importDialog"));
     renderJob();
     pollTimer = setTimeout(poll, 200);
   } catch (error) {
@@ -884,7 +714,7 @@ $("applyBatch").addEventListener("click", batch);
 for (const id of ["openImport", "emptyImport", "welcomeImport"])
   $(id).addEventListener("click", openImport);
 for (const id of ["closeImport", "dismissImport"])
-  $(id).addEventListener("click", () => $("importDialog").close());
+  $(id).addEventListener("click", () => closeDialog($("importDialog")));
 $("importForm").addEventListener("submit", startImport);
 $("cancelImport").addEventListener("click", async () => {
   try {
@@ -909,12 +739,17 @@ $("language").addEventListener("change", () => {
   try {
     localStorage.setItem("ard-language", language);
   } catch {}
+  notice();
   translate();
   if ($("historyPanel").open) loadHistory();
 });
 $("refresh").addEventListener("click", () => refresh());
-$("keepEditing").addEventListener("click", () => $("discardDialog").close("keep"));
-$("discardChanges").addEventListener("click", () => $("discardDialog").close("discard"));
+$("keepEditing").addEventListener("click", () =>
+  closeDialog($("discardDialog"), "keep"),
+);
+$("discardChanges").addEventListener("click", () =>
+  closeDialog($("discardDialog"), "discard"),
+);
 $("discardDialog").addEventListener("close", () => {
   const resolve = discardResolver;
   discardResolver = null;
@@ -960,32 +795,20 @@ $("speed").addEventListener("change", () => {
 player.addEventListener("play", () => {
   player.playbackRate = Number($("speed").value);
   const [start, end] = range();
-  if ($("loop").checked && (player.currentTime < start || player.currentTime >= end))
+  if (
+    $("loop").checked &&
+    (player.currentTime < start || player.currentTime >= end)
+  )
     player.currentTime = start;
-});
-player.addEventListener("timeupdate", () => {
-  const [start, end] = range();
-  if ($("loop").checked && !player.paused && player.currentTime >= end - 0.01)
-    player.currentTime = start;
-  updateTime();
-  drawWave();
-});
-player.addEventListener("ended", () => {
-  if ($("loop").checked && selected?.quality.decoded) {
-    player.currentTime = range()[0];
-    player.play().catch((error) => notice(error.message));
-  }
 });
 player.addEventListener("error", () => {
   if (selected?.quality.decoded) notice(t("audioError"));
 });
-$("waveform").addEventListener("click", (event) => {
-  if (Number.isFinite(player.duration))
-    player.currentTime =
-      (event.offsetX / $("waveform").clientWidth) * player.duration;
-});
 $("historyPanel").addEventListener("toggle", loadHistory);
-window.addEventListener("resize", drawWave);
+window.addEventListener("resize", () => {
+  drawWave();
+  syncGlider(true);
+});
 window.addEventListener("beforeunload", (event) => {
   if (dirty) {
     event.preventDefault();
@@ -996,7 +819,8 @@ document.addEventListener("click", (event) => {
   if (!$("exportMenu").contains(event.target)) $("exportMenu").open = false;
 });
 document.addEventListener("keydown", (event) => {
-  if ($("importDialog").open || $("discardDialog").open) return;
+  if ($("importDialog").open || $("discardDialog").open || $("helpDialog").open)
+    return;
   if (event.ctrlKey && event.key === "Enter") {
     event.preventDefault();
     save(false);
@@ -1010,6 +834,16 @@ document.addEventListener("keydown", (event) => {
     busy
   )
     return;
+  if (event.key === "?") {
+    event.preventDefault();
+    openDialog($("helpDialog"));
+    return;
+  }
+  if (event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    $("focusMode").click();
+    return;
+  }
   if (event.code === "Space") {
     event.preventDefault();
     if (selected?.quality.decoded) {
@@ -1040,5 +874,73 @@ document.addEventListener("keydown", (event) => {
     }
   }
 });
+let theme = "light";
+function updateLibraryToggle() {
+  const collapsed = document.body.classList.contains(
+    "mobile-library-collapsed",
+  );
+  $("toggleLibrary").setAttribute("aria-expanded", String(!collapsed));
+  $("toggleLibrary").setAttribute(
+    "aria-label",
+    t(collapsed ? "expandLibrary" : "collapseLibrary"),
+  );
+}
+$("toggleLibrary").addEventListener("click", () => {
+  document.body.classList.toggle("mobile-library-collapsed");
+  updateLibraryToggle();
+  if (!document.body.classList.contains("mobile-library-collapsed"))
+    reveal($("items"));
+});
+try {
+  theme = localStorage.getItem("ard-theme") || theme;
+} catch {}
+document.documentElement.dataset.theme = theme;
+$("theme").setAttribute("aria-pressed", String(theme === "dark"));
+$("theme").addEventListener("click", () => {
+  theme = theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = theme;
+  $("theme").setAttribute("aria-pressed", String(theme === "dark"));
+  try {
+    localStorage.setItem("ard-theme", theme);
+  } catch {}
+  drawWave();
+});
+$("focusMode").addEventListener("click", () => {
+  const focused = document.body.classList.toggle("focus-mode");
+  $("focusMode").setAttribute("aria-pressed", String(focused));
+  requestAnimationFrame(() => {
+    drawWave();
+    syncGlider(true);
+  });
+  reveal($("listening-pane") || document.querySelector(".listening-pane"));
+});
+for (const id of ["openHelp", "shortcuts"])
+  $(id).addEventListener("click", () => openDialog($("helpDialog")));
+$("closeHelp").addEventListener("click", () => closeDialog($("helpDialog")));
+$("exportMenu").addEventListener("toggle", () => {
+  if ($("exportMenu").open) reveal(document.querySelector(".menu"), "menu");
+});
+for (const dialog of document.querySelectorAll("dialog"))
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDialog(dialog, dialog.id === "discardDialog" ? "keep" : "");
+  });
+const checkVersion = async () => {
+  try {
+    const result = await request("/api/version");
+    $("updateNotice").hidden = result.version === "0.3.0";
+  } catch {}
+};
+window.addEventListener("focus", checkVersion);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkVersion();
+});
+$("reloadApp").addEventListener("click", async () => {
+  if (await discardAllowed()) location.reload();
+});
 translate();
-refresh(true).then(poll);
+refresh(true).then(() => {
+  syncGlider(true);
+  poll();
+  checkVersion();
+});

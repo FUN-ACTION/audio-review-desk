@@ -53,7 +53,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 403)
 
     def test_static_assets_are_packaged_and_private_paths_not_served(self):
-        for path in ("/", "/app.js", "/style.css", "/ui.js"):
+        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/transport.js"):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
@@ -61,6 +61,14 @@ class ServerTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 self.get(path)
             self.assertEqual(caught.exception.code, 404)
+
+    def test_packaged_fonts_and_version_endpoint(self):
+        from audio_review_desk import __version__
+        self.assertEqual(self.get('/api/version'), {'version': __version__})
+        for path in ('/studio-latin.woff2', '/studio-cjk.woff2'):
+            with urllib.request.urlopen(self.origin + path) as response:
+                self.assertEqual(response.read(4), b'wOF2')
+                self.assertIn('font', response.headers['Content-Type'])
 
     def test_same_origin_and_review_token_required(self):
         for headers in ({"Origin": "http://evil.example"}, {"X-Review-Token": "wrong"}, {"Origin": "null"}):

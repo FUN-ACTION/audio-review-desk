@@ -1,11 +1,11 @@
 # Release verification
 
-Version: 0.2.0. Local verification date: 2026-10-26.
+Version: 0.3.0. Local verification date: 2026-10-26.
 
 ## Automated checks
 
-- 58 Python tests cover audio decoding, PCM hashes, timeline totals, version-bound reviews, concurrent edits, atomic restore, HTTP ranges and origin checks. The 0.2 cases add append/replace imports, progress, cancellation, conflicting IDs, legacy workspace compatibility, atomic batch edits, undo, CSV filtering and spreadsheet formula escaping.
-- 5 JavaScript unit tests cover queue filtering, duration formatting, score/trim payloads, sorting and playback range bounds.
+- 59 Python tests cover audio decoding, PCM hashes, timeline totals, version-bound reviews, concurrent edits, atomic restore, HTTP ranges and origin checks. Workflow cases cover append/replace imports, cancellation, conflicting IDs, legacy workspaces, batch edits, undo and CSV. Version 0.3 adds packaged font delivery and version checks.
+- 7 JavaScript tests cover filtering, formatting, review payloads, sorting, playback bounds and spring behaviour at 60/120 Hz with velocity continuity on retargeting.
 - Optional FFmpeg integration exercised FLAC equivalence and MP3 decoding on the local Windows environment.
 - A wheel installation and synthetic demo are verified in a separate clean virtual environment before release.
 
@@ -13,7 +13,7 @@ The exact supported CI matrix is Windows/Linux/macOS with Python 3.11/3.13, plus
 
 ## Browser checks
 
-The local app was exercised in the ChatGPT in-app Chromium browser using generated audio:
+The 0.1/0.2 local app was exercised in the ChatGPT in-app Chromium browser using generated audio:
 
 - Playback loaded a two-second WAV with no media error.
 - A/B changed to the reference stream and retained a usable time position.
@@ -30,8 +30,10 @@ The local app was exercised in the ChatGPT in-app Chromium browser using generat
 
 No browser test establishes subjective singing quality, correct lyrics, speaker identity, or training readiness. Synthetic test decisions are unrelated to any user's real audio collection.
 
+The 0.3 workbench adds browser checks for the custom player, waveform seeking, a loop beginning at 0.25 seconds at 0.75×, rapid A/B switching, focus mode, both appearances, reduced-motion behaviour, packaged Chinese font usage, zero-score saving, draft protection and responsive layout. These are local Chromium checks, not physical-device testing or a claim about matching Apple's hardware performance.
+
 ## Data separation
 
 Development and testing used newly generated signals, temporary workspaces, and a separate Python environment. Original material/model directories were not imported into the public repository. An external delivery receipt records before/after hashes for the original implementation files inspected during extraction; those private filesystem paths are not distributed in the source archive.
 
-The existing 0.1 example workspace was backed up before development and its database hash was unchanged after the 0.2 checks. The screenshots show generated signals with illustrative review decisions, not a validated voice dataset.
+The existing 0.1 example workspace was backed up before development and its database hash was unchanged after the 0.3 checks. The screenshots show generated signals with illustrative review decisions, not a validated voice dataset.

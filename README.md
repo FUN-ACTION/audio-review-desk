@@ -29,13 +29,14 @@ In the app, choose **Import audio** and enter a folder path on your computer. Us
 
 | Task | Where to do it |
 | --- | --- |
-| Find corrupt, quiet or near-full-scale audio | **Technical flags** filter |
+| Find corrupt, quiet or near-full-scale audio | **Needs attention** filter |
 | Compare a processed clip with its reference | **A / B**, at the same playback position |
-| Listen closely to a word or boundary | Set start/end, turn on **Loop range**, adjust speed |
-| Keep the queue moving | **Save & next**, or J/K to move between files |
-| Mark a group for repair or exclusion | Select files, choose a status, then **Apply to selection** |
+| Listen closely to a word or boundary | Drag the waveform, set start/end, turn on **Loop**, adjust speed |
+| Keep the queue moving | **Save & continue**, or J/K to move between files |
+| Mark a group for repair or exclusion | Select files, choose a status, then **Apply** |
 | Recover from a wrong decision | **Undo last review**; the change stays in history |
-| Hand reviewed clips to another tool | **Export → Approved clips · CSV** |
+| Hand reviewed clips to another tool | **Export → Approved audio · CSV** |
+| Listen without the other panels | **Focus listening**, or F |
 
 Batch changes preserve notes and scores. Approval is per clip. CSV exports include file hashes and source intervals; JSON also preserves the full current review record.
 
@@ -49,7 +50,7 @@ Duration totals merge overlapping clips from the same recording. Exact PCM copie
 
 ## Updates
 
-**0.2.0:** import folders from the app, watch or stop a scan, keep multiple collections in one workspace, mark files in batches, undo a review, export CSV, and loop a selected range. The interface and Windows startup now open on the actual file workflow rather than the example collection.
+**0.3.0:** a new listening workspace with locally bundled fonts, a custom player, waveform seeking, focus mode and light/dark appearances. A/B selection, dialogs and feedback have coordinated motion, with support for reduced motion. [Design notes and references](docs/design.md) explain the choices. Folder import, batch review, undo and CSV export remain available.
 
 Existing 0.1 workspaces remain readable. Stop the old server before upgrading, install the new version in the same app environment, then reopen your workspace. See [upgrading](docs/installation.md#upgrading-from-01).
 
@@ -63,4 +64,4 @@ node --test tests-js/*.test.mjs
 
 Tests use generated audio and temporary workspaces. Node.js 22+ is only needed for frontend tests; normal use needs Python. [Verification notes](docs/verification.md) record release checks. To try generated example files, run `audio-review-desk demo --workspace .ard-demo`, then serve that workspace.
 
-Issues with a small reproduction are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). MIT license; no recordings, models or private review databases are included in the repository.
+Issues with a small reproduction are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). The code is MIT-licensed; [bundled fonts](THIRD_PARTY_NOTICES.md) use SIL OFL 1.1. No recordings, models or private review databases are included in the repository.
