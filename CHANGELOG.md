@@ -2,6 +2,12 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.7.1 — 2026-10-27
+
+Restore keyboard focus after saving a time note. Keep focus in another control if the user moved there while saving.
+
+[Changes and upgrade steps](docs/releases/0.7.1.md).
+
 ## 0.7.0 — 2026-10-27
 
 Editable time notes, search within review text, listening-position recovery and clearer queue completion. Large libraries reuse existing rows when selecting clips. Revised local typography, intake and walkthrough, with one-shot recordings, seeking and a larger viewer. Fresh-install commands now create a workspace before starting the server.

@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.7.1",
   "recording": "Chromium UI with procedural test signals",
   "timing": "capture timestamps retained; cursor follows actual input coordinates",
   "clips": [
@@ -131,5 +131,6 @@
         "sha256": "b58723f922f4478c0e700406e196ddc0fe02c25722ef00469889537b78285b3a"
       }
     }
-  ]
+  ],
+  "recorded_app_version": "0.7.0"
 }

@@ -280,6 +280,17 @@ export function mountMarkers({
     get() {
       return copyMarkers(draft);
     },
+    captureFocus() {
+      const active = document.activeElement;
+      const row = active?.closest(".marker-row");
+      if (!row || !list.contains(row)) return null;
+      const index = [...list.children].indexOf(row);
+      const selector = active.classList.contains("marker-time")
+        ? ".marker-time"
+        : ".marker-note";
+      return () =>
+        list.children[index]?.querySelector(selector)?.focus({ preventScroll: true });
+    },
     hasChanges(saved) {
       if (input.value.trim()) return true;
       let current = draft;

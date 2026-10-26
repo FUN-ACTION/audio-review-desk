@@ -39,3 +39,5 @@ Asset hashes, capture counts, dimensions and durations are in [the manifest](sho
 [Superlist](https://www.superlist.com/) informed the warm-white background, display/body type hierarchy, alternating sections and inline films. This version uses direct application footage and open fonts. Reference-site photographs, videos, logos and Haffer fonts are not distributed. See [font and Motion licences](../THIRD_PARTY_NOTICES.md).
 
 The generated desk backdrop used in 0.6 is no longer included. Its provenance remains in the [0.6 media notes](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.6.0/docs/showcase-media.md).
+
+The 0.7.1 package retains the recordings made with 0.7.0. Media hashes are unchanged; `recorded_app_version` identifies the captured application.

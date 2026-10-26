@@ -1,6 +1,6 @@
 # Release verification
 
-Version 0.7.0 · 2026-10-27
+Version 0.7.1 · 2026-10-27
 
 ## Automated checks
 
@@ -12,6 +12,7 @@ Tests use temporary workspaces and procedural signals. Optional FFmpeg tests run
 
 Local Chromium was used with separate empty, populated and 2500-item test workspaces:
 
+- Restore focus to the edited time note after keyboard save; keep another control focused if the user moved there during the request.
 - Add a note, change its text and timestamp, reject an out-of-range timestamp, cancel an edit, save, search its text and seek back to it.
 - Match several search terms across file labels and saved notes. Empty filters retain the current draft and offer a clear-filters action.
 - Save and continue through pending clips, preserve a zero score, and show the completed-batch export view. The completion view survives a language change.

@@ -310,7 +310,7 @@ function renderSummary() {
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("version").textContent = state.version || "0.7.0";
+  $("version").textContent = state.version || "0.7.1";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -761,6 +761,7 @@ function setBusy(value) {
 async function save(advance = false) {
   if (busy || !selected || !$("reviewForm").reportValidity()) return;
   const focusBeforeSave = document.activeElement;
+  const restoreMarkerFocus = markersView.captureFocus();
   const target = selected,
     ordered = visibleItems();
   if (!markersView.flush()) return;
@@ -788,8 +789,11 @@ async function save(advance = false) {
   } finally {
     setBusy(false);
     if (success) renderDetails(false);
-    if (!advance && focusBeforeSave?.isConnected && !focusBeforeSave.disabled)
-      focusBeforeSave.focus({ preventScroll: true });
+    if (!advance && document.activeElement === document.body) {
+      if (focusBeforeSave?.isConnected && !focusBeforeSave.disabled)
+        focusBeforeSave.focus({ preventScroll: true });
+      else restoreMarkerFocus?.();
+    }
   }
   if (success && advance) {
     const next = continueQueue(ordered, visibleItems(), target.key);
@@ -1375,7 +1379,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.7.0";
+    $("updateNotice").hidden = result.version === "0.7.1";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

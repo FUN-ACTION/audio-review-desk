@@ -2,7 +2,7 @@
 
 本地音频听审工具。逐条试听、切换参考音频，记录保留区间和时间批注，最后导出 CSV 或 JSON。
 
-[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.7 更新](docs/releases/0.7.0.md)
+[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.7 更新](docs/releases/0.7.0.md) · [0.7.1 修复](docs/releases/0.7.1.md)
 
 [![试听、批注与区间编辑](docs/walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
 
