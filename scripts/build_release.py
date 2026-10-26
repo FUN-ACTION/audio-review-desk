@@ -11,6 +11,19 @@ import zipfile
 from pathlib import Path
 
 
+def check_release_notes(repo: Path, version: str) -> Path:
+    notes = repo / "docs" / "releases" / f"{version}.md"
+    if not notes.is_file():
+        raise ValueError(f"Missing release notes: {notes.relative_to(repo)}")
+    text = notes.read_text(encoding="utf-8")
+    required = (f"# Audio Review Desk {version}", "## 本版变化", "## 安装与升级", "## 旧工作区", "## 验证",
+                "备份", "整个工作区", "pip install --upgrade", "--workspace")
+    missing = [part for part in required if part not in text]
+    if missing:
+        raise ValueError(f"Incomplete release notes: {', '.join(missing)}")
+    return notes
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True, help="New or empty release directory")
@@ -23,6 +36,7 @@ def main() -> None:
     if output.exists() and any(output.iterdir()):
         parser.error("The output directory must be new or empty")
     version = tomllib.loads((repo / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    check_release_notes(repo, version)
     prefix = f"audio-review-desk-{version}"
     output.mkdir(parents=True, exist_ok=True)
     source = output / f"{prefix}-source.zip"

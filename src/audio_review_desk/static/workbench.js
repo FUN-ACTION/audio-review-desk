@@ -2,6 +2,7 @@ import { words } from "./copy.js";
 import { springValue, reveal, openDialog, closeDialog } from "./motion.js";
 import { mountWaveform } from "./waveform.js";
 import { mountTransport } from "./transport.js";
+import { mountIntake } from "./intake.js";
 import {
   formatTime,
   filterItems,
@@ -47,12 +48,33 @@ const precise = (seconds) =>
     .padStart(3, "0")}`;
 const number = (value) => (value.trim() === "" ? null : Number(value));
 
-let noticeTimer;
+let noticeTimer,
+  choosing = false;
+const revealIntake = mountIntake($("emptyDetail"));
 const waveformView = mountWaveform(
   $("waveform"),
   $("seek"),
   $("waveSelection"),
   $("playhead"),
+  {
+    start: $("trimStartHandle"),
+    end: $("trimEndHandle"),
+    pan: $("wavePan"),
+    onEdit(start, end) {
+      const duration = selected?.quality.duration || 0;
+      $("trimStart").value = Math.min(duration, Number(start.toFixed(3)));
+      $("trimEnd").value = Math.min(duration, Number(end.toFixed(3)));
+      markDirty();
+    },
+    onView(start, end, zoom) {
+      $("rulerStart").textContent = precise(start);
+      $("rulerMid").textContent = precise((start + end) / 2);
+      $("rulerEnd").textContent = precise(end);
+      $("zoomLevel").textContent = `${zoom.toFixed(zoom % 1 ? 1 : 0)}×`;
+      $("zoomOut").disabled = zoom <= 1;
+      $("zoomIn").disabled = zoom >= 8;
+    },
+  },
 );
 const moveGlider = springValue((value) => {
   $("abGlider").style.transform = `translateX(${value}px)`;
@@ -174,19 +196,24 @@ for (const name of issueNames) {
 
 function renderSummary() {
   const stats = state.stats;
+  document.body.classList.toggle("is-empty", state.items.length === 0);
   $("fileCount").textContent = stats.files;
   $("pendingCount").textContent = stats.review_counts.pending;
   $("approvedCount").textContent = stats.review_counts.pass;
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("collectionName").textContent = state.scan?.label || state.workspace || "—";
-  $("version").textContent = state.version || "0.3.0";
+  $("collectionName").textContent = t("library");
+  $("collectionName").title = state.scan?.label || "";
+  $("version").textContent = state.version || "0.4.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
   $("duplicateInfo").textContent =
-    `${stats.duplicate_groups.length} ${t("duplicateGroups")}`;
+    `${stats.duplicate_groups.length} ${language === "en" && stats.duplicate_groups.length === 1 ? "duplicate group" : t("duplicateGroups")}`;
+  $("duplicateInfo").hidden = stats.duplicate_groups.length === 0;
+  for (const id of ["chooseFolder", "chooseManifest", "browsePath"])
+    $(id).disabled = choosing || busy || Boolean(importing());
   $("rescan").disabled = !state.can_rescan || busy || Boolean(importing());
   $("openImport").disabled = busy || Boolean(importing());
 }
@@ -378,7 +405,16 @@ function renderDetails(restore = true) {
     if (restore) input.checked = input.value === review.status;
   });
   $("score").disabled = busy || !q.decoded;
-  for (const id of ["trimStart", "trimEnd", "markIn", "markOut", "resetRange"])
+  for (const id of [
+    "trimStart",
+    "trimEnd",
+    "markIn",
+    "markOut",
+    "resetRange",
+    "trimStartHandle",
+    "trimEndHandle",
+    "fitRange",
+  ])
     $(id).disabled = busy || !q.decoded;
   $("undo").disabled = busy || review.version === 0;
   if (restore) {
@@ -424,6 +460,7 @@ async function select(item) {
   dirty = false;
   variant = "a";
   wave = { a: [], b: [] };
+  waveformView.reset();
   notice();
   renderQueue();
   renderDetails();
@@ -473,7 +510,7 @@ async function refresh(force = false) {
     else {
       $("detailPanel").hidden = true;
       $("emptyDetail").hidden = false;
-      reveal($("emptyDetail"));
+      revealIntake();
     }
   } catch (error) {
     notice(`${t("loadError")} ${error.message}`);
@@ -681,6 +718,7 @@ function markBoundary(side) {
     player.currentTime || 0
   ).toFixed(3);
   markDirty();
+  drawWave();
 }
 async function loadHistory() {
   if (!$("historyPanel").open || !selected) return;
@@ -716,6 +754,46 @@ for (const id of ["openImport", "emptyImport", "welcomeImport"])
 for (const id of ["closeImport", "dismissImport"])
   $(id).addEventListener("click", () => closeDialog($("importDialog")));
 $("importForm").addEventListener("submit", startImport);
+async function browse(kind, importNow = false) {
+  if (choosing || busy || importing() || !(await discardAllowed())) return;
+  choosing = true;
+  let picked = false;
+  renderSummary();
+  try {
+    const result = await post("/api/browse", { kind });
+    if (!result.path) return;
+    picked = true;
+    $("importError").hidden = true;
+    $("importKind").value = kind;
+    $("importPath").value = result.path;
+    if (importNow) {
+      job = await post("/api/import", {
+        kind,
+        path: result.path,
+        append: true,
+      });
+      renderJob();
+      pollTimer = setTimeout(poll, 200);
+    }
+  } catch (error) {
+    await openImport();
+    $("importKind").value = kind;
+    $("importError").textContent = picked ? error.message : t("pickerFallback");
+    $("importError").hidden = false;
+  } finally {
+    choosing = false;
+    renderSummary();
+  }
+}
+$("chooseFolder").addEventListener("click", () => browse("directory", true));
+$("chooseManifest").addEventListener("click", () => browse("manifest", true));
+$("browsePath").addEventListener("click", () => browse($("importKind").value));
+$("zoomIn").addEventListener("click", () => waveformView.zoom(2));
+$("zoomOut").addEventListener("click", () => waveformView.zoom(0.5));
+$("fitRange").addEventListener("click", () => waveformView.fit());
+$("wavePan").addEventListener("input", () =>
+  waveformView.pan(Number($("wavePan").value)),
+);
 $("cancelImport").addEventListener("click", async () => {
   try {
     job = await post("/api/cancel-import", { id: job.id });
@@ -928,7 +1006,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.3.0";
+    $("updateNotice").hidden = result.version === "0.4.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

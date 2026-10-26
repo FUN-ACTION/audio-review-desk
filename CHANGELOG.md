@@ -1,5 +1,16 @@
 # Changelog
 
+Every version has [installation and workspace notes](docs/releases/README.md).
+
+## 0.4.0 — 2026-10-26
+
+- Open local folder/manifest selection windows; retain manual path entry when a chooser is unavailable.
+- Replace empty queue controls and decorative artwork with two direct import actions.
+- Zoom the peak overview to 8×, pan, fit the keep range, and drag or keyboard-adjust its boundaries.
+- Simplify labels, typography, colour and intake transitions; keep precision edits immediate.
+- Archive changes and upgrade instructions per release; refuse to build without the current release document.
+- Test chooser cancellation, authorization, failure recovery, concurrency and boundary constraints.
+
 ## 0.3.0 — 2026-10-26
 
 - Rebuild the workspace with a library sidebar, listening editor and review inspector; add light/dark appearances and focus listening.

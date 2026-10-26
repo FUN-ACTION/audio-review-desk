@@ -19,14 +19,17 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="/style.css?v=0.3.0" />
-    <script type="module" src="/app.js?v=0.3.0"></script>
+    <link rel="stylesheet" href="/style.css?v=0.4.0" />
+    <script type="module" src="/app.js?v=0.4.0"></script>
   </head>
-  <body>
+  <body class="is-empty">
     <svg class="svg-defs" aria-hidden="true">
       <defs>
         <symbol id="i-wave" viewBox="0 0 24 24">
           <path d="M3 10v4m4-8v12m5-15v18m5-15v12m4-8v4" />
+        </symbol>
+        <symbol id="i-diagonal" viewBox="0 0 24 24">
+          <path d="M5 19 19 5M6 5h13v13" />
         </symbol>
         <symbol id="i-plus" viewBox="0 0 24 24">
           <path d="M12 5v14M5 12h14" />
@@ -74,35 +77,52 @@
           ><svg><use href="#i-wave" /></svg></span
         ><strong>Audio Review Desk</strong></a
       >
-      <div class="app-actions">
-        <button id="rescan" class="icon-button" data-title="rescan">
-          <svg><use href="#i-refresh" /></svg>
-        </button>
-        <details class="export-menu" id="exportMenu">
-          <summary>
-            <svg><use href="#i-export" /></svg><span data-t="export">导出</span>
-          </summary>
-          <div class="menu">
-            <a
-              href="/api/export?format=csv&amp;status=pass"
-              download
-              data-t="exportPass"
-              >通过的素材 · CSV</a
-            >
-            <a
-              href="/api/export?format=csv&amp;status=all"
-              download
-              data-t="exportCsv"
-              >全部素材 · CSV</a
-            >
-            <a href="/api/export" download data-t="exportJson"
-              >完整记录 · JSON</a
-            >
-          </div>
-        </details>
-        <button id="openImport" class="primary">
-          <svg><use href="#i-plus" /></svg><span data-t="import">导入素材</span>
-        </button>
+      <div class="header-controls">
+        <div class="workspace-tools">
+          <button id="theme" class="icon-button" data-title="appearance">
+            <svg><use href="#i-theme" /></svg>
+          </button>
+          <button id="openHelp" class="icon-button" data-title="help">
+            <svg><use href="#i-help" /></svg>
+          </button>
+          <select id="language" aria-label="Language">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
+          <span id="version">0.4.0</span>
+        </div>
+        <div class="app-actions">
+          <button id="rescan" class="icon-button" data-title="rescan">
+            <svg><use href="#i-refresh" /></svg>
+          </button>
+          <details class="export-menu" id="exportMenu">
+            <summary>
+              <svg><use href="#i-export" /></svg
+              ><span data-t="export">导出</span>
+            </summary>
+            <div class="menu">
+              <a
+                href="/api/export?format=csv&amp;status=pass"
+                download
+                data-t="exportPass"
+                >通过的素材 · CSV</a
+              >
+              <a
+                href="/api/export?format=csv&amp;status=all"
+                download
+                data-t="exportCsv"
+                >全部素材 · CSV</a
+              >
+              <a href="/api/export" download data-t="exportJson"
+                >完整记录 · JSON</a
+              >
+            </div>
+          </details>
+          <button id="openImport" class="primary">
+            <svg><use href="#i-plus" /></svg
+            ><span data-t="import">导入素材</span>
+          </button>
+        </div>
       </div>
     </header>
     <main>
@@ -177,27 +197,12 @@
             <span class="workspace-dot"></span
             ><span id="collectionName">工作区</span>
           </div>
-          <div class="workspace-tools">
-            <button id="theme" class="icon-button" data-title="appearance">
-              <svg><use href="#i-theme" /></svg>
-            </button>
-            <button id="openHelp" class="icon-button" data-title="help">
-              <svg><use href="#i-help" /></svg>
-            </button>
-            <select id="language" aria-label="Language">
-              <option value="zh">中文</option>
-              <option value="en">English</option>
-            </select>
-            <span id="version">0.3.0</span>
-          </div>
         </footer>
       </aside>
       <section class="workspace">
         <div class="workspace-topline">
           <div class="breadcrumb">
-            <span data-t="workspace">工作区</span
-            ><svg><use href="#i-arrow" /></svg
-            ><span data-t="listening">听审</span>
+            <span data-t="listening">听审</span>
           </div>
           <div>
             <button id="focusMode" class="icon-button" data-title="focus">
@@ -214,7 +219,7 @@
             ><b id="approvedCount">0</b> <span data-t="pass">通过</span></span
           ><span class="warning"
             ><b id="flagCount">0</b> <span data-t="flagged">需关注</span></span
-          ><span class="summary-duration"
+          ><span class="summary-duration" data-title="timelineSummary"
             ><span data-t="approvedDuration">已通过</span>
             <b id="approvedTime">0:00</b><span class="muted"> / </span
             ><span data-t="candidateDuration">可选</span>
@@ -274,7 +279,20 @@
                       B · 参考
                     </button>
                   </div>
-                  <span class="wave-caption" data-t="waveform">波形</span>
+                  <div class="wave-tools">
+                    <button id="zoomOut" class="wave-tool" data-title="zoomOut">
+                      −</button
+                    ><span id="zoomLevel">1×</span
+                    ><button id="zoomIn" class="wave-tool" data-title="zoomIn">
+                      +</button
+                    ><button
+                      id="fitRange"
+                      class="wave-tool"
+                      data-title="fitRange"
+                    >
+                      <svg><use href="#i-focus" /></svg>
+                    </button>
+                  </div>
                 </div>
                 <div id="waveArea" class="wave-area">
                   <div class="wave-grid" aria-hidden="true"></div>
@@ -301,11 +319,39 @@
                     value="0"
                     aria-label="Playback position"
                   />
+                  <button
+                    id="trimStartHandle"
+                    class="trim-handle start"
+                    role="slider"
+                    data-title="trimStart"
+                    type="button"
+                  >
+                    <i></i>
+                  </button>
+                  <button
+                    id="trimEndHandle"
+                    class="trim-handle end"
+                    role="slider"
+                    data-title="trimEnd"
+                    type="button"
+                  >
+                    <i></i>
+                  </button>
                 </div>
                 <div class="wave-ruler" aria-hidden="true">
-                  <span>0:00</span><span id="rulerMid">—</span
+                  <span id="rulerStart">0:00</span><span id="rulerMid">—</span
                   ><span id="rulerEnd">—</span>
                 </div>
+                <input
+                  id="wavePan"
+                  class="wave-pan"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.001"
+                  value="0"
+                  data-title="panWave"
+                />
                 <audio
                   id="player"
                   preload="metadata"
@@ -510,24 +556,50 @@
             </form>
           </div>
         </section>
-        <section id="emptyDetail" class="empty-detail">
-          <div class="empty-art" aria-hidden="true">
-            <div class="empty-track">
-              <span></span><span></span><span></span><span></span><span></span
-              ><span></span><span></span><span></span><span></span><span></span
-              ><span></span><span></span><span></span><span></span><span></span
-              ><span></span><span></span><span></span><span></span><span></span>
+        <section id="emptyDetail" class="intake" aria-labelledby="intakeTitle">
+          <div class="intake-copy">
+            <span class="intake-reveal intake-index"
+              ><span data-t="library">素材库</span></span
+            >
+            <h1 id="intakeTitle" class="intake-reveal" data-t="welcome">
+              导入音频
+            </h1>
+            <p class="intake-reveal" data-t="welcomeHelp">
+              选择文件夹，或载入已有清单。
+            </p>
+            <div class="intake-reveal intake-footnote">
+              <span class="workspace-dot"></span
+              ><span data-t="localFiles">本机文件 · 原文件只读</span>
             </div>
-            <div class="empty-play">▶</div>
-            <i></i>
           </div>
-          <span class="eyebrow" data-t="emptyEyebrow">AUDIO REVIEW DESK</span>
-          <h2 data-t="welcome">从第一段音频开始。</h2>
-          <p data-t="welcomeHelp">导入素材，留出时间好好听。</p>
-          <button id="welcomeImport" class="primary">
-            <svg><use href="#i-import" /></svg
-            ><span data-t="import">导入素材</span></button
-          ><span class="empty-formats">WAV · FLAC · MP3 · CSV · JSON</span>
+          <div class="intake-choices intake-reveal">
+            <button id="chooseFolder" class="intake-action" type="button">
+              <span class="intake-number">01</span
+              ><span class="intake-action-copy"
+                ><strong data-t="folder">音频文件夹</strong
+                ><small data-t="folderHelp">扫描目录中的音频</small></span
+              ><svg class="intake-arrow"><use href="#i-diagonal" /></svg>
+            </button>
+            <button id="chooseManifest" class="intake-action" type="button">
+              <span class="intake-number">02</span
+              ><span class="intake-action-copy"
+                ><strong data-t="manifest">CSV / JSON 清单</strong
+                ><small data-t="manifestHelp"
+                  >载入片段、来源和参考音频</small
+                ></span
+              ><svg class="intake-arrow"><use href="#i-diagonal" /></svg>
+            </button>
+            <div class="intake-meta">
+              <span>WAV / FLAC / MP3 / M4A / OGG</span
+              ><button
+                id="welcomeImport"
+                class="text-button"
+                data-t="enterPath"
+              >
+                填写路径
+              </button>
+            </div>
+          </div>
         </section>
         <footer class="workspace-footer">
           <span id="duplicateInfo"></span><span id="scanTime"></span
@@ -595,6 +667,13 @@
             autocomplete="off"
             spellcheck="false"
             placeholder="D:\Audio\Clips" /></label
+        ><button
+          id="browsePath"
+          type="button"
+          class="browse-path"
+          data-t="browse"
+        >
+          浏览本机…</button
         ><label class="append-option"
           ><input id="appendImport" type="checkbox" checked /><span
             data-t="append"
@@ -659,7 +738,7 @@
         <p data-t="checksHelp">
           检测项包含电平、静音和解码情况。评分由你听后填写。
         </p>
-        <p class="help-version">Audio Review Desk · 0.3.0</p>
+        <p class="help-version">Audio Review Desk · 0.4.0</p>
       </div>
     </dialog>
   </body>

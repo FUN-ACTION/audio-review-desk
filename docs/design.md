@@ -1,6 +1,6 @@
 # Workbench design notes
 
-The 0.3 interface is a local audio workspace: library on the left, listening in the centre, decisions on the right. The default is a warm, light surface with a single blue accent. A dark appearance and a listening-only view are available from the toolbar.
+The 0.4 interface is a local audio workspace: library on the left, listening in the centre, decisions on the right. The default is a warm, light surface with a grey-green waveform accent and dark primary controls. A dark appearance and a listening-only view are available from the toolbar.
 
 ## References
 
@@ -31,3 +31,15 @@ The main screen names actions and shows their results. Playback matching, file p
 ## Frontend boundaries
 
 `workbench.js` coordinates catalog and review state. `copy.js` holds both languages, `transport.js` owns playback controls, `waveform.js` owns drawing, and `motion.js` owns motion behaviour. The UI uses platform APIs and has no JavaScript runtime dependencies or build step.
+
+## Lusion source study, 2026-10-26
+
+The current [Lusion homepage](https://lusion.co/) was inspected through Chromium's DOM, Debugger and Page resource APIs. The page loaded three canvases. Its main module contained a custom Tween class, an animation-frame loop that advances tween, input, page and scroll state together, and separate show/hide progress values for text. The loop capped elapsed frame time at 1/20 second. The loaded stylesheet reused `cubic-bezier(.4,0,.1,1)` and `cubic-bezier(.35,0,0,1)` and separate opening/closing delays. These are observations of that deployed build; its implementation may change.
+
+The workbench adapts the idea of continuous, coordinated state changes: an original critically damped spring for A/B and small pointer feedback, a 500 ms staggered intake reveal using `.16,1,.3,1`, and shorter dialog/feedback transitions. Pointer effects run only for a fine pointer and settle when idle. Reduced motion removes them. Precision controls track the pointer or keyboard directly.
+
+Lusion's custom scrolling and WebGL scenes were not carried into the editor. Native list and form scrolling remains useful for long review sessions. No Lusion JavaScript, CSS, fonts or visual assets are included in the repository; the downloaded source used for this study stays outside it.
+
+## Range editing
+
+`wave-math.js` clamps the viewport and keep-range endpoints independently from rendering. The view can zoom from 1× to 8× and pan across the clip. Drag handles use pointer capture and also accept arrow keys, Home and End. A 1 ms minimum gap prevents crossed boundaries. The underlying waveform is a peak summary: zoom changes the view, not its analysis resolution. The source file is never rewritten.

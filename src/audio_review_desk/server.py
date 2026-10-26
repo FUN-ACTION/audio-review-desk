@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 from .audio import AudioError
 from .workspace import Conflict, Workspace, encode
 from .jobs import ImportJobs
+from .picker import choose
 from . import __version__
 
 
@@ -84,7 +85,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
-                if path in {"/copy.js", "/motion.js", "/waveform.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
+                if path in {"/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2"}:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
@@ -147,7 +148,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                         or not secrets.compare_digest(self.headers.get("X-Review-Token", ""), session)):
                     return self.json_response({"error": "Reload this local page before saving"}, 403)
                 path = urlsplit(self.path).path
-                if path not in {"/api/review", "/api/batch", "/api/undo", "/api/import", "/api/cancel-import", "/api/rescan"}:
+                if path not in {"/api/review", "/api/batch", "/api/undo", "/api/import", "/api/browse", "/api/cancel-import", "/api/rescan"}:
                     return self.json_response({"error": "Not found"}, 404)
                 if self.headers.get_content_type() != "application/json":
                     return self.json_response({"error": "Expected application/json"}, 415)
@@ -157,6 +158,8 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise ValueError("Expected an object")
+                if path == "/api/browse":
+                    return self.json_response({"path": choose(payload.get("kind"))})
                 if path == "/api/import":
                     return self.json_response(jobs.start(payload.get("kind"), payload.get("path"), payload.get("append", True)), 202)
                 if path == "/api/rescan":

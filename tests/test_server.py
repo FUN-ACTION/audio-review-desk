@@ -5,6 +5,7 @@ import unittest
 import urllib.error
 import urllib.request
 import time
+from unittest.mock import patch
 from pathlib import Path
 
 from audio_review_desk.demo import write_wav
@@ -53,7 +54,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 403)
 
     def test_static_assets_are_packaged_and_private_paths_not_served(self):
-        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/transport.js"):
+        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/intake.js", "/transport.js"):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
@@ -77,6 +78,18 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(caught.exception.code, 403)
         with self.post(self.payload()) as response:
             self.assertTrue(json.load(response)["saved"])
+
+    def test_native_picker_requires_authorization_and_cancel_preserves_catalog(self):
+        with patch('audio_review_desk.server.choose', return_value=None) as choose:
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                self.post({'kind': 'directory'}, {'X-Review-Token': 'wrong'}, path='/api/browse')
+            self.assertEqual(caught.exception.code, 403)
+            choose.assert_not_called()
+            with self.post({'kind': 'manifest'}, path='/api/browse') as response:
+                self.assertIsNone(json.load(response)['path'])
+            choose.assert_called_once_with('manifest')
+        self.assertEqual(self.get('/api/state')['items'], self.state['items'])
+        self.assertIsNone(self.get('/api/job')['id'])
 
     def test_stale_http_edit_is_conflict(self):
         with self.post(self.payload()):

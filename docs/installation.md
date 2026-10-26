@@ -43,11 +43,13 @@ audio-review-desk init --workspace review-workspace
 audio-review-desk serve --workspace review-workspace --open
 ```
 
-Click **Import audio**, choose folder or manifest, and enter a path on the same computer as the server. Imports run in the background. Stop requests take effect after the current file finishes; the old catalog remains active until the new catalog commits.
+Choose a folder or manifest in the local selection window, or enter a path on the same computer as the server. The chooser uses Python's optional Tk support; if it is absent or no desktop is available, manual path entry still works. Imports run in the background. Stop requests take effect after the current file finishes; the old catalog remains active until the new catalog commits.
 
 The app keeps other collections by default. Reimporting a collection updates its members and removes missing members from the active list, while retaining historical versions. Different files with the same clip ID are rejected in append mode; give them unique IDs in a manifest or explicitly replace the active list.
 
 ## Upgrading from 0.1
+
+Version-specific changes and these compatibility instructions are archived for [every release](releases/README.md).
 
 Stop the old server and back up its entire workspace. Install the new source or wheel in the app's existing virtual environment with `python -m pip install --upgrade .` (or the new wheel path). No training environment is involved.
 

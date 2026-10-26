@@ -1,5 +1,25 @@
 # Release verification
 
+Version: 0.4.0. Local verification date: 2026-10-26.
+
+## Automated checks
+
+65 Python tests and 9 JavaScript tests pass locally. Added cases cover native chooser cancellation, Unicode paths, failure recovery, single-window locking, HTTP authorization before opening a window, zoom limits, non-crossing trim boundaries, and rejection of releases missing upgrade instructions. Existing decoding, PCM deduplication, timeline, import, review, concurrency, undo and export cases remain included.
+
+## Browser checks
+
+The rebuilt app was exercised in local Chromium with generated signals and a separate workspace. A selected manifest path reached the import dialog and imported successfully. A real pointer drag changed the start boundary; saving and reloading retained the edited endpoints. Keyboard boundary edits and 2× zoom updated the view and draft state. Reference playback reached the end without a media error. Light/dark appearances and a 390 CSS-pixel emulated viewport were checked. These are software checks, not physical-phone testing or a guarantee of a particular frame rate.
+
+Chooser cancel and failure behaviour are covered by mocked subprocess/HTTP tests. The local selection helper uses optional Tk; manual path entry remains available without a graphical desktop. No test records a human listening judgment.
+
+The existing app server was stopped before the entire user workspace was copied and each file hash compared. Test imports did not use that workspace. The older example database and the original implementation hashes are checked separately by the private publication audit.
+
+Release packages are built from the committed tree and installed separately before publication. The GitHub Actions run linked from each Release records the exact commit's Windows, Linux, macOS and FFmpeg checks.
+
+---
+
+# Earlier release checks
+
 Version: 0.3.0. Local verification date: 2026-10-26.
 
 ## Automated checks
