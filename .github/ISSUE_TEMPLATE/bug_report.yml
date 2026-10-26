@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible problem without private audio or paths.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and a minimal reproduction using synthetic or openly licensed audio.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Environment
+      description: OS, Python, tool version, and FFmpeg version if used.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Relevant error
+      description: Remove private paths, notes, and recordings before posting.

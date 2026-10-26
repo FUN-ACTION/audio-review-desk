@@ -1,0 +1,148 @@
+"""Small loopback-only review server. No upload, training, or source-edit API."""
+from __future__ import annotations
+
+import json
+import mimetypes
+import re
+import secrets
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib.resources import files
+from urllib.parse import urlsplit
+
+from .audio import AudioError
+from .workspace import Conflict, Workspace, encode
+
+
+def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
+    workspace.initialize()
+    session = secrets.token_urlsafe(32)
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "AudioReviewDesk"
+
+        def log_message(self, *_args):
+            pass
+
+        def host_valid(self) -> bool:
+            return self.headers.get("Host") == f"127.0.0.1:{self.server.server_port}"
+
+        def headers_for(self, status: int, content_type: str, length: int, extra: dict | None = None):
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(length))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+            for key, value in (extra or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+
+        def json_response(self, payload: object, status: int = 200, extra: dict | None = None):
+            data = encode(payload).encode()
+            self.headers_for(status, "application/json; charset=utf-8", len(data), extra)
+            if self.command != "HEAD":
+                self.wfile.write(data)
+
+        def do_HEAD(self):
+            self.do_GET()
+
+        def do_GET(self):
+            try:
+                if not self.host_valid():
+                    return self.json_response({"error": "Use the printed 127.0.0.1 address"}, 403)
+                path = urlsplit(self.path).path
+                if path == "/api/state":
+                    return self.json_response(dict(workspace.state(), session=session))
+                if path == "/api/export":
+                    return self.json_response(workspace.export(), extra={"Content-Disposition": 'attachment; filename="audio-reviews.json"'})
+                if match := re.fullmatch(r"/api/history/([0-9a-f]{64})", path):
+                    workspace.asset(match[1])
+                    return self.json_response({"history": workspace.history(match[1])})
+                if match := re.fullmatch(r"/api/wave/([0-9a-f]{64})", path):
+                    asset = workspace.asset(match[1])
+                    return self.json_response({"a": asset["quality"].get("waveform", []),
+                                               "b": asset.get("reference_quality", {}).get("waveform", [])})
+                if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
+                    return self.serve_audio(workspace.preview(match[1], match[2]))
+                name = {"/": "index.html", "/app.js": "app.js", "/ui.js": "ui.js", "/style.css": "style.css"}.get(path)
+                if name:
+                    data = files("audio_review_desk").joinpath("static", name).read_bytes()
+                    content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+                    self.headers_for(200, content_type + "; charset=utf-8", len(data))
+                    if self.command != "HEAD":
+                        self.wfile.write(data)
+                    return
+                self.json_response({"error": "Not found"}, 404)
+            except Conflict as exc:
+                self.json_response({"error": str(exc)}, 409)
+            except (ValueError, AudioError, OSError) as exc:
+                self.json_response({"error": str(exc) if isinstance(exc, ValueError) else "Audio file unavailable; rescan the workspace"}, 422)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except Exception:
+                self.json_response({"error": "Could not read workspace; check the catalog and disk space"}, 500)
+
+        def serve_audio(self, path):
+            size = path.stat().st_size
+            start, end, status = 0, size - 1, 200
+            header = self.headers.get("Range")
+            if header:
+                match = re.fullmatch(r"bytes=(\d*)-(\d*)", header)
+                if not match or not any(match.groups()):
+                    return self.json_response({"error": "Invalid byte range"}, 416, {"Content-Range": f"bytes */{size}"})
+                left, right = match.groups()
+                if not left:
+                    start = max(0, size - int(right))
+                else:
+                    start = int(left)
+                    end = min(size - 1, int(right)) if right else size - 1
+                if start > end or start >= size:
+                    return self.json_response({"error": "Unsatisfiable byte range"}, 416, {"Content-Range": f"bytes */{size}"})
+                status = 206
+            headers = {"Accept-Ranges": "bytes"}
+            if status == 206:
+                headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+            self.headers_for(status, "audio/wav", end - start + 1, headers)
+            if self.command == "HEAD":
+                return
+            with path.open("rb") as stream:
+                stream.seek(start)
+                remaining = end - start + 1
+                while remaining:
+                    block = stream.read(min(65536, remaining))
+                    if not block:
+                        break
+                    self.wfile.write(block)
+                    remaining -= len(block)
+
+        def do_POST(self):
+            try:
+                expected_origin = f"http://127.0.0.1:{self.server.server_port}"
+                if (not self.host_valid() or self.headers.get("Origin") != expected_origin
+                        or not secrets.compare_digest(self.headers.get("X-Review-Token", ""), session)):
+                    return self.json_response({"error": "Reload this local page before saving"}, 403)
+                if urlsplit(self.path).path != "/api/review":
+                    return self.json_response({"error": "Not found"}, 404)
+                if self.headers.get_content_type() != "application/json":
+                    return self.json_response({"error": "Expected application/json"}, 415)
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 32768:
+                    return self.json_response({"error": "Review body too large or empty"}, 413)
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict) or not isinstance(payload.get("key"), str):
+                    raise ValueError("Missing audio version key")
+                review = workspace.save_review(payload["key"], payload)
+                return self.json_response({"saved": True, "review": review})
+            except Conflict as exc:
+                self.json_response({"error": str(exc)}, 409)
+            except (ValueError, KeyError, json.JSONDecodeError) as exc:
+                self.json_response({"error": str(exc)}, 422)
+            except OSError:
+                self.json_response({"error": "Source is unavailable; rescan before saving"}, 409)
+            except Exception:
+                self.json_response({"error": "Save failed; your draft is still in this page"}, 500)
+
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.daemon_threads = True
+    return server
