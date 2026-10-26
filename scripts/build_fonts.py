@@ -28,6 +28,8 @@ def main():
         if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
             raise ValueError(f'Unexpected font source: {filename}')
         urlretrieve(base + 'OFL.txt', TARGET / (family + '-OFL.txt'))
+        license_path = TARGET / (family + '-OFL.txt')
+        license_path.write_text('\n'.join(line.rstrip() for line in license_path.read_text(encoding='utf-8').splitlines()) + '\n', encoding='utf-8')
         font = TTFont(source)
         axes = {'wght': (400, 700)}
         if not chinese:
