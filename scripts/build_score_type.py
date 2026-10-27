@@ -20,6 +20,11 @@ SOURCE_BASE = f"https://raw.githubusercontent.com/google/fonts/{COMMIT}/ofl/noto
 SANS_SHA256 = "fa329649387f845a16c3db0e2021f70e369a8a28830f250d0593bf36152ec8a9"
 
 
+def license_digest(data: bytes) -> str:
+    """Hash license text consistently across Git's LF/CRLF checkouts."""
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def checked_source(path: Path, name: str, expected: str, download: bool) -> bytes:
     if not path.is_file() and download:
         url = SOURCE_BASE + name.replace("[", "%5B").replace("]", "%5D")
@@ -114,6 +119,7 @@ def build(source_dir: Path, download: bool = False) -> dict:
     shutil.copyfile(license_path, destination / "score-serif-OFL.txt")
     record = dict(
         build=dict(python=platform.python_version(), fonttools=importlib.metadata.version("fonttools"), brotli=importlib.metadata.version("brotli")),
+        license_digest_format="UTF-8 with LF line endings",
         fonts=[
             dict(file="tour/score-serif.woff2", family="Noto Serif SC", css_family="Score Serif SC",
                  weights=[400, 600], source=SOURCE_BASE + "NotoSerifSC%5Bwght%5D.ttf", source_commit=COMMIT,
@@ -126,13 +132,13 @@ def build(source_dir: Path, download: bool = False) -> dict:
                  source_sha256="a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
                  sha256=hashlib.sha256(sans_output.read_bytes()).hexdigest(), bytes=sans_output.stat().st_size,
                  glyphs=len(checked_sans.getBestCmap()), license="OFL-1.1", license_file="notosanssc-OFL.txt",
-                 license_sha256=hashlib.sha256((static / "notosanssc-OFL.txt").read_bytes()).hexdigest()),
+                 license_sha256=license_digest((static / "notosanssc-OFL.txt").read_bytes())),
             dict(file="studio-cjk.woff2", family="Noto Sans SC", css_family="Score Sans SC", weights=[400, 700],
                  source="https://raw.githubusercontent.com/google/fonts/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
                  source_sha256="a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
                  sha256=SANS_SHA256, bytes=sans_path.stat().st_size, glyphs=len(sans.getBestCmap()),
                  license="OFL-1.1", license_file="notosanssc-OFL.txt",
-                 license_sha256=hashlib.sha256((static / "notosanssc-OFL.txt").read_bytes()).hexdigest(),
+                 license_sha256=license_digest((static / "notosanssc-OFL.txt").read_bytes()),
                  reused_unchanged=True),
         ],
         ui_cjk_unicodes=sorted(ui),

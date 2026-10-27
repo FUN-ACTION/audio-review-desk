@@ -13,6 +13,7 @@ from scripts.build_score_type import (
     SOURCE_NAME,
     SOURCE_SHA256,
     checked_source,
+    license_digest,
 )
 
 
@@ -25,6 +26,8 @@ class ScoreTypeTests(unittest.TestCase):
     def test_shipped_fonts_and_complete_licenses_match_the_build_record(self):
         fonts = {item["file"]: item for item in self.record["fonts"]}
         self.assertEqual(set(fonts), {"tour/score-serif.woff2", "tour/score-sans.woff2", "studio-cjk.woff2"})
+        self.assertEqual(self.record["license_digest_format"], "UTF-8 with LF line endings")
+        self.assertEqual(license_digest(b"license\ntext\n"), license_digest(b"license\r\ntext\r\n"))
         for item in fonts.values():
             with self.subTest(font=item["file"]):
                 data = (self.static / item["file"]).read_bytes()
@@ -32,7 +35,7 @@ class ScoreTypeTests(unittest.TestCase):
                 self.assertEqual(len(data), item["bytes"])
                 self.assertEqual(hashlib.sha256(data).hexdigest(), item["sha256"])
                 license_data = (self.static / item["license_file"]).read_bytes()
-                self.assertEqual(hashlib.sha256(license_data).hexdigest(), item["license_sha256"])
+                self.assertEqual(license_digest(license_data), item["license_sha256"])
                 self.assertIn(b"SIL OPEN FONT LICENSE Version 1.1", license_data)
         serif = fonts["tour/score-serif.woff2"]
         self.assertEqual(serif["source_commit"], COMMIT)

@@ -4,6 +4,7 @@
     "fonttools": "4.61.1",
     "brotli": "1.2.0"
   },
+  "license_digest_format": "UTF-8 with LF line endings",
   "fonts": [
     {
       "file": "tour/score-serif.woff2",
@@ -40,7 +41,7 @@
       "glyphs": 454,
       "license": "OFL-1.1",
       "license_file": "notosanssc-OFL.txt",
-      "license_sha256": "7accca2f29220c9ab44e4950799b821f36ebf5bbe6b5fb5342724b32228a8daf"
+      "license_sha256": "babcfe66c8a098b2fa279bc724a3a342f8124f77ce18941fbcc1bbb39823cded"
     },
     {
       "file": "studio-cjk.woff2",
@@ -57,7 +58,7 @@
       "glyphs": 7329,
       "license": "OFL-1.1",
       "license_file": "notosanssc-OFL.txt",
-      "license_sha256": "7accca2f29220c9ab44e4950799b821f36ebf5bbe6b5fb5342724b32228a8daf",
+      "license_sha256": "babcfe66c8a098b2fa279bc724a3a342f8124f77ce18941fbcc1bbb39823cded",
       "reused_unchanged": true
     }
   ],
