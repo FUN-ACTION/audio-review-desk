@@ -1,145 +1,115 @@
 {
-  "version": "0.9.0",
-  "recorded_app_version": "0.8.0-pre-release",
+  "version": "0.10.0",
+  "recorded_app_version": "0.10.0",
   "recording": "Chromium UI with procedural test signals",
-  "timing": "Capture timestamps retained; cursor follows actual input coordinates",
+  "timing": "Capture timestamps retained; actual input coordinates; final static hold retained",
   "clips": [
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        282,
-        136,
-        964,
-        576
-      ],
-      "bytes": 199814,
-      "sha256": "2694c66a8c4adf86a47aa34f312418e4d7d0124da4628f92ca60a9f1e74cb5fa",
       "file": "workflow-zh.mp4",
-      "capture_seconds": 13.038,
-      "seconds": 13.033333,
-      "width": 964,
-      "height": 576,
-      "capture_frames": 225,
+      "bytes": 213836,
+      "sha256": "571672dd40e648c492e4129593265a05fdd8c96c35071e9521d75088fa505b06",
+      "seconds": 10.333333,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 10.328979,
+      "capture_frames": 207,
       "audio_track": false,
       "poster": {
         "file": "workflow-zh.webp",
-        "bytes": 28086,
-        "sha256": "0e8c1d94f696b3be8e5863cd88c3456109aa6d795fd7486de9454f4c719b3eba"
+        "bytes": 44796,
+        "sha256": "a12f05222eb2734647bc575a70be964b2925bfb3afd04ea243f4e6b22ee222f7"
       }
     },
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        282,
-        136,
-        964,
-        576
-      ],
-      "bytes": 186454,
-      "sha256": "b84c5c31196e16060fee5842b64f4d8586fa7b5792b732100a35d644caee3c23",
       "file": "workflow-en.mp4",
-      "capture_seconds": 11.904,
-      "seconds": 11.9,
-      "width": 964,
-      "height": 576,
-      "capture_frames": 151,
+      "bytes": 224862,
+      "sha256": "a3c1b6e70fa1c44b563f13ccc69676fcac75a706d399bb7547e0acfe326c5a4b",
+      "seconds": 11.966667,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 11.978262,
+      "capture_frames": 230,
       "audio_track": false,
       "poster": {
         "file": "workflow-en.webp",
-        "bytes": 30270,
-        "sha256": "d4f3b7fdb835997e206ebe8590aedb572f63a4c430abd8512797a399891ce3ff"
+        "bytes": 46470,
+        "sha256": "aad7393593d7f8754ee05c8d050e3da8ab2de6c6ed0640a955b457fcebe1298a"
       }
     },
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        300,
-        180,
-        650,
-        460
-      ],
-      "bytes": 46926,
-      "sha256": "7abf72ce7e70d637fff17e8cf9fa6570b733da7287fb5906678909a7a0231cd0",
       "file": "notes-zh.mp4",
-      "capture_seconds": 6.826,
-      "seconds": 6.833333,
-      "width": 650,
-      "height": 460,
-      "capture_frames": 42,
+      "bytes": 76909,
+      "sha256": "75c1fdc7c6f81c645b31a51b0b60a0398c63a6c283c188595cfafc566deda584",
+      "seconds": 4.933333,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 4.948058,
+      "capture_frames": 47,
       "audio_track": false,
       "poster": {
         "file": "notes-zh.webp",
-        "bytes": 11742,
-        "sha256": "6b27613494e82299c71c4076b286f4680a348846af77868d3d5c827826f12b98"
+        "bytes": 31486,
+        "sha256": "93db1c5f66ae51c693d2bb44aa4763850d8f0aa0fc4bcba83eaade35ecb15e43"
       }
     },
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        300,
-        180,
-        650,
-        460
-      ],
-      "bytes": 66915,
-      "sha256": "f6572546dc535c9cec3495e455439b039aa87ee91218c1d630543f721ac98507",
       "file": "notes-en.mp4",
-      "capture_seconds": 9.81,
-      "seconds": 9.8,
-      "width": 650,
-      "height": 460,
-      "capture_frames": 62,
+      "bytes": 84288,
+      "sha256": "1480dc7d4067880b808c07babd6539fab7303031c63a9a0e891ab6c307757c30",
+      "seconds": 6.2,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 6.186727,
+      "capture_frames": 60,
       "audio_track": false,
       "poster": {
         "file": "notes-en.webp",
-        "bytes": 10376,
-        "sha256": "9fe268a5d3724d6ea5a5dcc7e0bdf325c44cd42058e6bc4e00abdd3659b97786"
+        "bytes": 32274,
+        "sha256": "3ae64a20e76d98d41a01201a78fab66646c8b478a3cd38cb101182acae2ff82f"
       }
     },
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        300,
-        240,
-        650,
-        420
-      ],
-      "bytes": 174124,
-      "sha256": "97945ca2c29be845d16317e505c989e933ba404852908c53cf34ce14fe971ab4",
       "file": "range-zh.mp4",
-      "capture_seconds": 15.57,
-      "seconds": 15.566667,
-      "width": 650,
-      "height": 420,
-      "capture_frames": 189,
+      "bytes": 207916,
+      "sha256": "3e36147726c490c9ecce39fdb33c4f2f6773ef213b67d1e1fa8e4bf12ae011ad",
+      "seconds": 11.433333,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 11.429906,
+      "capture_frames": 202,
       "audio_track": false,
       "poster": {
         "file": "range-zh.webp",
-        "bytes": 15856,
-        "sha256": "2c2e2a8091402021038c51645eabb682d3718c9ca10a06de86eb86cb67d27113"
+        "bytes": 44030,
+        "sha256": "e64c008f75b9d676f20c843497454e2ef6b77a0254a01b0475dc6fc74321e28a"
       }
     },
     {
-      "encoded_fps": "30/1",
-      "crop": [
-        300,
-        240,
-        650,
-        420
-      ],
-      "bytes": 144591,
-      "sha256": "42cde36376939128f3dbcbe2161ad417f95c7b00589fdbef7fb571f4de7ba96e",
       "file": "range-en.mp4",
-      "capture_seconds": 15.108,
-      "seconds": 15.1,
-      "width": 650,
-      "height": 420,
-      "capture_frames": 181,
+      "bytes": 208264,
+      "sha256": "ded7b39ff34da73e1126fe70c107d7096796321582f0ad6ede8a4463411ebebb",
+      "seconds": 11.166667,
+      "encoded_fps": "30/1",
+      "width": 1280,
+      "height": 720,
+      "crop": null,
+      "capture_seconds": 11.177708,
+      "capture_frames": 196,
       "audio_track": false,
       "poster": {
         "file": "range-en.webp",
-        "bytes": 15278,
-        "sha256": "d716dccdc5aed21a8dd4d0821cf0c3719e2a9222130f7b6127cf26e4029a1116"
+        "bytes": 46220,
+        "sha256": "e6efd4767a56be54b160d3bc2167cfdf72521e947340484804071bc5cd8ff98a"
       }
     }
   ]

@@ -1,55 +1,47 @@
 # Interface notes
 
-## Reference and scope
+## Music and listening
 
-The 0.9 website uses [Lusion](https://lusion.co/) as a visual and interaction reference: a large real-time scene, a small fixed header, large regular-weight type, a video surface that changes with scroll, and separate navigation cards. The reference was inspected in the browser and its public animation structure was studied on 2026-10-27.
+The 0.10 website uses an original moving score as its main illustration. Notes, stems, beams and staves are drawn in Canvas 2D; they are not a video or a downloaded model. A pointer can bend or pluck the score, and a click can produce a short generated tone.
 
-The geometry, physics, shader and page controllers here are project code. Lusion's source bundle, models, photographs, videos, logos and proprietary fonts are not redistributed. Earlier [Superlist](https://www.superlist.com/) studies informed the use of actual application recordings; those recordings remain in this version.
+The design uses warm paper, dark ink, one blue accent and aligned text columns. Chinese headings use Noto Serif SC at weight 500. Chinese body text and controls use Noto Sans SC in both the website and listening workspace. Latin text stays Inter on the website and Geist in the workspace. Fonts are bundled locally; see [font maintenance](fonts.md).
 
-[Source and interaction study](reference-study.md) records the inspected values and implementation choices.
+## Motion and input
 
-## Type and layout
+The score advances with elapsed time. Pointer displacement returns through a damped motion model, retaining the place where a note was grabbed. Compact layouts draw fewer notes and cap rendering resolution. The scene stops its animation loop out of view or while the document is hidden.
 
-The tour uses the existing bundled Inter Latin subset through the Tour Grotesk alias, with regular-weight large headings. Chinese uses the unchanged MiSans Regular file. The review workspace continues to use Geist and MiSans. Font synthesis is disabled and no font service is contacted. See [font maintenance](fonts.md) and [third-party notices](../THIRD_PARTY_NOTICES.md).
+The motion button has separate pause and resume states. Reduced motion starts the decorative score still; explicit audio playback remains available. Sound begins from a user action. The fallback is the project's own static score illustration.
 
-The website places its description above a wide 3D viewport. Below it are the main recorded workflow, two feature previews and installation instructions. A small white-card menu holds the section links and language switch. Repeated dashboard cards and the large overlaid transport strip have been removed from the presentation.
+Header controls stay in one aligned row. Section headings share a left edge, and the recording list uses ordinary play buttons and durations. The menu supports Escape, keyboard focus and interrupted opening or closing.
 
-The review workspace keeps its library, waveform, review form, light/dark appearance and direct import actions. This release does not change the review data model.
+## Playable examples
 
-## Scene and input
+The comparison, range and time-marker examples use the project's twelve-second generated piano phrase. The two A/B versions have different harmonic balances and matched RMS levels. SVG waveform peaks come from those signals.
 
-Three.js 0.180.0 is bundled locally. Hollow connectors are built from a smooth union of capped tubes with bores through each axis. The scene uses studio lighting, three material groups and instanced meshes; no downloaded model or reference-site texture is required.
+Range boundaries can be dragged or moved with the arrow keys; Home and End reach their allowed limits. Dragging preserves the grab offset, and overlapping hit areas choose the nearest edge. A cancelled gesture restores its previous range. The selected range can be looped.
 
-The small scene simulation handles pointer repulsion, dragging, gentle idle rotation and a coordinated impulse when the palette changes. It uses bounded time steps and velocities, with deterministic initial placement. Pointer input is used directly; animation is not a prerecorded hero video. The motion button can pause the scene, and work stops when it is outside the viewport or the document is hidden.
+In the time-marker example, clicking the waveform or pressing Enter adds a marker. Its time seeks within the sample, and the marker can be removed. Switching language or example mode retains the current range and markers. This state belongs to the website example; it does not create collection reviews.
 
-The sample button plays a twelve-second generated piano phrase through Web Audio after a click. Its measured level feeds a small scale response in the scene. It is separate from the audio collection and does not create a review record.
+The audio clock drives the example playhead. Structural labels are not rewritten on every frame, and the example has no idle render loop. Ordinary page scrolling remains under the browser's control.
 
-## Scroll, menu and video
+## Recordings
 
-Page scrolling remains native. Section transforms follow a damped progress value rather than replacing the page's scroll position. The blue ribbon and video surface respond to that progress.
+All six application recordings were re-recorded in the 0.10 interface, with separate Chinese and English takes. Each preserves the full 1280 × 720 application viewport. They appear in a separate list and load when opened. The fullscreen viewer retains native playback, seeking and close controls. There is no large title over the footage and no scroll-warp renderer in the new page.
 
-On wider screens, an original 32 × 32 plane shader expands the reel from a small rectangle into a wide frame. Diagonally offset vertex phases give the middle of the transition a slight curl; both endpoints are rectangular. The image changes from cobalt-tinted to full color. The DOM poster remains until a decoded frame renders successfully.
+The recordings use the current Noto Sans SC / Geist workspace typography and independent generated-signal workspaces. Saved results were read back after the recorded actions. [Media notes](showcase-media.md) describe their source and capture process.
 
-The menu's cards enter with staggered movement and rotation. Opening and closing can be reversed. Keyboard focus, Escape and the menu button remain available during transitions.
+## Listening workspace
 
-The main preview loops silently while visible. Feature previews play on hover or focus, or while sufficiently visible on a coarse-pointer device. Clicking a recording opens the fullscreen viewer with ordinary video playback controls. Closing it stops that player and returns focus. Inline playback pauses while the menu or viewer is open.
+The workspace keeps its library, waveform, review panel, import actions and light/dark appearance. Its Chinese font changes in this release; its review data model does not.
 
-## Motion preferences and fallback
+Time notes can be added, edited, moved and removed. Invalid times keep the editor open, and cancelling restores the prior note. Search includes filenames, IDs, review notes and time notes. Save & continue follows the current queue. Listening memory stays separate from review data and resumes paused.
 
-Reduced-motion and compact layouts bypass the reel warp. Decorative movement can stop while playback remains available. Data-saving preferences keep recordings at their posters until explicit play. Sound never starts automatically.
+## Earlier references
 
-If the scene cannot render, the page uses its own static scene poster. A failed reel surface falls back to the ordinary video element. These paths keep navigation, installation links and recordings usable.
+The [Lusion source study](reference-study.md) records the 0.9 investigation of typography, menu and rendering behaviour. Earlier [Superlist](https://www.superlist.com/) references informed the use of application footage. Version 0.10 replaces the glossy 3D composition with music notation appropriate to this project.
 
-## Review behaviour
+Three.js, the 0.9 scene modules and old font files remain available for older pages, but the new tour does not import the Three bundle or reel-warp module. Reference-site code, models, photographs, films, logos and proprietary fonts are not redistributed.
 
-Time notes can be added, edited, moved and removed. Invalid times keep the editor open. Cancelling restores the original note. Save includes a note being composed.
-
-Search combines filenames, IDs, review notes and time notes. A clip outside the filter keeps its draft. Save & continue follows the current queue and skips reviewed clips. Listening memory stays separate from review data, is scoped to the workspace and audio version, and resumes paused.
-
-## Maintenance
-
-The scene bundle's entry, lock file and digest are in scripts/scene-build. [Media notes](showcase-media.md) document the retained recordings and generated assets. [Verification](verification.md) records actual automated, browser, installation and compatibility checks without making a cross-device frame-rate claim.
-
-![Workspace](screenshot-zh-CN.png)
+[Verification](verification.md) records the actual tests, browser checks and package validation for this release.
 
 ![Website](screenshot-tour.png)

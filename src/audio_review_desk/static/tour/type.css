@@ -1,0 +1,17 @@
+/* Latin is supplied by Inter; these two faces handle Chinese only. */
+@font-face {
+  font-family: "Score Serif SC";
+  src: url("./score-serif.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  unicode-range: U+2E80-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+@font-face {
+  font-family: "Score Sans SC";
+  src: url("./score-sans.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  unicode-range: U+2E80-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}

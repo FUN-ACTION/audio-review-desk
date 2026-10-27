@@ -155,6 +155,39 @@ class ServerTests(unittest.TestCase):
                     urllib.request.urlopen(self.origin+path)
                 self.assertEqual(caught.exception.code, 404)
 
+    def test_score_presentation_assets_have_exact_bytes_and_portable_media_types(self):
+        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        assets = {
+            'score-scene.js': 'text/javascript',
+            'score-math.js': 'text/javascript',
+            'story-demo.js': 'text/javascript',
+            'story-math.js': 'text/javascript',
+            'sample-playback.js': 'text/javascript',
+            'story-demo.css': 'text/css',
+            'type.css': 'text/css',
+            'score-serif.woff2': 'font/woff2',
+            'score-sans.woff2': 'font/woff2',
+            'score-serif-OFL.txt': 'text/plain',
+            'media/score-poster.svg': 'image/svg+xml',
+        }
+        # These resources must render even on Windows without file associations.
+        with patch('audio_review_desk.server.mimetypes.guess_type', return_value=(None, None)):
+            for name, expected in assets.items():
+                with self.subTest(asset=name):
+                    with urllib.request.urlopen(self.origin+'/tour/'+name+'?v=score-check') as response:
+                        self.assertEqual(response.status, 200)
+                        self.assertEqual(response.headers.get_content_type(), expected)
+                        self.assertEqual(response.read(), (source/name).read_bytes())
+
+    def test_score_asset_routes_reject_unlisted_files_and_traversal(self):
+        for path in ('/tour/score-private.js', '/tour/score-serif.ttf',
+                     '/tour/media/score-private.svg', '/tour/media/../score-scene.js',
+                     '/tour/%2e%2e/reviews.sqlite'):
+            with self.subTest(path=path):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(self.origin+path)
+                self.assertEqual(caught.exception.code, 404)
+
     def test_same_origin_and_review_token_required(self):
         for headers in ({"Origin": "http://evil.example"}, {"X-Review-Token": "wrong"}, {"Origin": "null"}):
             with self.assertRaises(urllib.error.HTTPError) as caught:

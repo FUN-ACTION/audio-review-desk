@@ -6,7 +6,9 @@ import subprocess
 import struct
 import zlib
 import hashlib
+import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from scripts.build_showcase import build
 from scripts.create_showcase import create
@@ -85,6 +87,55 @@ class ShowcaseTests(unittest.TestCase):
             poster = (destination/'media/scene-poster.webp').read_bytes()
             self.assertEqual(poster[:4], b'RIFF')
             self.assertEqual(poster[8:12], b'WEBP')
+
+    def test_static_build_copies_the_score_presentation_without_workspace_inputs(self):
+        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        paths = ('score-scene.js', 'score-math.js', 'story-demo.js', 'story-math.js',
+                 'sample-playback.js', 'story-demo.css', 'type.css', 'score-serif.woff2', 'score-sans.woff2',
+                 'score-serif-OFL.txt', 'media/score-poster.svg')
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = build(Path(temporary)/'site')
+            for name in paths:
+                with self.subTest(asset=name):
+                    self.assertEqual((destination/'tour'/name).read_bytes(), (source/name).read_bytes())
+            forbidden = {'.sqlite', '.db', '.wav', '.flac', '.mp3', '.m4a', '.ogg',
+                         '.pth', '.pt', '.ckpt', '.safetensors'}
+            self.assertEqual([p.relative_to(destination).as_posix() for p in destination.rglob('*')
+                              if p.is_file() and p.suffix.lower() in forbidden], [])
+
+    def test_score_entry_import_graph_does_not_load_the_legacy_gpu_runtime(self):
+        static = (Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static').resolve()
+        pending = [static/'tour/tour.js']
+        visited = set()
+        # Static imports/re-exports, side-effect imports and literal lazy imports.
+        # Comments are excluded so a maintenance note is not a dependency.
+        patterns = (
+            r'''\b(?:import|export)\s+[\w$*{},\s]+?\s+from\s*(["'])(.*?)\1''',
+            r'''\bimport\s*(["'])(.*?)\1''',
+            r'''\bimport\s*\(\s*(["'])(.*?)\1\s*\)''',
+        )
+        while pending:
+            path = pending.pop()
+            if path in visited:
+                continue
+            self.assertNotIn(path.name, {'scene-vendor.js', 'reel-warp.js'},
+                             f'Legacy GPU code reached from the new tour entry: {path.name}')
+            self.assertTrue(path.is_relative_to(static), path)
+            visited.add(path)
+            code = path.read_text(encoding='utf-8')
+            code = re.sub(r'/\*.*?\*/', '', code, flags=re.S)
+            code = re.sub(r'(?m)^\s*//.*$', '', code)
+            for pattern in patterns:
+                for _, specifier in re.findall(pattern, code):
+                    imported = urlsplit(specifier)
+                    self.assertFalse(imported.scheme or imported.netloc,
+                                     'The offline presentation must not import remote modules')
+                    self.assertTrue(imported.path.startswith(('.', '/')), specifier)
+                    target = ((static/imported.path.lstrip('/')) if imported.path.startswith('/')
+                              else (path.parent/imported.path)).resolve()
+                    self.assertTrue(target.is_file(), f'Missing imported module: {specifier}')
+                    pending.append(target)
+        self.assertGreater(len(visited), 4, 'The import graph did not reach the score modules')
 
     def test_recording_fixture_never_overwrites_a_populated_destination(self):
         with tempfile.TemporaryDirectory() as temporary:

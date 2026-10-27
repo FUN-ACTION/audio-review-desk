@@ -2,61 +2,58 @@
 
 [Open the website](https://fun-action.github.io/audio-review-desk/tour/).
 
-## Retained application recordings
+## Score and audio examples
 
-The six MP4 files were recorded from the development UI for Audio Review Desk 0.8 in Chromium. Chinese and English takes were recorded separately. The main film shows playback, reference switching and Save & continue. Close-ups show adding and seeking to a time note and looping a selected range.
+The 0.10 presentation draws its own notes, beams and curved staves in Canvas 2D. The score responds to pointer movement and plucking. Its static fallback is an original SVG score illustration. Neither requires a model, a texture or footage from another website.
 
-Version 0.9 changes their presentation, not the recording files. It does not claim these films were recorded again. They appear as the main reel and two feature previews, and can still be opened in the fullscreen player with playback controls.
+The short pluck tones are synthesized after a click. `studio-signal.js` generates the twelve-second piano phrase and its two A/B versions. The SVG examples use waveform peaks from those actual signals, and their playheads follow the audio clock. Selected ranges and time markers remain in the example page, separate from collection reviews.
 
-## Source material
+The new tour does not import Three.js or the old video-warp renderer. Motion can pause, and offscreen/hidden components stop rendering. No artist recording, private material or trained voice is used for the score or sample phrase.
 
-scripts/create_showcase.py creates deterministic procedural signals in a new, separate directory. Their phrase envelopes, pitches and pauses vary. They contain no speech, private recording or model output. Scores and notes illustrate the controls rather than an evaluation of a real recording. The generator refuses to overwrite a populated destination.
+## Application recordings in 0.10
 
-No private audio, databases or model weights are distributed. A close-up remains a crop of the desktop app; it does not depict a mobile app.
+All six MP4 files were newly recorded from the Audio Review Desk 0.10 source interface in Chromium. Chinese and English takes used independent generated-signal workspaces. The recordings show the current Noto Sans SC / Geist workspace typography and preserve the full 1280 × 720 application viewport, without a close-up crop.
 
-## Recording and encoding
+| Recording | Captured actions |
+| --- | --- |
+| Workflow | Switch A/B, mark a clip as needing work, add a review note, then Save & continue |
+| Time notes | Add a timestamped note and save the review |
+| Keep range | Move a range handle, loop the selected interval and save the review |
+
+The actions were performed through native browser input, and the saved results were read back after recording. The files appear in a simple list and open in the fullscreen viewer with playback and seeking controls. They do not depict a separate mobile application.
+
+## Recording source
+
+`scripts/create_showcase.py` creates deterministic procedural signals in a new, separate directory. Phrase envelopes, pitches and pauses vary. The signals contain no speech, private recording or model output. Scores and notes in the footage illustrate the controls. The generator refuses to overwrite a populated destination.
+
+No private audio, databases or model weights are distributed.
+
+## Capture and encoding
 
 Browser input operates visible controls. A cursor is composited from the recorded input coordinates. Capture timestamps set the timing; the encoder resamples them to 30 fps and retains the final still frame until capture ends. This does not imply 30 unique browser captures per second. Files use H.264, yuv420p, fast-start metadata and no audio track.
 
-| Clip | Source viewport | Crop x, y, width, height |
-| --- | --- | --- |
-| Workflow | 1280 × 720 | 282, 136, 964, 576 |
-| Time notes | 1280 × 720 | 300, 180, 650, 460 |
-| Keep range | 1280 × 720 | 300, 240, 650, 420 |
-
-The wheel and standalone site include the same files and posters. The main preview loops muted while visible; feature previews respond to hover, focus or coarse-pointer visibility. Opening a recording uses the fullscreen player. Out-of-view media pauses, and reduced-motion/data-saving preferences keep previews still until explicit play.
-
-## Original scene and reel surface
-
-The 0.9 hero is rendered in real time with the locally bundled Three.js. Its hollow connector geometry is generated from capped tubes and bores. Studio lighting and three material groups create the scene. Pointer repulsion, dragging and palette-change impulses run in the project's own small simulation.
-
-The static scene poster is made from this project's scene and is used when WebGL is unavailable. It is not a Lusion image or model.
-
-The desktop reel uses an original 32 × 32 video plane shader. Scroll progress changes its rectangle, adds a transient curl and changes the cobalt tint to the recording's original color. Compact and reduced-motion layouts use the ordinary video surface. The shader changes the display of the video; it does not alter the MP4 file.
-
-## Audio sample
-
-studio-signal.js generates the twelve-second piano phrase used by the hero's sample button. Web Audio starts it only after a click. Its level also drives a small visual response in the scene. This sample is separate from the recordings and the review workspace; it does not upload source files or save an approval.
+The wheel and standalone website include the same recordings and posters. Hashes, durations, dimensions and capture counts are in [the recording manifest](showcase-media.json).
 
 ## Rebuilding
 
-Ordinary users do not need to rebuild website media.
+The score and SVG examples are drawn from source, so they need no video encoding step. Ordinary users do not need the media tools.
 
-1. Run python scripts/create_showcase.py /new/recording-destination and serve its workspace directory.
-2. In the Codex browser runtime, pass the tab and documented CDP capability to makeRecorder in scripts/record_showcase.mjs. Use visible controls and separate language takes. Check the save result before selecting a take.
-3. For the workflow, run python scripts/encode_showcase.py /capture/capture.json --name workflow-zh --region 282 136 964 576 --output src/audio_review_desk/static/tour/media. Use --region 300 180 650 460 for time notes, or --region 300 240 650 420 for range editing. --poster-at selects a representative frame. Encoding needs FFmpeg with libx264, libass and libwebp.
-4. Update the media manifest, then run python scripts/update_showcase_index.py to keep its accompanying duration index consistent.
-5. Rebuild the pinned Three bundle with npm ci --prefix scripts/scene-build and node scripts/scene-build/build.mjs. No reference-site models or textures are fetched by this step.
-6. Run python scripts/build_showcase.py --output /new/static-output. The builder copies page code, media, fonts and licences without opening a workspace.
+To record new application footage:
 
-File hashes, capture counts, dimensions and durations are in [the media manifest](showcase-media.json). The [third-party notices](../THIRD_PARTY_NOTICES.md) cover Three.js, Motion and fonts.
+1. Run `python scripts/create_showcase.py /new/recording-destination` and serve that workspace.
+2. In the Codex browser runtime, pass the tab and documented CDP capability to `makeRecorder` in `scripts/record_showcase.mjs`. Record separate language takes and check the saved review before selecting a take.
+3. Run `python scripts/encode_showcase.py /capture/capture.json --name workflow-zh --output src/audio_review_desk/static/tour/media`. Use `--name notes-zh` or `--name range-zh` for the other workflows, and the matching `-en` names for English takes. Keep the full frame; `--poster-at` chooses a representative poster. Encoding needs FFmpeg with libx264, libass and libwebp.
+4. Update the recording manifest, then run `python scripts/update_showcase_index.py` to refresh its duration index.
+5. Build the static website with `python scripts/build_showcase.py --output /new/static-output`.
 
-## Reference
+The static builder copies page code, media, fonts and licences without opening a workspace.
 
-[Lusion](https://lusion.co/) informed the real-time hero, large type, scroll composition, navigation cards and reel transition. Geometry, simulation, shaders and controllers were implemented for Audio Review Desk. Lusion's source, photographs, videos, models, logos and proprietary fonts are not bundled.
+## Earlier presentation assets
 
-The generated desk backdrop used in 0.6 is no longer included. Its provenance remains in [the 0.6 media notes](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.6.0/docs/showcase-media.md).
+The earlier cropped 0.8 recordings are documented in [the 0.8 media notes](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.8.0/docs/showcase-media.md).
 
-## 0.9 interaction capture
+The Three.js bundle, 0.9 scene and reel modules, and their original poster remain packaged for older pages. They are not loaded by the 0.10 entry point. Their build lock and digest remain in `scripts/scene-build`.
 
-[site-interaction.gif](site-interaction.gif) is a new recording of the 0.9 presentation page, showing actual dragging and palette changes. It was captured through browser input and encoded at 720 pixels wide and 9 fps for the repository. It is a preview of the live interaction, separate from the six application recordings above. The fallback poster is a crop of this project's own rendered scene.
+The [0.9 interaction capture](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.9.0/docs/site-interaction.gif) records that version's dragging and palette changes. The generated desk backdrop used in 0.6 is no longer included; its provenance remains in [the 0.6 media notes](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.6.0/docs/showcase-media.md).
+
+[Lusion](https://lusion.co/) informed the 0.9 reference study. Its code and media are not bundled. [Third-party notices](../THIRD_PARTY_NOTICES.md) cover the separately licensed fonts and libraries.

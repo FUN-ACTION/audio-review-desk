@@ -2,6 +2,17 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.10.0 — 2026-10-27
+
+- Replace the website's 3D hero with an original Canvas 2D score, pointer plucking and generated tones. The new page does not load Three.js or the video-warp renderer.
+- Add playable SVG examples for A/B comparison, range selection, looping and time markers. Their state stays separate from collection reviews.
+- Use Noto Serif SC for Chinese presentation headings and Noto Sans SC for body text and controls in both the website and review workspace.
+- Revise header alignment, pause controls, navigation and installation copy. Put recordings in a simple list with fullscreen playback controls.
+- Re-record all six Chinese and English walkthroughs in the 0.10 interface, preserving the full 1280 × 720 application viewport.
+- Preserve workspace format, review keys and history. Retain legacy rendering and font assets for older pages.
+
+[Changes and upgrade steps](docs/releases/0.10.0.md).
+
 ## 0.9.0 — 2026-10-27
 
 - Rebuild the website around an original procedural 3D connector scene with pointer repulsion, dragging and palette-change impulses.

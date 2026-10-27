@@ -2,11 +2,11 @@
 
 Listen through audio collections, compare references, and save keep ranges and timestamped notes. Export reviews as CSV or JSON.
 
-[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.9 changes](releases/0.9.0.md)
+[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.10 changes](releases/0.10.0.md)
 
 [![Project website](screenshot-tour.png)](https://fun-action.github.io/audio-review-desk/tour/)
 
-[Open the website](https://fun-action.github.io/audio-review-desk/tour/) · [Workspace screenshot](screenshot.png) · [Interaction recording](site-interaction.gif)
+[Open the website](https://fun-action.github.io/audio-review-desk/tour/) · [Workspace screenshot](screenshot.png)
 
 ## Start
 
@@ -41,7 +41,7 @@ Undo restores an earlier review without deleting history. Batch changes keep not
 
 ## Files and updates
 
-0.9 rebuilds the website with a draggable 3D scene, a scroll-driven video surface and a compact menu. Open a recording to play it in the fullscreen viewer. The six recordings are retained from 0.8; the review workspace and data format are unchanged. [The release notes](releases/0.9.0.md) include changes and upgrade steps.
+The website now uses an original animated score and a playable phrase to show A/B comparison, range listening and time markers. Collection reviews remain in the workspace. Version 0.10 also revises Chinese type, navigation and the recording list. All six Chinese and English walkthroughs were re-recorded in the 0.10 interface, keeping the full application frame. [The release notes](releases/0.10.0.md) include changes and upgrade steps.
 
 Source audio is read-only. Ranges do not crop it. The separate workspace stores the database, review history and listening copies. Stop the old server, back up the **entire workspace**, install in the app's existing environment, and reopen the original path. [Every version](releases/README.md) has its own upgrade notes.
 

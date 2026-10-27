@@ -1,38 +1,40 @@
 # Release verification
 
-Version 0.9.0 · 2026-10-27
+Version 0.10.0 · 2026-10-27
 
 ## Automated checks
 
-89 Python tests and 44 JavaScript tests pass locally. The added cases check the deterministic scene simulation, bounded dragging and impulses, timestep stability, collision separation, finite coordinates and rejected invalid inputs. Server and build tests cover the new scene modules, renderer bundle, poster, complete Three.js licence, MIME types and strict file boundaries. A regression case removes system MIME associations; posters, modules and fonts must still return their declared media types.
+96 Python tests and 61 JavaScript tests pass locally. New coverage includes score motion with stable elapsed-time steps, finite note positions, pointer response, range bounds and edge selection, and audio-clock rebasing after a loop has wrapped. The clock regression checks that changing a loop from 2–8 seconds to 3–7 keeps an audible position of 4 seconds at 4.
 
-The pinned Three.js version, lockfile, runtime size and SHA-256 are checked without downloading dependencies in CI. Existing tests cover audio decoding, read-only inputs, review versions, history, conflicts, cancellation, export/restore, sample audio, bilingual copy, packaged fonts and all six retained recording/poster hashes.
+The type tests bind all shipped font and complete licence bytes to pinned sources, check interface coverage, and reject missing or changed font-build input. The maintainer builder checks actual cmaps and variable axes. The small Noto Sans SC presentation subset was also compared at weights 400, 500, 600 and 700: all 1,548 checked outlines match the broad workspace file.
 
-Tests use temporary workspaces and generated signals. CI runs Python 3.11 and 3.13 on Windows, Linux and macOS, plus an FFmpeg job. The release links the CI result for its exact commit.
+Server/build tests cover every new Canvas/SVG/example/font asset, platform-independent MIME types, strict file boundaries and absence of private audio or databases in the static build. A recursive module-graph test rejects Three.js or the video-warp module in the new page's dependencies. Retained legacy assets remain testable for older pages.
+
+All six recordings were recaptured in the 0.10 application. Media tests verify their hashes, posters, dimensions and capture duration, including the final static hold. Recordings use separate generated-signal workspaces; no original recordings or models are used.
+
+CI runs Python 3.11 and 3.13 on Windows, Linux and macOS plus a separate FFmpeg job. The release links results for its exact commit. Optional decoder/encoder cases may be skipped where tools are absent; the local final run has no skips.
 
 ## Browser inspection
 
-The presentation was exercised in local Chromium:
+The page was exercised in Chromium using actual controls and generated audio:
 
-- Push and drag the actual 3D objects, change their palette and pause the scene. Inspect the captured result rather than a simulated cursor illustration.
-- Open, close and reverse the card menu; check Escape, backward Tab wrapping, focus return and section-link focus.
-- Play the generated sample from a click; stop it when its scene leaves view.
-- Scroll the recording surface from its small tinted state to the full frame. Pause the inline preview and open the full player. Check actual decoded video and native controls.
-- Open the English time-note recording after changing language; keep the matching source and viewer title.
-- Start with reduced motion: scene motion stays paused, the preview stays still and the warp is bypassed. Explicit video playback remains available.
-- Load `?graphics=off`: use the project's static scene poster and ordinary video without constructing the two WebGL surfaces.
-- Measure Chinese and English layouts at 320, 390, 768, 1024 and 1440 CSS pixels. Fix the narrow English download overflow and the desktop header/intro collision; inspect narrow and wide rendered views.
+- Pluck a note, play the piano phrase, pause motion, open/reverse/close the menu and check keyboard focus.
+- Compare the actual A/B sample buffers without losing position. Move a range with the keyboard and pointer; loop it and retain its boundaries.
+- Add and remove a time marker. Change mode and language while retaining range and markers. Example actions stay separate from collection reviews.
+- Inspect Chinese and English at 320, 390, 768, 1024 and 1440 CSS pixels. Check phone hit areas and desktop baselines; the shorter desktop layout keeps the sample controls in the first screen.
+- Open new full-frame recordings, play, seek and close them. Use the matching language source. Read back saved notes/ranges after reloading each recording workspace.
+- Start in reduced motion and keep decorative motion still while explicit playback remains usable. Check the static-motion option and offscreen suspension.
 
-Tour Latin text uses Inter Regular; Chinese uses the unchanged MiSans Regular file. The review workspace keeps Geist / MiSans. Viewport emulation is not physical-phone or cross-browser certification. Context-loss recovery was reviewed in code; it was not fault-injected on every GPU. No constant frame rate is claimed across devices.
+DevTools confirms Noto Serif SC Medium for Chinese titles and Noto Sans SC for body copy. The app uses Noto Sans SC with Geist Latin; the presentation uses Inter Latin. No system-font approximation is counted as a verified custom face.
 
-The new [interaction capture](site-interaction.gif) shows real pointer input on the 0.9 page. The six application recordings retain their 0.8 bytes; they are not presented as new recordings.
+A startup network trace contains no Three.js, video-warp or automatic MP4 requests. Optional `?motion-debug=1` statistics expose render counts and actual RAF intervals for pause/offscreen checks. These measure callback intervals, not GPU/CPU render cost. No fixed frame rate across devices is claimed. Viewport emulation is not physical-phone or cross-browser certification.
 
-## Packaging and existing workspaces
+## Release and existing workspaces
 
-Release archives are built from a clean committed tree. The wheel and source package are installed in separate environments, and packaged bytes are compared against the wheel. The Python suite also runs with application imports proven to come from the installed wheel.
+The source archive is compared byte-for-byte to a fresh Git archive at the release commit, honoring declared line endings. The wheel and source are installed into separate clean environments, packaged application files are checked against the wheel, and the Python suite also runs from installed site-packages.
 
-Compatibility verification opens a copy of a populated 0.6 workspace, compares its schema, tables, active keys, scores, notes and history, then exercises edit/undo on that copy. Referenced original inputs are hashed before and after. No workspace migration is introduced in 0.9.
+Compatibility checks open a copy of a populated 0.6 workspace and compare all schemas, tables, active keys, scores, notes and history. Edit/undo runs only on the copy; referenced source audio and the original legacy folder are hashed before and after.
 
-The local upgrade stops the old app server, backs up the entire workspace, installs in the existing application virtual environment and reopens the original path. Private receipts record backup hashes, installed bytes and the unchanged legacy database. Original recordings, models and training environments remain outside the release.
+The local upgrade stops the old app server, backs up the entire active and legacy workspaces, installs in the existing app environment and reopens the original path. Private receipts record the installed files and unchanged workspace hashes. No schema migration or training-environment change is introduced.
 
-[0.8.1 checks](verification-0.8.1.md) · [Media provenance](showcase-media.md) · [Source study](reference-study.md) · [Font maintenance](fonts.md)
+[0.9 checks](verification-0.9.md) · [Media provenance](showcase-media.md) · [Font build](fonts.md)

@@ -1,22 +1,27 @@
 {
-  "version": "0.9.0",
-  "capture": "own Chromium page, actual pointer input",
-  "gif_preview_fps": 9,
+  "version": "0.10.0",
+  "animation": "Original Canvas2D notation and audio-driven SVG diagrams",
+  "audio": "Generated piano phrase and click tones, no recordings or models",
   "assets": [
     {
-      "file": "docs/site-interaction.gif",
-      "bytes": 3725033,
-      "sha256": "2e07d8aa92cf4e5b95d20e0fb50c6cc731a97e7b5db9e79bba449e8e7942bde5"
+      "file": "src/audio_review_desk/static/tour/media/score-poster.svg",
+      "bytes": 2106,
+      "sha256": "9c29af03c0b234f3acac1c47b310a36108192efaffa98af892803230fcedca72"
     },
     {
       "file": "docs/screenshot-tour.png",
-      "bytes": 89615,
-      "sha256": "b655ded9c53bf2d8cf1128651fa0612a51d1b19306b97c3eee9ab7c64b3c4bfb"
+      "bytes": 44753,
+      "sha256": "87f101ddb674d3407dc9c29a6c83e873d7fdc0b9814cdf2dc5671099e17a48b4"
     },
     {
-      "file": "src/audio_review_desk/static/tour/media/scene-poster.webp",
-      "bytes": 56048,
-      "sha256": "53efe9a1757537120bfe65605208d93afa1d498dcf61cc6a75b2ba6de9deee73"
+      "file": "docs/screenshot.png",
+      "bytes": 56109,
+      "sha256": "a303e50b749a76d69c635f97d52aa02d7a36a3ca3797b63926af11037d6e4666"
+    },
+    {
+      "file": "docs/screenshot-zh-CN.png",
+      "bytes": 58632,
+      "sha256": "ce2067b337b43cc66c6985fb1d15dd973c9e2b21246af9e9435f220a99744c43"
     }
   ]
 }
