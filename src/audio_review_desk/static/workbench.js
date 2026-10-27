@@ -6,7 +6,6 @@ import { mountMarkers } from "./markers.js";
 import { mountCommands } from "./commands.js";
 import { errorText } from "./errors.js";
 import { createListeningMemory, resumedTime } from "./listening.js";
-import { mountPreview } from "./tour/preview.js";
 import {
   formatTime,
   filterItems,
@@ -49,12 +48,49 @@ const issueNames = [
   "identity",
   "other",
 ];
-const t = (key) => words[language][key] || key;
-const preview = mountPreview({
-  video: $("workflowPreview"),
-  button: $("previewToggle"),
-  t,
-});
+const workbenchWords = {
+  zh: {
+    welcome: "添加音频",
+    welcomeHelp: "选择文件、文件夹或清单。",
+    watchTour: "查看介绍 ↗",
+    chooseFiles: "音频文件",
+    filesHelp: "单个或多个文件",
+    chooseFolder: "文件夹",
+    folderHelp: "包括子文件夹",
+    chooseManifest: "已有清单",
+    search: "搜索文件或批注",
+    markerPlaceholder: "添加此处的批注…",
+    notesPlaceholder: "写下审核意见…",
+    emptyTitle: "素材库为空",
+    queueComplete: "本批审核完成",
+    reopenLast: "返回最后一条",
+    discardTitle: "更改尚未保存",
+    discard: "放弃更改并离开，或返回继续编辑。",
+    noPending: "没有待审音频",
+    candidateDuration: "可审时长",
+  },
+  en: {
+    welcome: "Add audio",
+    welcomeHelp: "Choose files, a folder or a manifest.",
+    watchTour: "About the workspace ↗",
+    chooseFiles: "Audio files",
+    filesHelp: "One or more files",
+    chooseFolder: "Folder",
+    folderHelp: "Include subfolders",
+    chooseManifest: "Manifest",
+    search: "Search files or notes",
+    markerPlaceholder: "Add a note here…",
+    notesPlaceholder: "Write a review note…",
+    emptyTitle: "The library is empty",
+    queueComplete: "Batch reviewed",
+    reopenLast: "Return to the last clip",
+    discardTitle: "Unsaved changes",
+    discard: "Discard these changes or return to editing.",
+    noPending: "No pending audio",
+    candidateDuration: "To review",
+  },
+};
+const t = (key) => workbenchWords[language]?.[key] || words[language][key] || key;
 const precise = (seconds) =>
   `${formatTime(seconds)}.${Math.floor(((seconds || 0) % 1) * 1000)
     .toString()
@@ -236,7 +272,6 @@ const importing = () => job && ["running", "cancelling"].includes(job.state);
 function translate() {
   const completed = !$("queueComplete").hidden;
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-  preview.language(language);
   if (!$("importError").hidden && $("importError").dataset.code)
     $("importError").textContent = errorText(
       { code: $("importError").dataset.code },
@@ -310,7 +345,7 @@ function renderSummary() {
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("version").textContent = state.version || "0.11.1";
+  $("version").textContent = state.version || "0.12.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -1214,6 +1249,10 @@ window.addEventListener("resize", () => {
   drawWave();
   syncGlider(true);
 });
+document.fonts?.ready.then(() => {
+  // The local CJK face may settle after the initial workspace has rendered.
+  syncGlider(true);
+});
 window.addEventListener("beforeunload", (event) => {
   if (dirty) {
     event.preventDefault();
@@ -1379,7 +1418,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.11.1";
+    $("updateNotice").hidden = result.version === "0.12.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

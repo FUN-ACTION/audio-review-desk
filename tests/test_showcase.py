@@ -90,7 +90,8 @@ class ShowcaseTests(unittest.TestCase):
 
     def test_static_build_copies_the_score_presentation_without_workspace_inputs(self):
         source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
-        paths = ('note-geometry.js', 'music-art.js', 'music-art.css', 'music-shader.js',
+        paths = ('art-stage.js', 'media/art-bloom.png', 'media/art-wave.png', 'media/art-prism.png', 'music-player.js',
+                 'note-geometry.js', 'music-art.js', 'music-art.css', 'music-shader.js',
                  'media/music-notes-poster.svg',
                  'score-scene.js', 'score-math.js', 'story-demo.js', 'story-math.js',
                  'sample-playback.js', 'story-demo.css', 'type.css', 'score-serif.woff2', 'score-sans.woff2',
@@ -138,7 +139,7 @@ class ShowcaseTests(unittest.TestCase):
                               else (path.parent/imported.path)).resolve()
                     self.assertTrue(target.is_file(), f'Missing imported module: {specifier}')
                     pending.append(target)
-        self.assertTrue({'scene.js', 'scene-vendor.js', 'note-geometry.js', 'music-art.js', 'music-shader.js'}.issubset({p.name for p in visited}))
+        self.assertTrue({'art-stage.js', 'music-player.js', 'studio-signal.js'}.issubset({p.name for p in visited}))
         html = (static/'tour/index.html').read_text(encoding='utf-8')
         self.assertNotRegex(html, r'<video\b|data-story-demo|data-demo-host')
 

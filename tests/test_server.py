@@ -5,6 +5,7 @@ import unittest
 import urllib.error
 import urllib.request
 import time
+from importlib.resources import files
 from unittest.mock import patch
 from pathlib import Path
 
@@ -115,7 +116,7 @@ class ServerTests(unittest.TestCase):
             with urllib.request.urlopen(self.origin+path) as response:self.assertEqual(response.status,200)
 
     def test_3d_runtime_assets_are_served_with_browser_compatible_mime_types(self):
-        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        source = files('audio_review_desk').joinpath('static', 'tour')
         assets = {
             'scene.js': ('text/javascript', 'application/javascript'),
             'scene-physics.js': ('text/javascript', 'application/javascript'),
@@ -158,8 +159,13 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 404)
 
     def test_score_presentation_assets_have_exact_bytes_and_portable_media_types(self):
-        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        source = files('audio_review_desk').joinpath('static', 'tour')
         assets = {
+            'art-stage.js': 'text/javascript',
+            'media/art-bloom.png': 'image/png',
+            'media/art-wave.png': 'image/png',
+            'media/art-prism.png': 'image/png',
+            'music-player.js': 'text/javascript',
             'score-scene.js': 'text/javascript',
             'score-math.js': 'text/javascript',
             'story-demo.js': 'text/javascript',

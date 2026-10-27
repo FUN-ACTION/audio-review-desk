@@ -1,8 +1,8 @@
-import { copy } from "./tour-copy.js?v=0.11.1";
+import { copy } from "./tour-copy.js?v=0.12.0";
 import { installCommands } from "./playback-policy.js";
-import { sampleSignal } from "./studio-signal.js";
-import { damp } from "./scene-physics.js?v=0.11.1";
-import { mountMusicArt } from "./music-art.js?v=0.11.1";
+import { createMusicPlayer } from "./music-player.js?v=0.12.0";
+import { damp } from "./scene-physics.js?v=0.12.0";
+import { mountArtStage } from "./art-stage.js?v=0.12.0";
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia("(prefers-reduced-motion:reduce)");
 const compact = matchMedia("(max-width:812px)");
@@ -22,18 +22,20 @@ let platform = "windows",
   menuEffects = [];
 let scene = null,
   userPausedScene = null;
-let audio = null,
-  sound = null,
-  analyser = null,
-  samples = null,
-  samplePlaying = false,
-  samplePending = false,
-  audioGeneration = 0,
-  audioFrame = 0;
-const menu = $("siteMenu"),
-  scrim = $("menuScrim");
-const artworks = [...document.querySelectorAll('[data-art]')].map(host => mountMusicArt(host, {kind:host.dataset.art, language}));
+const menu = $("siteMenu"), scrim = $("menuScrim");
+const artworks = [...document.querySelectorAll('[data-world]')].map(host => mountArtStage(host, {scene:Number(host.dataset.world), language}));
+const sceneKinds = ['bloom','wave','prism'];
+let activeScene = 'bloom';
 if (new URLSearchParams(location.search).get('motion') === 'off') userPausedScene = true;
+const player = createMusicPlayer({
+  onChange: paintSample,
+  onLevel: level => {
+    if (level !== 0 && ((userPausedScene ?? reduced.matches) || menuOpen || document.hidden)) return;
+    scene?.setAudioLevel(level);
+    artworks.forEach(art => art.setAudioLevel(level));
+  },
+  onError: () => { $('sampleError').textContent=t('sampleError'); $('sampleError').hidden=false; }
+});
 const effect = (element, frames, options) => {
   if (reduced.matches) return null;
   return element.animate(frames, {
@@ -43,87 +45,26 @@ const effect = (element, frames, options) => {
     ...options,
   });
 };
-function paintSample() {
-  const active = samplePlaying || samplePending;
-  $("samplePlay").setAttribute("aria-pressed", String(active));
-  $("samplePlay").setAttribute(
-    "aria-label",
-    t(active ? "stopListening" : "listen"),
-  );
-  document.querySelector("[data-sample-label]").textContent = t(
-    active ? "stopListening" : "listen",
-  );
+function paintSample(state = player.state) {
+  const active=state.playing || state.pending;
+  $('samplePlay').setAttribute('aria-pressed',String(active));
+  $('samplePlay').setAttribute('aria-label',t(active ? 'stopListening' : 'listen'));
+  document.querySelector('[data-sample-label]').textContent=t(active ? 'stopListening' : 'listen');
+  $('musicName').textContent=state.name; $('musicName').hidden=!state.name;
+  $('resetMusic').hidden=!state.name;
 }
-function stopSample() {
-  audioGeneration++;
-  cancelAnimationFrame(audioFrame);
-  audioFrame = 0;
-  if (sound) {
-    sound.onended = null;
-    try {
-      sound.stop();
-    } catch {}
-    sound.disconnect();
-    sound = null;
-  }
-  samplePlaying = false;
-  samplePending = false;
-  scene?.setAudioLevel(0);
-  paintSample();
+const stopSample=()=>player.pause();
+$('samplePlay').addEventListener('click',()=>{ $('sampleError').hidden=true; player.toggle(); });
+$('chooseMusic').addEventListener('click',()=>$('musicFile').click());
+$('musicFile').addEventListener('change',()=>{ const file=$('musicFile').files[0]; if(file) { player.selectFile(file); $('sampleError').hidden=true; } $('musicFile').value=''; });
+$('resetMusic').addEventListener('click',()=>{ player.reset(); $('sampleError').hidden=true; });
+function changeScene(kind) {
+  if (!sceneKinds.includes(kind)) return;
+  activeScene=kind; scene?.setScene(sceneKinds.indexOf(kind));
+  $('heroScene').dataset.theme=kind==='wave' ? 'light' : 'dark';
+  document.querySelectorAll('button[data-scene]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.scene===kind)));
 }
-async function toggleSample() {
-  if (samplePlaying || samplePending) {
-    stopSample();
-    return;
-  }
-  samplePending = true;
-  paintSample();
-  const generation = ++audioGeneration;
-  try {
-    const Context = window.AudioContext || window.webkitAudioContext;
-    if (!Context) throw Error("audio");
-    audio ||= new Context();
-    await audio.resume();
-    if (generation !== audioGeneration) return;
-    const bounds = $('top').getBoundingClientRect();
-    if (document.hidden || menuOpen || bounds.bottom <= 0 || bounds.top >= innerHeight) { stopSample(); return; }
-    const values = sampleSignal(22050, "a"),
-      buffer = audio.createBuffer(1, values.length, 22050);
-    buffer.copyToChannel(values, 0);
-    sound = audio.createBufferSource();
-    sound.buffer = buffer;
-    analyser ||= audio.createAnalyser();
-    analyser.fftSize = 256;
-    samples ||= new Float32Array(256);
-    sound.connect(analyser);
-    analyser.disconnect();
-    analyser.connect(audio.destination);
-    sound.onended = () => {
-      if (generation === audioGeneration) stopSample();
-    };
-    samplePending = false;
-    samplePlaying = true;
-    sound.start();
-    $("sampleError").hidden = true;
-    paintSample();
-    const tick = () => {
-      if (!samplePlaying) return;
-      analyser.getFloatTimeDomainData(samples);
-      let energy = 0;
-      for (const n of samples) energy += n * n;
-      if (scene && !scene.paused)
-        scene.setAudioLevel(Math.sqrt(energy / samples.length) * 5);
-      audioFrame = requestAnimationFrame(tick);
-    };
-    audioFrame = requestAnimationFrame(tick);
-  } catch {
-    if (generation !== audioGeneration) return;
-    stopSample();
-    $("sampleError").textContent = t("sampleError");
-    $("sampleError").hidden = false;
-  }
-}
-$("samplePlay").addEventListener("click", toggleSample);
+document.querySelectorAll('button[data-scene]').forEach(button=>button.addEventListener('click',()=>changeScene(button.dataset.scene)));
 function paintMotion() {
   const paused = userPausedScene ?? reduced.matches;
   $("motionToggle").setAttribute("aria-pressed", String(paused));
@@ -131,7 +72,7 @@ function paintMotion() {
     "aria-label",
     t(paused ? "motionPlay" : "motionPause"),
   );
-  const sceneReady = !!scene?.ready;
+  const sceneReady = !graphicsOff;
   $("paletteToggle").hidden = !sceneReady;
   $("heroScene").setAttribute("aria-label", t(sceneReady ? "scene" : "sceneStatic"));
 }
@@ -142,38 +83,10 @@ $("motionToggle").addEventListener("click", () => {
   paintMotion();
   syncMotion();
 });
-if (graphicsOff) {
-  $("heroScene").dataset.ready = "false";
-  $("motionToggle").disabled = false;
-} else
-  import("./scene.js?v=0.11.1")
-    .then(({ mountScene }) => {
-      scene = mountScene($("heroScene"));
-      if (userPausedScene !== null) scene.setPaused(userPausedScene);
-      $("heroScene").dataset.ready = String(scene.ready);
-      paintMotion();
-      syncMotion();
-      if (!scene.ready) $("motionToggle").disabled = false;
-    })
-    .catch(() => {
-      $("heroScene").dataset.renderer = "poster";
-      $("heroScene").dataset.ready = "false";
-      $("motionToggle").disabled = false;
-    });
-$("paletteToggle").addEventListener("click", () => scene?.burst());
-$("heroScene").addEventListener("motionchange", () => {
-  $("motionToggle").disabled = false;
-  $("heroScene").dataset.ready = String(!!scene?.ready);
-  paintMotion();
-});
-const heroObserver = new IntersectionObserver(
-  ([entry]) => {
-    if (!entry.isIntersecting) stopSample();
-  },
-  { threshold: 0 },
-);
-heroObserver.observe($("top"));
-
+scene = mountArtStage($('heroWorld'),{scene:0,language});
+$('heroScene').dataset.ready=String(scene.ready);
+$('paletteToggle').addEventListener('click',()=>changeScene(sceneKinds[(sceneKinds.indexOf(activeScene)+1)%sceneKinds.length]));
+$('heroWorld').addEventListener('motionchange',()=>{ $('heroScene').dataset.ready=String(!!scene?.ready); paintMotion(); });
 async function setMenu(open, { focus = true } = {}) {
   const generation = ++menuGeneration;
   const cards = [...menu.querySelectorAll(".menu-links,.menu-bottom")];
@@ -399,7 +312,8 @@ function translate() {
     const label = primary.querySelector("[data-copy]");
     if (local) label.textContent = t("open");
   }
-  artworks.forEach(art => art.setLanguage(language));
+  artworks.forEach(art => art.setLanguage(language)); scene?.setLanguage(language); changeScene(activeScene);
+  document.querySelectorAll('[data-workspace]').forEach(link=>link.href=local ? '/' : '#download');
   $('installCard').hidden=local;
   $('localInstallHint').hidden=!local;
   document.querySelector('.source-link').hidden=!local;
@@ -429,8 +343,8 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('pagehide',(event)=>{
   if (event.persisted) return;
   stopSample(); scene?.dispose(); artworks.forEach(art=>art.dispose());
-  cancelAnimationFrame(scrollFrame); heroObserver.disconnect(); reveals.disconnect();
-  audio?.close().catch(()=>{});
+  cancelAnimationFrame(scrollFrame); reveals.disconnect(); lineReveal.disconnect();
+  player.dispose();
 });
 window.addEventListener('pageshow',event=>{ if (event.persisted) { syncMotion(); requestScroll(); } });
 translate(); requestScroll();

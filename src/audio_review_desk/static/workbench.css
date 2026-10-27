@@ -198,7 +198,7 @@ a:hover {
 }
 kbd {
   font:
-    10px Studio Latin,
+    10px "Desk Text",
     sans-serif;
   color: var(--muted);
   border: 1px solid var(--line);

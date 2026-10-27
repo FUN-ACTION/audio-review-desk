@@ -1,106 +1,126 @@
-# Changelog
+# 更新记录
 
-Every version has [installation and workspace notes](docs/releases/README.md).
+安装命令和旧工作区处理见各版说明。
+
+## 0.12.0 — 2026-10-27
+
+- 展示页采用新生成的玻璃花等图片，以平滑深度图、细网格透视和有限视角拖动呈现单图深度浮雕，保留原图颜色与图片回退。
+- 统一动画播放与暂停，减少动态效果、离屏和隐藏页面时停止连续动画。
+- 本地音乐通过浏览器对象 URL 播放；默认提供合成钢琴片段。修复快速播放、暂停和切换文件时的过期请求干扰。
+- 工作台改为紧凑分栏，统一字体、控件和对齐，移除内嵌录像。审核格式和旧工作区保持兼容。
+
+[安装、升级与验证](docs/releases/0.12.0.md)。
+
+## 0.11.1（未发布） — 2026-10-27
+
+- 修正系统动态效果偏好变化后的状态同步，让手动播放、暂停和按钮状态同时作用于首屏与下方画布。
+- 图形资源分配失败时保留备用画面。布局、字体、审核功能和工作区格式沿用 0.11.0。
+
+[安装、升级与验证](docs/releases/0.11.1.md)。
+
+## 0.11.0 — 2026-10-27
+
+- 恢复 0.9 的浅紫布局、胶囊导航和双列排版。中文回到 MiSans，展示页英文使用 Inter，工作台英文使用 Geist。
+- 三维连接件换成立体四分音符、八分音符、连音和谱号，保留拖动、配色、暂停和试听。
+- 下方改为三组实时材质画面，移除当前页面中的操作录像和软件示意。旧录像仍作为历史资源保留。
+- 精简菜单和页面文字，删除装饰加号，处理菜单遮挡及重复动画调度。工作台审核功能和工作区格式不变。
+
+[安装、升级与验证](docs/releases/0.11.0.md)。
 
 ## 0.10.0 — 2026-10-27
 
-- Replace the website's 3D hero with an original Canvas 2D score, pointer plucking and generated tones. The new page does not load Three.js or the video-warp renderer.
-- Add playable SVG examples for A/B comparison, range selection, looping and time markers. Their state stays separate from collection reviews.
-- Use Noto Serif SC for Chinese presentation headings and Noto Sans SC for body text and controls in both the website and review workspace.
-- Revise header alignment, pause controls, navigation and installation copy. Put recordings in a simple list with fullscreen playback controls.
-- Re-record all six Chinese and English walkthroughs in the 0.10 interface, preserving the full 1280 × 720 application viewport.
-- Preserve workspace format, review keys and history. Retain legacy rendering and font assets for older pages.
+- 首屏改用 Canvas 2D 绘制谱线和音符，支持点按发声及生成乐句试听。展示页增加可操作的 A/B、区间和时间标记示例。
+- 中文标题改用 Noto Serif SC，正文和控件改用 Noto Sans SC；重排导航、标题和安装入口。
+- 在 0.10 界面中重新录制六段中英文操作录像，保留完整的 1280 × 720 应用画面。旧三维和视频变形资源留在包内，当前入口不再加载。
+- 展示示例不写入正式审核。数据库、审核键和原音频处理方式不变。
 
-[Changes and upgrade steps](docs/releases/0.10.0.md).
+[安装、升级与验证](docs/releases/0.10.0.md)。
 
 ## 0.9.0 — 2026-10-27
 
-- Rebuild the website around an original procedural 3D connector scene with pointer repulsion, dragging and palette-change impulses.
-- Add a scroll-driven, 32 × 32 video surface that changes from a cobalt preview to the full-color recording. Mobile and reduced-motion modes use the ordinary video surface.
-- Replace the previous recording tabs with a main reel and two feature previews. Recordings still open in a fullscreen player with playback controls.
-- Add a compact, reversible white-card menu. Use bundled Inter for the tour and retain Geist / MiSans in the review workspace.
-- Retain the six 0.8 recording files, source-audio protection and existing review/database format.
+- 展示页首屏改为程序生成的三维连接件，可推开、拖动和切换配色；试听按钮播放生成乐句。
+- 录屏随滚动展开，由蓝色预览过渡到彩色画面；完整录像仍支持播放、暂停和进度拖动。沿用原有六段中英文录屏。
+- 加入卡片菜单，展示页英文改用 Inter，中文保留 MiSans。手机和减少动态效果模式使用普通视频画面，图形不可用时显示备用图。
+- 明确静态资源的文件类型，修复部分 Windows / Python 3.11 环境下 WebP 类型返回错误的问题。审核功能和工作区格式不变。
 
-[Changes and upgrade steps](docs/releases/0.9.0.md).
+[安装、升级与验证](docs/releases/0.9.0.md)。
 
 ## 0.8.1 — 2026-10-27
 
-Increase sample label sizes and contrast. Give mobile A/B controls their own row and allow action labels to wrap in larger touch targets. The 0.8.0 recordings and font files are unchanged.
+- 加大示例中的时间、区间和版本标签，提高辅助文字的对比度。
+- 手机上的 A/B 切换单独占一行，操作标签允许换行。工作台、字体、六段录屏和数据库格式沿用 0.8.0。
 
-[Changes and upgrade steps](docs/releases/0.8.1.md).
+[安装、升级与验证](docs/releases/0.8.1.md)。
 
 ## 0.8.0 — 2026-10-27
 
-Redesign the workspace and tour with Geist and MiSans, a pale lavender palette and a separate review panel. Add a playable piano sample with A/B switching, range selection, looping and a time note. Re-record the Chinese and English walkthroughs as focused clips with inline controls. Respect reduced motion and stop playback offscreen.
+- 工作台改为浅紫灰背景、独立审核栏和蓝色选区。中文使用 MiSans，英文与数字使用 Geist，同时调整导入窗口和深色模式。
+- 展示页增加可试听的生成乐句，支持 A/B、选段、循环和时间批注。声音由用户点击开始，离开画面后暂停。
+- 重新录制六段中英文演示，加入进度、重播和放大控制。示例与页面动画可以暂停，并遵循减少动态效果设置。数据库格式不变。
 
-[Changes and upgrade steps](docs/releases/0.8.0.md).
+[安装、升级与验证](docs/releases/0.8.0.md)。
 
 ## 0.7.1 — 2026-10-27
 
-Restore keyboard focus after saving a time note. Keep focus in another control if the user moved there while saving.
+- 修复批注保存后的键盘焦点。按 Ctrl / ⌘ Enter 保存后，焦点回到同一条批注；时间修改引起排序变化时也能定位回来。
+- 保存期间如果用户已转到别的控件，应用保留新的焦点位置。其余布局、字体和录屏沿用 0.7.0。
 
-[Changes and upgrade steps](docs/releases/0.7.1.md).
+[安装、升级与验证](docs/releases/0.7.1.md)。
 
 ## 0.7.0 — 2026-10-27
 
-Editable time notes, search within review text, listening-position recovery and clearer queue completion. Large libraries reuse existing rows when selecting clips. Revised local typography, intake and walkthrough, with one-shot recordings, seeking and a larger viewer. Fresh-install commands now create a workspace before starting the server.
+- 时间批注可修改文字和时间，支持秒数或“分:秒.毫秒”；取消编辑后清除未保存提示。
+- 搜索扩展到 ID、备注和时间批注，增加有批注或备注的筛选；筛选结果为空时可直接清除条件。
+- 在浏览器记住位置、速度、音量和循环设置，重新打开时保持暂停。“保存并继续”跳过已处理项。
+- 切换片段时复用列表节点，并检查 2500 项目录。整理字体和导入布局，重新录制演示，修复编码时丢失末尾停留画面的问题。首次安装命令补上创建工作区的步骤。
 
-[Changes and upgrade steps](docs/releases/0.7.0.md).
+[安装、升级与验证](docs/releases/0.7.0.md)。
 
 ## 0.6.0 — 2026-10-26
 
-Three recorded workflows in Chinese and English, a warm studio walkthrough and a playable preview on the empty workspace. Videos pause out of view and respect reduced motion. Includes a static-site build and the capture/encoding tools.
+- 加入听审、时间批注和保留区间三组操作录屏，中英文分别录制。空素材库可播放预览，并能进入完整展示页。
+- 新增 /tour/ 页面。录屏随界面切换语言，离开视野或隐藏页面时暂停；减少动态效果和节省流量时等待手动播放。
+- 提供静态站构建、测试信号生成、录屏和编码脚本。录制使用独立工作区。
 
-[Changes and upgrade steps](docs/releases/0.6.0.md).
+[安装、升级与验证](docs/releases/0.6.0.md)。
 
 ## 0.5.0 — 2026-10-26
 
-- Select multiple local audio files, with stable per-path IDs and repeatable rescan.
-- Add timestamped notes to reviews, waveform pins, history, undo and JSON/CSV exports.
-- Preserve optional annotations when an older client saves through the new server.
-- Add a searchable command menu, review progress and recently-reviewed ordering.
-- Rebuild the intake, import dialog, review inspector and responsive shell.
-- Vendor pinned MIT-licensed Motion for native style transitions and velocity-aware springs.
-- Add stable API/job error codes and matching English/Chinese messages; localize accessibility labels and chooser titles.
-- Fix transform endpoints, rapid dialog reopening and waveform grab offsets.
-- See [changes and upgrade instructions](docs/releases/0.5.0.md).
+- 支持一次选择多个音频文件，也能在路径框中逐行填写；同名文件按各自路径区分，并可重新扫描。
+- 加入时间批注、波形标记、历史记录、撤销，以及带批注的 JSON / CSV 导出。
+- Ctrl / ⌘ K 可搜索文件并执行常用操作，素材库增加审核进度和最近审核排序。
+- 整理中英文错误提示与导入表单，随包提供 Motion 动效库。修复快速重开弹窗的状态问题，以及拖动区间时的抓取偏移。
+
+[安装、升级与验证](docs/releases/0.5.0.md)。
 
 ## 0.4.0 — 2026-10-26
 
-- Open local folder/manifest selection windows; retain manual path entry when a chooser is unavailable.
-- Replace empty queue controls and decorative artwork with two direct import actions.
-- Zoom the peak overview to 8×, pan, fit the keep range, and drag or keyboard-adjust its boundaries.
-- Simplify labels, typography, colour and intake transitions; keep precision edits immediate.
-- Archive changes and upgrade instructions per release; refuse to build without the current release document.
-- Test chooser cancellation, authorization, failure recovery, concurrency and boundary constraints.
+- 空素材库保留文件夹、清单两个导入入口，支持本机文件选择，也能手动填写路径。
+- 波形可放大到 8 倍、平移和适配保留区间；区间两端支持拖动及方向键微调。修改区间后仍需保存。
+- 整理控件字号、标签和导入过渡。开始逐版保存升级说明，打包时检查当前版本说明是否齐全。
+
+[安装、升级与验证](docs/releases/0.4.0.md)。
 
 ## 0.3.0 — 2026-10-26
 
-- Rebuild the workspace with a library sidebar, listening editor and review inspector; add light/dark appearances and focus listening.
-- Bundle Inter and Noto Sans SC subsets for consistent offline typography, with font licences and a source-pinned font build script.
-- Replace native media controls with a custom player, waveform seeking, volume and five-second skips.
-- Track playback with a composited playhead; paint waveforms separately from the audio clock.
-- Add interruptible A/B springs, dialog/menu transitions and save feedback, including reduced-motion, contrast and transparency preferences.
-- Move explanatory copy into contextual Help and simplify action labels in both languages.
-- Split frontend copy, motion, waveform and transport into separate modules. Add font delivery/version checks and spring regression tests.
-- Add version detection when returning to the app, so a newer running server can prompt a refresh.
+- 工作台分为素材库、试听区和审核区，加入深色外观与专注试听。
+- 自定义播放器支持波形定位、音量和前后五秒跳转；播放头单独更新，波形不再随音频时钟反复重画。
+- 随包提供中英文字体，统一对照切换、弹窗和保存反馈，并支持系统的减少动态效果设置。返回页面时可检测服务版本变化。
+
+[安装、升级与验证](docs/releases/0.3.0.md)。
 
 ## 0.2.0 — 2026-10-26
 
-- Import folders and manifests from the app, with per-file progress and cancellation before catalog commit.
-- Keep multiple collections; refresh one without removing the others. Reject ambiguous clip IDs.
-- Select files for batch status changes, and undo a clip's last review without deleting history.
-- Export all or approved reviews as CSV, including hashes and source intervals.
-- Loop suggested ranges, change playback speed, mark boundaries at the playhead, and save-and-advance.
-- Replace the landing-page layout with a compact file list and listening/review workspace.
-- Start Windows users in an empty workspace; keep example audio optional.
-- Correct handling of disconnected audio clients without attempting a second HTTP response.
-- Build release archives and wheels from a clean copy of the committed tree, with SHA256 checksums.
+- 在页面内导入、查看进度、取消导入和重新扫描。多个来源可以保存在同一个素材库中，重扫一个来源时保留其他来源。
+- 加入批量标记、撤销审核、CSV 导出、循环、变速、播放位置标记和“保存并继续”。
+- Windows 启动器默认打开空的 review-workspace，示例素材改为按需生成。修复音频连接断开后的重复响应。
+
+[安装、升级与验证](docs/releases/0.2.0.md)。
 
 ## 0.1.0 — 2026-10-26
 
-- Initial standalone Python package and command-line interface.
-- Streaming audio QC, common-precision PCM hashing, source-timeline union statistics.
-- Local English/Chinese listening UI with A/B previews, review history, and JSON export.
-- Version-bound decisions, optimistic edit conflicts, and validated review restore.
-- Synthetic demo generator, automated tests, and cross-platform CI configuration.
+- 首次提供独立应用，可从目录或清单载入音频，检查解码、电平、静音和 PCM 重复内容。
+- 加入 A/B 参考试听、评分、问题标记、保留区间和审核历史。记录可以导出为 JSON；音频版本变化后需重新审核。
+- 提供中英文界面、命令行、Windows 启动器和生成信号示例。
+
+[安装、升级与验证](docs/releases/0.1.0.md)。
