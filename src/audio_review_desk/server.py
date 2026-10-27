@@ -25,6 +25,18 @@ TOUR_MEDIA = { "workflow-zh.mp4", "workflow-en.mp4",
               "range-zh.webp", "range-en.webp", "scene-poster.webp"}
 
 
+STATIC_MIME = {
+    "html": "text/html", "css": "text/css", "js": "text/javascript",
+    "txt": "text/plain", "webp": "image/webp", "mp4": "video/mp4",
+    "woff2": "font/woff2", "pdf": "application/pdf",
+}
+
+
+def static_content_type(name: str) -> str:
+    # Windows registry associations vary between Python installations.
+    return STATIC_MIME.get(name.rsplit(".", 1)[-1].lower()) or mimetypes.guess_type(name)[0] or "application/octet-stream"
+
+
 def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
     workspace.initialize()
     workspace_id = hashlib.sha256(os.path.normcase(str(workspace.root)).encode("utf-8")).hexdigest()
@@ -84,7 +96,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     relative = path.removeprefix("/tour/")
                     if relative in TOUR_FILES or (relative.startswith("media/") and relative[6:] in TOUR_MEDIA):
                         resource = files("audio_review_desk").joinpath("static", "tour", relative)
-                        content_type = mimetypes.guess_type(relative)[0] or "application/octet-stream"
+                        content_type = static_content_type(relative)
                         if relative.endswith((".html", ".css", ".js")):
                             content_type += "; charset=utf-8"
                         return self.serve_audio(resource, content_type)
@@ -113,7 +125,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
-                    content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+                    content_type = static_content_type(name)
                     if name.endswith(".woff2"):
                         content_type = "font/woff2"
                     if name.endswith((".html", ".css", ".js")):

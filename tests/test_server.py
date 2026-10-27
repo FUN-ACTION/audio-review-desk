@@ -131,6 +131,20 @@ class ServerTests(unittest.TestCase):
                         self.assertEqual(response.headers.get_content_charset(), 'utf-8')
                     self.assertEqual(response.read(), (source/name).read_bytes())
 
+    def test_static_media_types_do_not_depend_on_system_registry(self):
+        with patch('audio_review_desk.server.mimetypes.guess_type', return_value=(None, None)):
+            for route, expected in (
+                ('/tour/media/scene-poster.webp', 'image/webp'),
+                ('/tour/media/workflow-zh.webp', 'image/webp'),
+                ('/tour/scene.js', 'text/javascript'),
+                ('/MiSans-Regular.woff2', 'font/woff2'),
+                ('/MiSans-License.pdf', 'application/pdf'),
+            ):
+                with self.subTest(route=route):
+                    with urllib.request.urlopen(self.origin+route) as response:
+                        self.assertEqual(response.headers.get_content_type(), expected)
+                        self.assertTrue(response.read())
+
     def test_3d_routes_do_not_expose_build_inputs_or_unlisted_files(self):
         for path in ('/tour/package-lock.json', '/tour/node_modules/three/LICENSE',
                      '/tour/../reviews.sqlite', '/tour/media/../../reviews.sqlite',

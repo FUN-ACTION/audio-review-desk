@@ -4,7 +4,7 @@ Version 0.9.0 · 2026-10-27
 
 ## Automated checks
 
-88 Python tests and 44 JavaScript tests pass locally. The added cases check the deterministic scene simulation, bounded dragging and impulses, timestep stability, collision separation, finite coordinates and rejected invalid inputs. Server and build tests cover the new scene modules, renderer bundle, poster, complete Three.js licence, MIME types and strict file boundaries.
+89 Python tests and 44 JavaScript tests pass locally. The added cases check the deterministic scene simulation, bounded dragging and impulses, timestep stability, collision separation, finite coordinates and rejected invalid inputs. Server and build tests cover the new scene modules, renderer bundle, poster, complete Three.js licence, MIME types and strict file boundaries. A regression case removes system MIME associations; posters, modules and fonts must still return their declared media types.
 
 The pinned Three.js version, lockfile, runtime size and SHA-256 are checked without downloading dependencies in CI. Existing tests cover audio decoding, read-only inputs, review versions, history, conflicts, cancellation, export/restore, sample audio, bilingual copy, packaged fonts and all six retained recording/poster hashes.
 
