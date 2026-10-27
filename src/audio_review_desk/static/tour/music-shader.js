@@ -228,6 +228,10 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
   if (!gl) return null;
   const programs = [], buffers = [], vaos = [], textures = [], framebuffers = [];
   let disposed = false;
+  function allocated(resource, label) {
+    if (resource === null) throw Error(`WebGL ${label} allocation failed`);
+    return resource;
+  }
   function dispose() {
     if (disposed) return;
     disposed = true;
@@ -238,9 +242,12 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
     framebuffers.forEach((item) => gl.deleteFramebuffer(item));
   }
   function program(vertex, fragment, names) {
-    const shaders = [gl.createShader(gl.VERTEX_SHADER), gl.createShader(gl.FRAGMENT_SHADER)];
-    const p = gl.createProgram();
+    const shaders = [];
+    let p = null;
     try {
+      for (const type of [gl.VERTEX_SHADER, gl.FRAGMENT_SHADER])
+        shaders.push(allocated(gl.createShader(type), "shader"));
+      p = allocated(gl.createProgram(), "program");
       [vertex, fragment].forEach((source, index) => {
         gl.shaderSource(shaders[index], source);
         gl.compileShader(shaders[index]);
@@ -250,13 +257,14 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
       });
       gl.linkProgram(p);
       if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw Error(`Material program: ${gl.getProgramInfoLog(p) || "link failed"}`);
+      const result = { program: p, uniforms: Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(p, name)])) };
       programs.push(p);
-      return { program: p, uniforms: Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(p, name)])) };
-    } catch (error) { gl.deleteProgram(p); throw error; }
+      return result;
+    } catch (error) { if (p !== null) gl.deleteProgram(p); throw error; }
     finally { shaders.forEach((shader) => gl.deleteShader(shader)); }
   }
   function buffer(target, values) {
-    const b = gl.createBuffer();
+    const b = allocated(gl.createBuffer(), "buffer");
     buffers.push(b);
     gl.bindBuffer(target, b);
     gl.bufferData(target, values, gl.STATIC_DRAW);
@@ -266,7 +274,7 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
     const surface = program(VERTEX, FRAGMENT, ["uModel", "uViewProjection", "uLightProjection", "uScale", "uCamera", "uColor", "uMetal", "uRoughness", "uIridescence", "uDark", "uShadow"]);
     const depth = program(DEPTH_VERTEX, DEPTH_FRAGMENT, ["uModel", "uViewProjection", "uScale"]);
     const background = program(BACK_VERTEX, BACK_FRAGMENT, ["uDark"]);
-    const quad = gl.createVertexArray();
+    const quad = allocated(gl.createVertexArray(), "vertex array");
     vaos.push(quad);
     gl.bindVertexArray(quad);
     buffer(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]));
@@ -275,7 +283,7 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
     const count = kind === "score" ? 3 : kind === "flow" ? 2 : 1;
     const meshes = Array.from({ length: count }, (_, band) => {
       const geometry = makeRibbon(kind, band);
-      const vao = gl.createVertexArray();
+      const vao = allocated(gl.createVertexArray(), "vertex array");
       vaos.push(vao);
       gl.bindVertexArray(vao);
       buffer(gl.ARRAY_BUFFER, geometry.vertices);
@@ -291,7 +299,7 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
           : { color: [.77,.80,.86], metal: .97, rough: .145, film: .17 };
       return { vao, count: geometry.indices.length, material };
     });
-    const shadowTexture = gl.createTexture();
+    const shadowTexture = allocated(gl.createTexture(), "texture");
     textures.push(shadowTexture);
     gl.bindTexture(gl.TEXTURE_2D, shadowTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, 1024, 1024, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
@@ -301,7 +309,7 @@ export function createMusicRenderer(canvas, { kind = "score" } = {}) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
-    const shadowBuffer = gl.createFramebuffer();
+    const shadowBuffer = allocated(gl.createFramebuffer(), "framebuffer");
     framebuffers.push(shadowBuffer);
     gl.bindFramebuffer(gl.FRAMEBUFFER, shadowBuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowTexture, 0);

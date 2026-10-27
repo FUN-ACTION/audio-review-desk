@@ -1,5 +1,5 @@
 {
-  "version": "0.11.0",
+  "version": "0.11.1",
   "recorded_app_version": "0.10.0",
   "recording": "Chromium UI with procedural test signals",
   "timing": "Capture timestamps retained; actual input coordinates; final static hold retained",

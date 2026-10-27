@@ -1,12 +1,14 @@
 # Release verification
 
-Version 0.11.0 · 2026-10-27
+Version 0.11.1 · 2026-10-27
 
 ## Local tests
 
-96 Python tests and 72 JavaScript tests pass locally, with no failures or skips. The Python run completed in 20.28 seconds; the JavaScript run completed in 0.99 seconds.
+96 Python tests and 73 JavaScript tests pass locally, with no failures or skips. The Python run completed in 19.32 seconds; the JavaScript run completed in 0.89 seconds.
 
-Coverage includes audio decoding, duplicate detection, review persistence, range and marker editing, safe import boundaries, bilingual error messages and static assets. Graphics checks cover closed note and ribbon geometry, finite unit normals, triangle winding, index limits and unavailable-context fallbacks. The import-graph check follows the current page's local modules and rejects video or software-demo dependencies in that entry graph. Pinned graphics, motion and font resources are checked against their build records.
+Coverage includes audio decoding, duplicate detection, review persistence, range and marker editing, safe import boundaries, bilingual error messages and static assets. Graphics checks cover closed note and ribbon geometry, finite unit normals, triangle winding, index limits and unavailable-context fallbacks. Eleven injected allocation failures check that partially created GPU resources are released and the renderer returns its fallback. The import-graph check follows the current page's local modules and rejects video or software-demo dependencies in that entry graph. Pinned graphics, motion and font resources are checked against their build records.
+
+The 0.11.1 follow-up checks system motion-preference changes and explicit playback across the hero and artwork.
 
 ## Browser checks
 
@@ -14,7 +16,7 @@ The current Chinese and English page was inspected in Chromium at 320, 390, 768 
 
 The checked artwork context switched to its SVG fallback when the graphics context was lost and returned to WebGL after restoration. The `graphics=off` option keeps the fallback available. Reduced motion and the pause control stop continuous animation; leaving the viewport or hiding the page suspends rendering.
 
-Two samples recorded 180 `requestAnimationFrame` callback intervals each:
+The unchanged 0.11.0 visual baseline recorded 180 `requestAnimationFrame` callback intervals each:
 
 | Scene | Mean | Median | 95th percentile | Maximum |
 | --- | ---: | ---: | ---: | ---: |
@@ -23,7 +25,7 @@ Two samples recorded 180 `requestAnimationFrame` callback intervals each:
 
 These are callback intervals observed on this machine, not GPU render times or a guaranteed frame rate. Viewport emulation also does not substitute for testing a physical phone or another browser.
 
-During a separate 48.04-second paused sample, Chromium's cumulative `ScriptDuration` and `LayoutDuration` did not increase. `LayoutCount` remained at 12. Style recalculation increased by 0.52 ms and is recorded separately. This sample checks idle behavior while paused; it does not measure power consumption.
+During a separate 48.04-second paused sample of that baseline, Chromium's cumulative `ScriptDuration` and `LayoutDuration` did not increase. `LayoutCount` remained at 12. Style recalculation increased by 0.52 ms and is recorded separately. This sample checks idle behavior while paused; it does not measure power consumption.
 
 ## Release gate
 
@@ -38,4 +40,4 @@ Package, compatibility and deployment results are recorded against the final rel
 
 Those steps are the publication workflow, not additional completed results claimed by the local test counts above. The workflow uses application and temporary QA environments; it does not install into a training environment or alter source recordings and models.
 
-[0.9 checks](verification-0.9.md) · [Media provenance](showcase-media.md) · [Fonts](fonts.md) · [0.11 upgrade notes](releases/0.11.0.md)
+[0.9 checks](verification-0.9.md) · [Media provenance](showcase-media.md) · [Fonts](fonts.md) · [0.11 upgrade notes](releases/0.11.1.md)

@@ -5,7 +5,7 @@ import {
   kickBodies,
   damp,
 } from "./scene-physics.js?v=0.9.0";
-import { NOTE_KINDS, createNoteGeometry } from "./note-geometry.js?v=0.11.0";
+import { NOTE_KINDS, createNoteGeometry } from "./note-geometry.js?v=0.11.1";
 
 function musicalGeometry(kind) {
   const data = createNoteGeometry(kind);
@@ -360,7 +360,7 @@ export function mountScene(host) {
   const notify = () =>
     host.dispatchEvent(new CustomEvent("motionchange", { detail: { paused } }));
   const mediaChange = () => {
-    beforeContextPause = reduced.matches || manualPaused === true;
+    beforeContextPause = manualPaused ?? reduced.matches;
     paused = contextLost || beforeContextPause;
     cancel();
     if (paused) {

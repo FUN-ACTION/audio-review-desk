@@ -74,6 +74,65 @@ test("unsupported graphics returns a fallback and mesh budgets reject invalid in
     assert.throws(() => makeRibbon(...args), RangeError);
 });
 
+test("allocation faults return a fallback and release every partial WebGL resource", () => {
+  const faults = [
+    ["Shader", 1], ["Shader", 2], ["Shader", 4],
+    ["Program", 1], ["Program", 2],
+    ["Buffer", 1], ["Buffer", 3],
+    ["VertexArray", 1], ["VertexArray", 3],
+    ["Texture", 1], ["Framebuffer", 1],
+  ];
+  const warn = console.warn, messages = [];
+  try {
+    console.warn = (...args) => messages.push(args.join(" "));
+    for (const [failedType, failedAttempt] of faults) {
+      const live = new Set(), created = new Set(), deleted = new Set(),
+        calls = new Map(), constants = new Map(), methods = {};
+      let serial = 0;
+      for (const type of ["Shader", "Program", "Buffer", "VertexArray", "Texture", "Framebuffer"]) {
+        methods[`create${type}`] = () => {
+          const attempt = (calls.get(type) ?? 0) + 1;
+          calls.set(type, attempt);
+          if (type === failedType && attempt === failedAttempt) return null;
+          const resource = { type, serial: ++serial };
+          created.add(resource);
+          live.add(resource);
+          return resource;
+        };
+        methods[`delete${type}`] = (resource) => {
+          if (resource === null) return;
+          assert.equal(resource.type, type, "resources must use their matching deleter");
+          deleted.add(resource);
+          live.delete(resource);
+        };
+      }
+      const gl = new Proxy({
+        ...methods,
+        getShaderParameter: () => true,
+        getProgramParameter: () => true,
+        getUniformLocation: () => ({}),
+        checkFramebufferStatus: () => gl.FRAMEBUFFER_COMPLETE,
+      }, {
+        get(target, key) {
+          if (key in target) return target[key];
+          if (typeof key === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
+            if (!constants.has(key)) constants.set(key, constants.size + 1);
+            return constants.get(key);
+          }
+          return () => {};
+        },
+      });
+      const label = `${failedType} allocation ${failedAttempt}`;
+      assert.equal(createMusicRenderer({ getContext: () => gl }), null, label);
+      assert.equal(calls.get(failedType), failedAttempt, `${label} must be reached`);
+      assert.equal(live.size, 0, `${label} leaked a resource`);
+      assert.equal(deleted.size, created.size, `${label} must clean up every allocation`);
+    }
+  } finally { console.warn = warn; }
+  assert.equal(messages.length, faults.length);
+  assert.ok(messages.every((message) => /allocation failed/.test(message)));
+});
+
 test("tight harmonic bends preserve face winding and smooth normal direction", () => {
   const { vertices: v, indices } = makeRibbon("flow");
   for (let i = 0; i < indices.length; i += 3) {

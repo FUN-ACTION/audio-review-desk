@@ -1,8 +1,8 @@
-import { copy } from "./tour-copy.js?v=0.11.0";
+import { copy } from "./tour-copy.js?v=0.11.1";
 import { installCommands } from "./playback-policy.js";
 import { sampleSignal } from "./studio-signal.js";
-import { damp } from "./scene-physics.js?v=0.11.0";
-import { mountMusicArt } from "./music-art.js?v=0.11.0";
+import { damp } from "./scene-physics.js?v=0.11.1";
+import { mountMusicArt } from "./music-art.js?v=0.11.1";
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia("(prefers-reduced-motion:reduce)");
 const compact = matchMedia("(max-width:812px)");
@@ -146,7 +146,7 @@ if (graphicsOff) {
   $("heroScene").dataset.ready = "false";
   $("motionToggle").disabled = false;
 } else
-  import("./scene.js?v=0.11.0")
+  import("./scene.js?v=0.11.1")
     .then(({ mountScene }) => {
       scene = mountScene($("heroScene"));
       if (userPausedScene !== null) scene.setPaused(userPausedScene);
@@ -418,7 +418,7 @@ $("language").addEventListener("click", () => {
   translate();
 });
 
-const modeChange = () => { syncMotion(); paintMotion(); requestScroll(); };
+const modeChange = () => { userPausedScene = null; syncMotion(); paintMotion(); requestScroll(); };
 reduced.addEventListener('change',modeChange);
 compact.addEventListener('change',requestScroll);
 document.addEventListener('visibilitychange',()=>{

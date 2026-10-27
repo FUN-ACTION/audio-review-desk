@@ -134,7 +134,7 @@ export function mountMusicArt(host, { kind = "score", language = "zh" } = {}) {
   let dimensions = { width: root.clientWidth, height: root.clientHeight };
   let quality = 1, slowFrames = 0;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  let elapsed = 0, last = 0, raf = 0, visible = false, paused = false, disposed = false;
+  let elapsed = 0, last = 0, raf = 0, visible = false, paused = reduced.matches, controlled = false, disposed = false;
   let pointer = { x: 0, y: 0 }, desired = { x: 0, y: 0 }, level = 0, desiredLevel = 0;
 
   function paint() {
@@ -199,7 +199,7 @@ export function mountMusicArt(host, { kind = "score", language = "zh" } = {}) {
   function stop() { cancelAnimationFrame(raf); raf = 0; last = 0; }
   function tick(now) {
     raf = 0;
-    if (disposed || !visible || paused || reduced.matches || document.hidden) return;
+    if (disposed || !visible || paused || document.hidden) return;
     const rawDt = last ? Math.max(0, (now - last) / 1000) : 0;
     const dt = Math.min(.05, rawDt);
     if (renderer && rawDt > .028) slowFrames++;
@@ -220,13 +220,13 @@ export function mountMusicArt(host, { kind = "score", language = "zh" } = {}) {
   function sync() {
     stop();
     if (disposed) return;
-    if (reduced.matches) { pointer = { x: 0, y: 0 }; level = 0; }
+    if (paused) { pointer = { x: 0, y: 0 }; level = 0; }
     if (visible && !document.hidden) paint();
-    if (!disposed && visible && !paused && !reduced.matches && !document.hidden)
+    if (!disposed && visible && !paused && !document.hidden)
       raf = requestAnimationFrame(tick);
   }
   function move(event) {
-    if (paused || reduced.matches) return;
+    if (paused) return;
     const rect = host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     desired = {
@@ -258,14 +258,15 @@ export function mountMusicArt(host, { kind = "score", language = "zh" } = {}) {
   host.addEventListener("pointermove", move, { passive: true });
   host.addEventListener("pointerleave", leave);
   document.addEventListener("visibilitychange", sync);
-  reduced.addEventListener("change", sync);
+  const mediaChange = () => { if (!controlled) paused = reduced.matches; sync(); };
+  reduced.addEventListener("change", mediaChange);
   paint();
   return {
     setLanguage(next) {
       if (!["zh", "en"].includes(next)) throw new RangeError("Unknown art language");
       root.dataset.language = next;
     },
-    setPaused(value) { paused = !!value; sync(); },
+    setPaused(value) { controlled = true; paused = !!value; sync(); },
     setAudioLevel(value) { desiredLevel = Number.isFinite(value) ? clamp(value, 0, 1) : 0; },
     dispose() {
       if (disposed) return;
@@ -280,7 +281,7 @@ export function mountMusicArt(host, { kind = "score", language = "zh" } = {}) {
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerleave", leave);
       document.removeEventListener("visibilitychange", sync);
-      reduced.removeEventListener("change", sync);
+      reduced.removeEventListener("change", mediaChange);
       root.remove();
     },
   };
