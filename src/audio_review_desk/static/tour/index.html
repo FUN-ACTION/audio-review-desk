@@ -3,317 +3,275 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#f4f4f8" />
-    <meta name="description" content="Audio Review Desk" />
+    <meta name="theme-color" content="#f0f0f8" />
+    <meta
+      name="description"
+      content="本地音频听审工具。对照参考音频，保存区间和批注。"
+    />
     <title>Audio Review Desk</title>
     <link
       rel="preload"
-      href="../geist-latin.woff2"
+      href="../studio-latin.woff2"
       as="font"
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="../fonts.css?v=0.8.1" />
-    <link rel="stylesheet" href="./tour.css?v=0.8.1" />
-    <link rel="stylesheet" href="./studio.css?v=0.8.1" />
-    <script type="module" src="./tour.js?v=0.8.1"></script>
-    <script type="module" src="./studio.js?v=0.8.1"></script>
+    <link rel="stylesheet" href="../fonts.css?v=0.9.0" />
+    <link rel="stylesheet" href="./tour.css?v=0.9.0" />
+    <script type="module" src="./tour.js?v=0.9.0"></script>
   </head>
   <body>
     <a class="skip-link" href="#main" data-copy="skip">跳到内容</a>
-    <header class="site-header wrap">
-      <a class="brand" href="#top" aria-label="Audio Review Desk"
-        ><svg viewBox="0 0 28 28" aria-hidden="true">
-          <path d="M3 11v6m5-11v16m6-20v24m6-20v16m5-11v6" /></svg
-        ><span>Audio Review Desk</span></a
+    <header class="site-header" id="header">
+      <a class="wordmark" href="#top" aria-label="Audio Review Desk"
+        >Audio Review<br />Desk<span>.</span></a
       >
-      <nav data-label="navigation">
-        <a href="#features" data-copy="navTour">概览</a
-        ><a href="#recordings" data-copy="navRecording">录屏</a
-        ><a
-          href="https://github.com/FUN-ACTION/audio-review-desk/releases"
-          data-copy="releases"
-          >更新</a
-        >
-      </nav>
       <div class="header-actions">
-        <button id="language" type="button" aria-label="Switch to English">
-          English</button
-        ><a href="#install" class="button small" data-copy="navInstall"
-          >下载 <span aria-hidden="true">↗</span></a
+        <button
+          class="motion-switch"
+          id="motionToggle"
+          type="button"
+          aria-label="暂停场景"
+          aria-pressed="false"
         >
+          <span aria-hidden="true"></span>
+        </button>
+        <a
+          class="pill pill-dark header-open"
+          href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
+          data-primary
+          ><span data-copy="download">下载</span><i aria-hidden="true"></i
+        ></a>
+        <button
+          class="pill menu-toggle"
+          id="menuToggle"
+          type="button"
+          aria-controls="siteMenu"
+          aria-expanded="false"
+        >
+          <span class="label-roll"
+            ><span data-copy="menu">菜单</span
+            ><span data-copy="close">关闭</span></span
+          ><span class="menu-dots" aria-hidden="true"><i></i><i></i></span>
+        </button>
       </div>
     </header>
+    <div class="menu-scrim" id="menuScrim" hidden></div>
+    <nav class="site-menu" id="siteMenu" aria-label="导航" hidden inert>
+      <div class="menu-links">
+        <a href="#top"
+          ><span data-copy="home">首页</span
+          ><span aria-hidden="true" data-copy="home">首页</span></a
+        >
+        <a href="#reel"
+          ><span data-copy="watch">观看演示</span
+          ><span aria-hidden="true" data-copy="watch">观看演示</span></a
+        >
+        <a href="#work"
+          ><span data-copy="features">工作台</span
+          ><span aria-hidden="true" data-copy="features">工作台</span></a
+        >
+        <a href="#download"
+          ><span data-copy="getStarted">下载安装</span
+          ><span aria-hidden="true" data-copy="getStarted">下载安装</span></a
+        >
+      </div>
+      <div class="menu-bottom">
+        <button id="language" type="button" aria-label="Switch to English">
+          English</button
+        ><a href="https://github.com/FUN-ACTION/audio-review-desk">GitHub ↗</a>
+      </div>
+    </nav>
     <main id="main">
-      <section class="hero wrap" id="top">
-        <h1 aria-label="Audio Review Desk">
-          <span>Audio Review</span
-          ><span>Desk<span class="title-dot">.</span></span>
+      <section class="hero page-width" id="top">
+        <h1 class="hero-intro" data-copy="intro">
+          本地音频听审工具。对照参考音频，保存区间和批注。
         </h1>
-        <div class="hero-aside">
-          <p class="hero-intro" data-copy="heroIntro">音频试听与标注工具。</p>
-
-          <div class="actions">
-            <a
-              class="button primary"
-              data-local
-              href="/"
-              data-copy="openApp"
-              hidden
-              >打开工作台</a
-            ><a
-              class="button primary"
-              data-download
-              href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
-              data-copy="download"
-              >下载源码</a
-            ><a class="text-link" href="#features" data-copy="seeWorkflow"
-              >试用示例 ↓</a
+        <div
+          class="hero-scene"
+          id="heroScene"
+          data-renderer="poster"
+          role="group"
+          aria-label="可交互的三维物体"
+          data-label="scene"
+        >
+          <div class="scene-poster" aria-hidden="true"></div>
+          <canvas class="scene-canvas" aria-hidden="true"></canvas>
+          <div class="scene-actions">
+            <button
+              class="scene-hint"
+              id="paletteToggle"
+              type="button"
+              data-copy="dragHint"
             >
+              拖动 · 点击切换配色</button
+            ><button
+              class="scene-listen"
+              id="samplePlay"
+              type="button"
+              aria-pressed="false"
+            >
+              <span class="play-symbol" aria-hidden="true">▶</span
+              ><span data-sample-label data-copy="listen">试听</span>
+            </button>
           </div>
+          <p class="sample-error" id="sampleError" role="status" hidden></p>
+        </div>
+        <div class="explore-line" aria-hidden="true">
+          <i>+</i><i>+</i
+          ><a href="#reel" tabindex="-1" data-copy="scroll">向下探索</a><i>+</i
+          ><i>+</i>
         </div>
       </section>
-      <section
-        class="studio-section wrap"
-        id="features"
-        aria-label="交互式音频示例"
-        data-label="interactiveSample"
-      >
-        <div id="studioRoot"></div>
-      </section>
-      <section class="recordings wrap" id="recordings">
-        <div class="section-heading">
-          <h2 data-copy="recordingsTitle">操作录屏</h2>
-          <div
-            class="recording-tabs"
-            role="tablist"
-            data-label="recordingChoice"
-          >
+      <section class="reel-section" id="reel">
+        <svg class="reel-ribbon" viewBox="0 0 1200 1400" aria-hidden="true">
+          <defs>
+            <linearGradient id="ribbonBlue" x1="0" y1="0" x2="1" y2="1">
+              <stop stop-color="#2233ff" />
+              <stop offset="1" stop-color="#6571ff" />
+            </linearGradient>
+          </defs>
+          <path
+            id="ribbonPath"
+            d="M-200 30 C600 -120 800 720 330 750 C-250 780 300 1040 1120 1330"
+            fill="none"
+            stroke="url(#ribbonBlue)"
+            stroke-width="70"
+            stroke-linecap="round"
+          />
+        </svg>
+        <div class="reel-intro page-width">
+          <h2 class="display-title reveal-lines">
+            <span class="title-line"
+              ><span data-copy="reelTitle1">听审流程，</span></span
+            ><span class="title-line"
+              ><span data-copy="reelTitle2">完整看一遍。</span></span
+            >
+          </h2>
+          <div class="reel-description">
+            <p data-copy="reelDescription">
+              播放片段，在 A/B 间切换；选好区间，再保存审核。
+            </p>
+            <a class="pill pill-white" href="#work"
+              ><span data-copy="viewFeatures">查看功能</span
+              ><i aria-hidden="true"></i
+            ></a>
+          </div>
+        </div>
+        <div class="reel-hold" id="reelHold">
+          <div class="reel-stage page-width" id="reelStage">
+            <video
+              id="reelVideo"
+              class="reel-preview"
+              data-film="workflow"
+              poster="./media/workflow-zh.webp"
+              muted
+              loop
+              playsinline
+              preload="none"
+              aria-label="听审操作预览"
+            ></video>
             <button
+              class="reel-open"
+              data-open-film="workflow"
               type="button"
-              role="tab"
-              aria-selected="true"
-              id="recording-tab-workflow"
-              aria-controls="recording-workflow"
-              data-recording-tab="workflow"
-              data-copy="workflowTab"
+              aria-label="播放完整演示"
+              data-label="watchFull"
             >
-              听审</button
-            ><button
+              <span class="reel-word" data-copy="playWord">观看</span
+              ><span class="reel-play-pill" aria-hidden="true"
+                ><svg viewBox="0 0 24 24">
+                  <path d="m9 5 11 7-11 7z" /></svg></span
+              ><span class="reel-word" data-copy="reelWord">演示</span>
+            </button>
+            <button
+              class="preview-control"
+              id="previewControl"
               type="button"
-              role="tab"
-              aria-selected="false"
-              tabindex="-1"
-              id="recording-tab-notes"
-              aria-controls="recording-notes"
-              data-recording-tab="notes"
-              data-copy="noteTab"
+              aria-label="暂停预览"
+              data-label="pausePreview"
             >
-              批注</button
-            ><button
-              type="button"
-              role="tab"
-              aria-selected="false"
-              tabindex="-1"
-              id="recording-tab-range"
-              aria-controls="recording-range"
-              data-recording-tab="range"
-              data-copy="rangeTab"
-            >
-              区间
+              Ⅱ
             </button>
           </div>
         </div>
-        <div
-          class="recording-pane"
-          id="recording-workflow"
-          role="tabpanel"
-          aria-labelledby="recording-tab-workflow"
-          data-recording="workflow"
-        >
-          <div class="app-window">
-            <video
-              data-clip="workflow"
-              data-manual
-              poster="./media/workflow-zh.webp"
-              muted
-              playsinline
-              preload="none"
-              data-label="workflowVideo"
-            ></video>
-            <div class="film-controls">
-              <button
-                type="button"
-                class="film-play"
-                data-for="workflow"
-                aria-pressed="false"
-                data-copy="play"
-              >
-                播放</button
-              ><input
-                class="film-seek"
-                data-seek="workflow"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value="0"
-                data-label="videoPosition"
-                disabled
-              /><span class="film-time" data-time="workflow">0:00</span
-              ><button
-                class="film-expand"
-                data-expand="workflow"
-                type="button"
-                data-label="expand"
-              >
-                <svg viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div
-          class="recording-pane"
-          id="recording-notes"
-          role="tabpanel"
-          aria-labelledby="recording-tab-notes"
-          data-recording="notes"
-          hidden
-        >
-          <div class="app-window">
-            <video
-              data-clip="notes"
-              data-manual
-              poster="./media/notes-zh.webp"
-              muted
-              playsinline
-              preload="none"
-              data-label="notesVideo"
-            ></video>
-            <div class="film-controls">
-              <button
-                type="button"
-                class="film-play"
-                data-for="notes"
-                aria-pressed="false"
-                data-copy="play"
-              >
-                播放</button
-              ><input
-                class="film-seek"
-                data-seek="notes"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value="0"
-                data-label="videoPosition"
-                disabled
-              /><span class="film-time" data-time="notes">0:00</span
-              ><button
-                class="film-expand"
-                data-expand="notes"
-                type="button"
-                data-label="expand"
-              >
-                <svg viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div
-          class="recording-pane"
-          id="recording-range"
-          role="tabpanel"
-          aria-labelledby="recording-tab-range"
-          data-recording="range"
-          hidden
-        >
-          <div class="app-window">
-            <video
-              data-clip="range"
-              data-manual
-              poster="./media/range-zh.webp"
-              muted
-              playsinline
-              preload="none"
-              data-label="rangeVideo"
-            ></video>
-            <div class="film-controls">
-              <button
-                type="button"
-                class="film-play"
-                data-for="range"
-                aria-pressed="false"
-                data-copy="play"
-              >
-                播放</button
-              ><input
-                class="film-seek"
-                data-seek="range"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value="0"
-                data-label="videoPosition"
-                disabled
-              /><span class="film-time" data-time="range">0:00</span
-              ><button
-                class="film-expand"
-                data-expand="range"
-                type="button"
-                data-label="expand"
-              >
-                <svg viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
-                </svg>
-              </button>
-            </div>
-          </div>
+        <div class="reel-rule page-width" aria-hidden="true">
+          <i>+</i><i>+</i><i>+</i><i>+</i><i>+</i>
         </div>
       </section>
-      <section class="install-section" id="install">
-        <div class="wrap install-layout">
-          <div>
-            <h2 data-copy="installTitle">在本机打开。</h2>
-            <p data-copy="installBody">
-              下载源码包，解压后启动。
-            </p>
-            <a
-              class="button primary"
-              href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
-              data-copy="getRelease"
-              >下载最新版本</a
-            >
-          </div>
+      <section class="work-section page-width" id="work">
+        <div class="work-heading">
+          <h2 class="display-title" data-copy="workTitle">工作台功能</h2>
+          <p data-copy="workIntro">参考对照、保留区间与时间批注。</p>
+        </div>
+        <div class="work-grid">
+          <button class="work-card" type="button" data-open-film="notes">
+            <span class="work-visual"
+              ><video
+                data-film="notes"
+                muted
+                loop
+                playsinline
+                preload="none"
+                poster="./media/notes-zh.webp"
+                aria-hidden="true"
+              ></video
+              ><span class="card-arrow" aria-hidden="true">↗</span></span
+            ><span class="work-meta" data-copy="noteMeta"
+              >记录 · 修改 · 回听</span
+            ><span class="work-title" data-copy="noteTitle">时间批注</span>
+          </button>
+          <button class="work-card" type="button" data-open-film="range">
+            <span class="work-visual"
+              ><video
+                data-film="range"
+                muted
+                loop
+                playsinline
+                preload="none"
+                poster="./media/range-zh.webp"
+                aria-hidden="true"
+              ></video
+              ><span class="card-arrow" aria-hidden="true">↗</span></span
+            ><span class="work-meta" data-copy="rangeMeta"
+              >选择 · 循环 · 保存</span
+            ><span class="work-title" data-copy="rangeTitle">区间试听</span>
+          </button>
+        </div>
+      </section>
+      <section class="download-section page-width" id="download">
+        <h2 class="display-title" data-copy="downloadTitle">下载。</h2>
+        <div class="download-content">
+          <a
+            class="download-link"
+            href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
+            data-primary
+            ><span data-copy="getRelease">获取最新版本</span
+            ><span aria-hidden="true">↗</span></a
+          >
           <div class="install-card">
             <div
               class="platform-tabs"
               role="tablist"
-              data-label="platformChoice"
               aria-label="安装平台"
+              data-label="platformChoice"
             >
               <button
                 id="platform-windows"
                 type="button"
                 role="tab"
+                data-platform="windows"
                 aria-selected="true"
                 aria-controls="installInstructions"
-                data-platform="windows"
               >
                 Windows</button
               ><button
                 id="platform-macos"
                 type="button"
                 role="tab"
+                data-platform="macos"
                 aria-selected="false"
                 aria-controls="installInstructions"
-                data-platform="macos"
                 tabindex="-1"
               >
                 macOS</button
@@ -321,9 +279,9 @@
                 id="platform-linux"
                 type="button"
                 role="tab"
+                data-platform="linux"
                 aria-selected="false"
                 aria-controls="installInstructions"
-                data-platform="linux"
                 tabindex="-1"
               >
                 Linux
@@ -332,69 +290,60 @@
             <div
               id="installInstructions"
               role="tabpanel"
-              tabindex="0"
               aria-labelledby="platform-windows"
             >
               <p id="installHint"></p>
-              <pre><code id="installCode"></code></pre>
+              <pre hidden><code id="installCode"></code></pre>
               <button
+                class="copy-command"
                 id="copyInstall"
                 type="button"
-                class="copy-command"
                 data-copy="copyCommand"
+                hidden
               >
                 复制命令</button
               ><span id="copyStatus" role="status"></span>
             </div>
             <a
-              class="text-link"
+              class="install-guide"
               href="https://github.com/FUN-ACTION/audio-review-desk/blob/main/docs/installation.md"
               data-copy="installGuide"
-              >完整安装说明 ↗</a
+              >安装说明 ↗</a
             >
           </div>
         </div>
       </section>
     </main>
-    <footer class="site-footer wrap">
-      <span>Audio Review Desk</span>
+    <footer class="site-footer page-width">
+      <a href="#top">Audio Review Desk</a>
       <div>
         <a
-          href="https://github.com/FUN-ACTION/audio-review-desk/blob/main/THIRD_PARTY_NOTICES.md"
-          data-copy="licenses"
-          >字体与许可</a
+          href="https://github.com/FUN-ACTION/audio-review-desk/releases"
+          data-copy="updates"
+          >版本记录</a
         ><a
-          href="https://github.com/FUN-ACTION/audio-review-desk/blob/main/docs/showcase-media.md"
-          data-copy="mediaDetails"
-          >录制说明</a
+          href="https://github.com/FUN-ACTION/audio-review-desk/blob/main/THIRD_PARTY_NOTICES.md"
+          data-copy="credits"
+          >字体与许可</a
         ><a href="https://github.com/FUN-ACTION/audio-review-desk">GitHub ↗</a>
       </div>
-      <span class="footer-license">MIT · 2026</span>
     </footer>
     <dialog id="cinemaDialog" aria-labelledby="cinemaTitle">
-      <div class="cinema-top">
-        <h2 id="cinemaTitle" data-copy="fullRecording">操作录屏</h2>
-        <button
-          id="closeCinema"
-          type="button"
-          data-label="close"
-          aria-label="关闭"
-        >
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="m5 5 10 10M5 15 15 5" />
-          </svg>
+      <div class="cinema-header">
+        <h2 id="cinemaTitle">听审演示</h2>
+        <button id="closeCinema" class="pill" type="button">
+          <span data-copy="close">关闭</span><span aria-hidden="true">×</span>
         </button>
       </div>
-      <video id="cinemaVideo" controls muted playsinline preload="none"></video>
-      <p id="cinemaError" role="status" data-copy="cinemaError" hidden>
-        这段演示暂时无法播放，请关闭后重试。
+      <video id="cinemaVideo" controls playsinline preload="none"></video>
+      <p id="cinemaError" role="status" data-copy="videoError" hidden>
+        暂时无法播放，请重新打开。
       </p>
-      <p data-copy="recordingNote">录制使用独立测试素材。</p>
     </dialog>
     <noscript
-      ><p class="no-script">
-        请启用 JavaScript 以使用试听示例和录屏。Enable JavaScript to use the
-        sample and recordings.
+      ><p class="page-width">
+        请启用 JavaScript 以使用三维交互和视频播放。Enable JavaScript for the
+        interactive scene and recordings.
       </p></noscript
     >
   </body>

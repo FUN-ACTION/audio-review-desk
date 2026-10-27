@@ -66,9 +66,25 @@ class ShowcaseTests(unittest.TestCase):
             self.assertEqual((destination/'geist-latin.woff2').read_bytes()[:4],b'wOF2')
             self.assertEqual((destination/'MiSans-Regular.woff2').read_bytes(), (Path(__file__).resolve().parents[1]/'src/audio_review_desk/static/MiSans-Regular.woff2').read_bytes())
             self.assertTrue((destination/'tour/studio-signal.js').is_file())
-            self.assertEqual(list(destination.rglob('*.sqlite')),[])
-            self.assertEqual(list(destination.rglob('*.wav')),[])
+            forbidden = {'.sqlite', '.db', '.wav', '.flac', '.mp3', '.m4a', '.ogg',
+                         '.pth', '.pt', '.ckpt', '.safetensors'}
+            self.assertEqual([path.relative_to(destination).as_posix()
+                              for path in destination.rglob('*')
+                              if path.is_file() and path.suffix.lower() in forbidden], [])
             with self.assertRaisesRegex(ValueError,'new or empty'):build(destination)
+
+    def test_static_build_preserves_3d_runtime_and_its_fallback_assets(self):
+        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        paths = ('scene.js', 'scene-physics.js', 'reel-warp.js', 'scene-vendor.js',
+                 'three-LICENSE.txt', 'media/scene-poster.webp')
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = build(Path(temporary)/'site') / 'tour'
+            for name in paths:
+                with self.subTest(asset=name):
+                    self.assertEqual((destination/name).read_bytes(), (source/name).read_bytes())
+            poster = (destination/'media/scene-poster.webp').read_bytes()
+            self.assertEqual(poster[:4], b'RIFF')
+            self.assertEqual(poster[8:12], b'WEBP')
 
     def test_recording_fixture_never_overwrites_a_populated_destination(self):
         with tempfile.TemporaryDirectory() as temporary:

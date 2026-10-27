@@ -11,3 +11,5 @@ To rebuild the font manifest:
 3. In a development environment with fontTools 4.61.1 and Brotli support, run `python -m scripts.build_studio_fonts --source-dir /path/to/font-sources` from the repository root.
 
 The script verifies both inputs, subsets Geist under its OFL licence, copies MiSans without modification, and verifies Chinese interface character coverage. It does not need a training environment. Add new UI wording before rebuilding the manifest.
+
+The 0.9 presentation page uses the bundled Inter Regular subset for Latin text and MiSans for Chinese. The listening workspace continues to use Geist / MiSans.

@@ -2,11 +2,11 @@
 
 Listen through audio collections, compare references, and save keep ranges and timestamped notes. Export reviews as CSV or JSON.
 
-[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.8 changes](releases/0.8.0.md) · [0.8.1 readability fix](releases/0.8.1.md)
+[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.9 changes](releases/0.9.0.md)
 
-[![Listening, notes and review decisions](walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
+[![Project website](screenshot-tour.png)](https://fun-action.github.io/audio-review-desk/tour/)
 
-[Watch the walkthrough](https://fun-action.github.io/audio-review-desk/tour/) · [Workspace screenshot](screenshot.png)
+[Open the website](https://fun-action.github.io/audio-review-desk/tour/) · [Workspace screenshot](screenshot.png) · [Interaction recording](site-interaction.gif)
 
 ## Start
 
@@ -41,7 +41,7 @@ Undo restores an earlier review without deleting history. Batch changes keep not
 
 ## Files and updates
 
-0.8 introduces Geist and MiSans, a redesigned workspace and a playable sample on the website. New Chinese and English recordings cover review decisions, time notes and range selection. [The release notes](releases/0.8.0.md) include changes and upgrade steps.
+0.9 rebuilds the website with a draggable 3D scene, a scroll-driven video surface and a compact menu. Open a recording to play it in the fullscreen viewer. The six recordings are retained from 0.8; the review workspace and data format are unchanged. [The release notes](releases/0.9.0.md) include changes and upgrade steps.
 
 Source audio is read-only. Ranges do not crop it. The separate workspace stores the database, review history and listening copies. Stop the old server, back up the **entire workspace**, install in the app's existing environment, and reopen the original path. [Every version](releases/README.md) has its own upgrade notes.
 

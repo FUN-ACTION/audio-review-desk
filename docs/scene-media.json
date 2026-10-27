@@ -1,0 +1,22 @@
+{
+  "version": "0.9.0",
+  "capture": "own Chromium page, actual pointer input",
+  "gif_preview_fps": 9,
+  "assets": [
+    {
+      "file": "docs/site-interaction.gif",
+      "bytes": 3725033,
+      "sha256": "2e07d8aa92cf4e5b95d20e0fb50c6cc731a97e7b5db9e79bba449e8e7942bde5"
+    },
+    {
+      "file": "docs/screenshot-tour.png",
+      "bytes": 89615,
+      "sha256": "b655ded9c53bf2d8cf1128651fa0612a51d1b19306b97c3eee9ab7c64b3c4bfb"
+    },
+    {
+      "file": "src/audio_review_desk/static/tour/media/scene-poster.webp",
+      "bytes": 56048,
+      "sha256": "53efe9a1757537120bfe65605208d93afa1d498dcf61cc6a75b2ba6de9deee73"
+    }
+  ]
+}

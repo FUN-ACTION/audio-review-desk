@@ -2,6 +2,16 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.9.0 — 2026-10-27
+
+- Rebuild the website around an original procedural 3D connector scene with pointer repulsion, dragging and palette-change impulses.
+- Add a scroll-driven, 32 × 32 video surface that changes from a cobalt preview to the full-color recording. Mobile and reduced-motion modes use the ordinary video surface.
+- Replace the previous recording tabs with a main reel and two feature previews. Recordings still open in a fullscreen player with playback controls.
+- Add a compact, reversible white-card menu. Use bundled Inter for the tour and retain Geist / MiSans in the review workspace.
+- Retain the six 0.8 recording files, source-audio protection and existing review/database format.
+
+[Changes and upgrade steps](docs/releases/0.9.0.md).
+
 ## 0.8.1 — 2026-10-27
 
 Increase sample label sizes and contrast. Give mobile A/B controls their own row and allow action labels to wrap in larger touch targets. The 0.8.0 recordings and font files are unchanged.

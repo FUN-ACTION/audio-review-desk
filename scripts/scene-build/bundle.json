@@ -1,0 +1,8 @@
+{
+  "name": "three",
+  "version": "0.180.0",
+  "license": "MIT",
+  "file": "scene-vendor.js",
+  "bytes": 525982,
+  "sha256": "6c0cdd9a0f08370393e6c79e50c4f8012409c8eebc44abbfc733dddc0c8d42f6"
+}

@@ -1,36 +1,38 @@
 # Release verification
 
-Version 0.8.1 · 2026-10-27
+Version 0.9.0 · 2026-10-27
 
 ## Automated checks
 
-82 Python tests and 36 JavaScript tests pass locally. Python coverage includes source protection, decoding, import cancellation, review versions, history, conflicts, export/restore and release files. Frontend coverage includes review payloads, queue continuation, time notes, playback memory, recording policy and the new procedural sample.
+88 Python tests and 44 JavaScript tests pass locally. The added cases check the deterministic scene simulation, bounded dragging and impulses, timestep stability, collision separation, finite coordinates and rejected invalid inputs. Server and build tests cover the new scene modules, renderer bundle, poster, complete Three.js licence, MIME types and strict file boundaries.
 
-The sample tests verify finite audio with headroom and matching RMS levels, waveform bins, seek bounds and the minimum selectable interval. Font checks verify packaged bytes and Chinese character coverage. The server tests request the new fonts, licence, styles and sample modules through the same static-file boundary as the app. Media tests verify all six video/poster hashes, capture duration and the final still-frame hold.
+The pinned Three.js version, lockfile, runtime size and SHA-256 are checked without downloading dependencies in CI. Existing tests cover audio decoding, read-only inputs, review versions, history, conflicts, cancellation, export/restore, sample audio, bilingual copy, packaged fonts and all six retained recording/poster hashes.
 
-Tests use temporary workspaces and generated signals. Optional FFmpeg cases run when tools are available. CI uses Python 3.11 and 3.13 on Windows, Linux and macOS, plus one FFmpeg job; the release links the result for its exact commit.
-
-The 0.8.1 follow-up increases small-label contrast and mobile touch targets. It retains the 0.8.0 font and recording bytes.
+Tests use temporary workspaces and generated signals. CI runs Python 3.11 and 3.13 on Windows, Linux and macOS, plus an FFmpeg job. The release links the CI result for its exact commit.
 
 ## Browser inspection
 
-The new source UI was checked in local Chromium with separate empty and populated workspaces:
+The presentation was exercised in local Chromium:
 
-- Play the homepage sample, switch A/B and leave a note. Audio starts from a click.
-- Adjust both range edges with pointer and keyboard input; retain the minimum interval. Home and End work on the handles.
-- Add a note at zero seconds, change language without losing typed text, close it with Escape and return focus. Hidden notes are inert.
-- Keep the introduction paused for reduced motion; allow explicit replay. Pause playback when its area leaves view.
-- Switch recording tabs, stop the previous video, seek, replay and open the larger viewer. The language switch uses the matching recordings.
-- Save a real workspace note, reload and retain it. Save & continue reaches the next pending file.
-- Inspect the new light/dark surfaces, collapsed mobile library and settings menu. Reject an import containing its own workspace with a Chinese error, without adding files.
-- Inspect Chinese and English tour layouts at 320, 390, 768, 1024 and 1440 CSS pixels. Check the populated app at the same widths. Narrow English labels and the 320-pixel toolbar received separate fixes.
+- Push and drag the actual 3D objects, change their palette and pause the scene. Inspect the captured result rather than a simulated cursor illustration.
+- Open, close and reverse the card menu; check Escape, backward Tab wrapping, focus return and section-link focus.
+- Play the generated sample from a click; stop it when its scene leaves view.
+- Scroll the recording surface from its small tinted state to the full frame. Pause the inline preview and open the full player. Check actual decoded video and native controls.
+- Open the English time-note recording after changing language; keep the matching source and viewer title.
+- Start with reduced motion: scene motion stays paused, the preview stays still and the warp is bypassed. Explicit video playback remains available.
+- Load `?graphics=off`: use the project's static scene poster and ordinary video without constructing the two WebGL surfaces.
+- Measure Chinese and English layouts at 320, 390, 768, 1024 and 1440 CSS pixels. Fix the narrow English download overflow and the desktop header/intro collision; inspect narrow and wide rendered views.
 
-Actual font rendering was inspected: Geist for Latin display text and MiSans Regular for Chinese. These are Chromium viewport checks, not physical-phone or cross-browser certification. No claim is made about a constant frame rate across devices.
+Tour Latin text uses Inter Regular; Chinese uses the unchanged MiSans Regular file. The review workspace keeps Geist / MiSans. Viewport emulation is not physical-phone or cross-browser certification. Context-loss recovery was reviewed in code; it was not fault-injected on every GPU. No constant frame rate is claimed across devices.
+
+The new [interaction capture](site-interaction.gif) shows real pointer input on the 0.9 page. The six application recordings retain their 0.8 bytes; they are not presented as new recordings.
 
 ## Packaging and existing workspaces
 
-Build archives from the committed tree, install the wheel in a separate environment, compare its packaged files and run the Python suite there. The compatibility check opens a copy of a populated 0.6 workspace, retains all tables, review keys, scores, notes and history, and exercises edit/undo on that copy.
+Release archives are built from a clean committed tree. The wheel and source package are installed in separate environments, and packaged bytes are compared against the wheel. The Python suite also runs with application imports proven to come from the installed wheel.
 
-The local upgrade uses the app's existing virtual environment after the old server stops and the entire workspace is backed up. Private receipts record file hashes before and after, installed bytes and the unchanged legacy database. Original recordings and models remain outside the repository.
+Compatibility verification opens a copy of a populated 0.6 workspace, compares its schema, tables, active keys, scores, notes and history, then exercises edit/undo on that copy. Referenced original inputs are hashed before and after. No workspace migration is introduced in 0.9.
 
-[0.7 checks](verification-0.7.md) · [0.6 checks](verification-0.6.md) · [Media provenance](showcase-media.md) · [Font maintenance](fonts.md)
+The local upgrade stops the old app server, backs up the entire workspace, installs in the existing application virtual environment and reopens the original path. Private receipts record backup hashes, installed bytes and the unchanged legacy database. Original recordings, models and training environments remain outside the release.
+
+[0.8.1 checks](verification-0.8.1.md) · [Media provenance](showcase-media.md) · [Source study](reference-study.md) · [Font maintenance](fonts.md)

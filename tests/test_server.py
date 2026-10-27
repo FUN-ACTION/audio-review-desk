@@ -112,6 +112,35 @@ class ServerTests(unittest.TestCase):
         for path in ('/motion-vendor.js','/commands.js','/markers.js','/errors.js','/motion-LICENSE.txt'):
             with urllib.request.urlopen(self.origin+path) as response:self.assertEqual(response.status,200)
 
+    def test_3d_runtime_assets_are_served_with_browser_compatible_mime_types(self):
+        source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
+        assets = {
+            'scene.js': ('text/javascript', 'application/javascript'),
+            'scene-physics.js': ('text/javascript', 'application/javascript'),
+            'reel-warp.js': ('text/javascript', 'application/javascript'),
+            'scene-vendor.js': ('text/javascript', 'application/javascript'),
+            'three-LICENSE.txt': ('text/plain',),
+            'media/scene-poster.webp': ('image/webp',),
+        }
+        for name, content_types in assets.items():
+            with self.subTest(asset=name):
+                with urllib.request.urlopen(self.origin+'/tour/'+name+'?v=asset-check') as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertIn(response.headers.get_content_type(), content_types)
+                    if name.endswith('.js'):
+                        self.assertEqual(response.headers.get_content_charset(), 'utf-8')
+                    self.assertEqual(response.read(), (source/name).read_bytes())
+
+    def test_3d_routes_do_not_expose_build_inputs_or_unlisted_files(self):
+        for path in ('/tour/package-lock.json', '/tour/node_modules/three/LICENSE',
+                     '/tour/../reviews.sqlite', '/tour/media/../../reviews.sqlite',
+                     '/tour/media/../scene-vendor.js', '/tour/scene-poster.webp',
+                     '/tour/media/unlisted-poster.webp', '/tour/%2e%2e/reviews.sqlite'):
+            with self.subTest(path=path):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(self.origin+path)
+                self.assertEqual(caught.exception.code, 404)
+
     def test_same_origin_and_review_token_required(self):
         for headers in ({"Origin": "http://evil.example"}, {"X-Review-Token": "wrong"}, {"Origin": "null"}):
             with self.assertRaises(urllib.error.HTTPError) as caught:

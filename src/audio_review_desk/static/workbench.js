@@ -310,7 +310,7 @@ function renderSummary() {
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("version").textContent = state.version || "0.8.1";
+  $("version").textContent = state.version || "0.9.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -1379,7 +1379,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.8.1";
+    $("updateNotice").hidden = result.version === "0.9.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);

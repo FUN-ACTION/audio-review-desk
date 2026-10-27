@@ -2,11 +2,11 @@
 
 逐条听音频，比较参考版本，保存区间和批注。审核记录可导出为 CSV 或 JSON。
 
-[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.8 更新](docs/releases/0.8.0.md) · [0.8.1 修订](docs/releases/0.8.1.md)
+[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.9 更新](docs/releases/0.9.0.md)
 
-[![试听、批注与区间编辑](docs/walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
+[![项目展示页](docs/screenshot-tour.png)](https://fun-action.github.io/audio-review-desk/tour/)
 
-[观看操作演示](https://fun-action.github.io/audio-review-desk/tour/) · [工作台截图](docs/screenshot-zh-CN.png)
+[打开项目展示页](https://fun-action.github.io/audio-review-desk/tour/) · [工作台截图](docs/screenshot-zh-CN.png) · [交互录屏](docs/site-interaction.gif)
 
 ## 开始使用
 
@@ -41,7 +41,7 @@ python3 -m venv .venv
 
 ## 更新与记录
 
-0.8 重做了字体、工作台和展示页。网页中可以直接试听示例，新的中英文录屏分别演示听审、批注和区间操作。[本版说明](docs/releases/0.8.0.md)包含变化与升级步骤。
+0.9 重做了项目展示页：首屏可以推动和拖动物体，滚动展开操作视频，点击后在全屏查看器中观看。六段录屏沿用 0.8；工作台和审核数据格式没有变化。[本版说明](docs/releases/0.9.0.md)包含变化与升级步骤。
 
 原文件只供读取，保留区间不会裁剪音频。数据库、审核历史和试听副本位于独立工作区。升级前停止旧服务，备份**整个工作区**，在应用原有虚拟环境中安装新版，然后指定原路径启动。[每个版本](docs/releases/README.md)都有独立的升级说明。
 
