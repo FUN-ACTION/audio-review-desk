@@ -44,12 +44,20 @@ class ScoreTypeTests(unittest.TestCase):
         self.assertEqual(fonts["studio-cjk.woff2"]["sha256"], SANS_SHA256)
         self.assertEqual(fonts["tour/score-sans.woff2"]["input_sha256"], SANS_SHA256)
 
-    def test_recorded_character_coverage_includes_current_interface_copy(self):
+    def test_recorded_character_coverage_matches_active_type_choice(self):
         # The maintainer builder checks the actual font cmaps before recording
         # this list. Hashes above bind that checked coverage to the shipped files.
         required = ui_characters(self.static)
-        self.assertTrue(required <= set(self.record["ui_cjk_unicodes"]),
-                        "Interface text changed: rebuild with scripts/build_score_type.py")
+        styles = (self.static/'fonts.css').read_text(encoding='utf-8') + (self.static/'tour/tour.css').read_text(encoding='utf-8')
+        if 'score-serif.woff2' in styles or 'score-sans.woff2' in styles:
+            self.assertTrue(required <= set(self.record["ui_cjk_unicodes"]),
+                            "Interface text changed: rebuild with scripts/build_score_type.py")
+        else:
+            # 0.11 restores MiSans. Keep checking the retained 0.10 font hashes
+            # above, but bind new copy to the active MiSans builder's cmap check.
+            active = json.loads((self.repo/'scripts/fonts/studio.json').read_text(encoding='utf-8'))
+            self.assertIn('MiSans-Regular.woff2', styles)
+            self.assertTrue(required <= set(active['ui_cjk_unicodes']))
 
     def test_rebuild_refuses_missing_or_changed_pinned_input(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -5,75 +5,16 @@ import {
   kickBodies,
   damp,
 } from "./scene-physics.js?v=0.9.0";
+import { NOTE_KINDS, createNoteGeometry } from "./note-geometry.js?v=0.11.0";
 
-// Smooth union of three capped tubes, with a real bore through each axis.
-// Every vertex is generated here; no reference-site model or texture is used.
-function connectorGeometry(resolution = 64) {
-  const marching = new T.MarchingCubes(
-    resolution,
-    new T.MeshBasicMaterial(),
-    false,
-    false,
-    50000,
-  );
-  marching.isolation = 0;
-  const extent = 1.13;
-  const cylinder = (along, a, b, radius, halfLength) => {
-    const radial = Math.hypot(a, b) - radius;
-    const axial = Math.abs(along) - halfLength;
-    return (
-      Math.min(Math.max(radial, axial), 0) +
-      Math.hypot(Math.max(radial, 0), Math.max(axial, 0))
-    );
-  };
-  const smoothMin = (a, b, k) => {
-    const h = Math.max(k - Math.abs(a - b), 0) / k;
-    return Math.min(a, b) - h * h * k * 0.25;
-  };
-  for (let z = 0; z < resolution; z++)
-    for (let y = 0; y < resolution; y++)
-      for (let x = 0; x < resolution; x++) {
-        const px = ((x / resolution) * 2 - 1) * extent,
-          py = ((y / resolution) * 2 - 1) * extent,
-          pz = ((z / resolution) * 2 - 1) * extent;
-        const outer = smoothMin(
-          smoothMin(
-            cylinder(px, py, pz, 0.255, 0.88) - 0.035,
-            cylinder(py, px, pz, 0.255, 0.88) - 0.035,
-            0.22,
-          ),
-          cylinder(pz, px, py, 0.255, 0.88) - 0.035,
-          0.22,
-        );
-        const bores = Math.min(
-          cylinder(px, py, pz, 0.125, 1.2),
-          cylinder(py, px, pz, 0.125, 1.2),
-          cylinder(pz, px, py, 0.125, 1.2),
-        );
-        marching.field[x + y * resolution + z * resolution * resolution] =
-          -Math.max(outer, -bores);
-      }
-  marching.update();
+function musicalGeometry(kind) {
+  const data = createNoteGeometry(kind);
   const geometry = new T.BufferGeometry();
-  const n = marching.count;
-  geometry.setAttribute(
-    "position",
-    new T.BufferAttribute(
-      marching.geometry.attributes.position.array.slice(0, n * 3),
-      3,
-    ),
-  );
-  geometry.setAttribute(
-    "normal",
-    new T.BufferAttribute(
-      marching.geometry.attributes.normal.array.slice(0, n * 3),
-      3,
-    ),
-  );
-  geometry.scale(extent, extent, extent);
+  geometry.setAttribute("position", new T.BufferAttribute(data.positions, 3));
+  geometry.setAttribute("normal", new T.BufferAttribute(data.normals, 3));
+  geometry.setIndex(new T.BufferAttribute(data.indices, 1));
+  geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  marching.geometry.dispose();
-  marching.material.dispose();
   return geometry;
 }
 
@@ -105,6 +46,7 @@ export function mountScene(host) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   const scene = new T.Scene();
+  scene.background = new T.Color("#11131b");
   scene.fog = new T.Fog("#11131b", 24, 42);
   const camera = new T.PerspectiveCamera(36, 1, 0.1, 70);
   camera.position.set(0, 0, 18.5);
@@ -124,13 +66,13 @@ export function mountScene(host) {
   key.shadow.camera.bottom = -10;
   key.shadow.bias = -0.0004;
   scene.add(key);
-  const fill = new T.DirectionalLight("#dce4ff", 0.65);
+  const fill = new T.DirectionalLight("#dce4ff", 0.95);
   fill.position.set(7, -2, 4);
   scene.add(fill);
   scene.add(new T.HemisphereLight("#f6f7ff", "#161a37", 0.7));
-  const geometry = connectorGeometry();
+  const geometries = NOTE_KINDS.map(musicalGeometry);
   const colors = [
-    ["#c4c6c6", "#050608", "#1007bf"],
+    ["#e8e7e2", "#242831", "#281cdb"],
     ["#d9d8d2", "#151720", "#ff643a"],
     ["#d8eadf", "#101915", "#85e0b6"],
   ];
@@ -139,51 +81,54 @@ export function mountScene(host) {
     (color, i) =>
       new T.MeshPhysicalMaterial({
         color,
-        metalness: 0.02,
-        roughness: i === 0 ? 0.37 : 0.24,
-        clearcoat: i === 1 ? 0.65 : 0.35,
-        clearcoatRoughness: 0.2,
-        envMapIntensity: i === 1 ? 0.5 : 0.55,
+        metalness: i === 1 ? 0.7 : i === 2 ? 0.22 : 0.06,
+        roughness: i === 1 ? 0.24 : 0.2,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.14,
+        envMapIntensity: i === 1 ? 0.85 : 0.7,
+        transparent: false,
+        opacity: 1,
       }),
   );
   const compact = matchMedia("(max-width:720px)").matches;
-  const bodies = createBodies({ seed: 913, count: compact ? 20 : 28 });
+  const bodies = createBodies({ seed: 913, count: compact ? 12 : 20 });
+  const layout = bodies.map((body) => ({
+    x: body.homeX / 6.8,
+    y: body.homeY / 3.45,
+    z: body.homeZ / 2.65,
+    scale: body.scale,
+  }));
+  const bounds = { x: 8, y: 3, z: 1.7 };
+  // The symbols retain a readable front face while their bevels catch the room.
+  // Two quarter notes, an eighth, a beamed pair, then an occasional clef.
+  const sculptureSequence = [0, 1, 0, 2, 1, 0, 2, 3];
+  const sculptures = bodies.map((body, index) => ({
+    kind: sculptureSequence[index % sculptureSequence.length],
+    roll: Math.sin(index * 2.17) * 0.42,
+  }));
   const group = new T.Group(); // A transform shared by the whole composition.
   scene.add(group);
-  const glassIndices = compact ? [] : [bodies.length - 2, bodies.length - 1];
-  const pools = materials.map((material, index) => {
-    const indices = bodies
-      .map((b, i) =>
-        b.material === index && !glassIndices.includes(i) ? i : -1,
-      )
-      .filter((i) => i >= 0);
+  const pools = [];
+  function addPool(geometry, material, indices) {
+    if (!indices.length) return;
     const mesh = new T.InstancedMesh(geometry, material, indices.length);
     mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.frustumCulled = false;
     group.add(mesh);
-    return { mesh, indices };
-  });
-  if (glassIndices.length) {
-    const glass = new T.MeshPhysicalMaterial({
-      color: "#d9e0f2",
-      metalness: 0,
-      roughness: 0.12,
-      transmission: 0.92,
-      thickness: 0.85,
-      ior: 1.45,
-      clearcoat: 0.8,
-      envMapIntensity: 1.1,
-    });
-    materials.push(glass);
-    const mesh = new T.InstancedMesh(geometry, glass, glassIndices.length);
-    mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
-    mesh.frustumCulled = false;
-    group.add(mesh);
-    pools.push({ mesh, indices: glassIndices });
-    renderer.transmissionResolutionScale = 0.5;
+    pools.push({ mesh, indices });
   }
+  materials.forEach((material, index) => {
+    geometries.forEach((geometry, kind) => {
+      const indices = bodies
+        .map((body, i) =>
+          body.material === index && sculptures[i].kind === kind ? i : -1,
+        )
+        .filter((i) => i >= 0);
+      addPool(geometry, material, indices);
+    });
+  });
   const dragLocal = new T.Vector3();
   const dummy = new T.Object3D(),
     raycaster = new T.Raycaster(),
@@ -213,8 +158,13 @@ export function mountScene(host) {
     for (const pool of pools) {
       pool.indices.forEach((index, slot) => {
         const b = bodies[index];
+        const sculpture = sculptures[index];
         dummy.position.set(b.x, b.y, b.z);
-        dummy.rotation.set(b.rx, b.ry, b.rz);
+        dummy.rotation.set(
+          Math.sin(b.rx) * 0.4,
+          Math.sin(b.ry) * 0.62,
+          sculpture.roll + Math.sin(b.rz) * 0.18,
+        );
         dummy.scale.setScalar(b.scale * (1 + audioLevel * 0.09));
         dummy.updateMatrix();
         pool.mesh.setMatrixAt(slot, dummy.matrix);
@@ -225,10 +175,8 @@ export function mountScene(host) {
   function render(now = performance.now()) {
     raf = 0;
     if (disposed || contextLost || !visible || document.hidden) return;
-    const dt = Math.min(
-      0.033,
-      Math.max(0.001, last ? (now - last) / 1000 : 0.016),
-    );
+    const elapsed = Math.max(1, last ? now - last : 16);
+    const dt = Math.min(0.033, elapsed / 1000);
     last = now;
     if (!paused) {
       materials
@@ -253,7 +201,7 @@ export function mountScene(host) {
       stepBodies(bodies, dt, {
         pointer: drag ? null : pointer,
         drag: physicsDrag,
-        bounds: { x: 8.5, y: 5, z: 3.5 },
+        bounds,
       });
       const rect = host.getBoundingClientRect();
       const scroll = Math.max(0, Math.min(1, -rect.top / (rect.height * 0.9)));
@@ -275,14 +223,14 @@ export function mountScene(host) {
     }
     updateInstances();
     renderer.render(scene, camera);
-    frameTime = frameTime * 0.95 + dt * 1000 * 0.05;
+    frameTime = frameTime * 0.95 + elapsed * 0.05;
     if (frameTime > 29 && ++slowFrames > 100 && pixelRatio > 1.1) {
       pixelRatio = Math.max(1, pixelRatio - 0.2);
       renderer.setPixelRatio(pixelRatio);
       resize();
       slowFrames = 0;
     }
-    if (!paused) raf = requestAnimationFrame(render);
+    if (!paused) request();
   }
   const request = () => {
     if (!raf && !disposed && !contextLost && visible && !document.hidden)
@@ -294,7 +242,25 @@ export function mountScene(host) {
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    camera.position.z = camera.aspect < 1 ? 13 : 11.5;
+    const narrow = camera.aspect < 1;
+    camera.position.z = narrow ? 14.8 : 12.2;
+    bounds.z = narrow ? 1.1 : 1.7;
+    const visibleY = (camera.position.z - bounds.z) * Math.tan(Math.PI / 10);
+    bounds.x = Math.max(1.5, visibleY * camera.aspect - (narrow ? 0.85 : 1.15));
+    bounds.y = visibleY - (narrow ? 0.85 : 1.21);
+    bodies.forEach((body, index) => {
+      const rest = layout[index];
+      const x = rest.x * bounds.x * (narrow ? 0.84 : 1.12),
+        y = rest.y * bounds.y * 0.82,
+        z = rest.z * bounds.z * 0.75;
+      body.x += x - body.homeX;
+      body.y += y - body.homeY;
+      body.z += z - body.homeZ;
+      body.homeX = x;
+      body.homeY = y;
+      body.homeZ = z;
+      body.scale = rest.scale * (narrow ? 0.8 : 1);
+    });
     camera.updateProjectionMatrix();
     request();
   }
@@ -502,7 +468,7 @@ export function mountScene(host) {
       canvas.removeEventListener("pointercancel", cancel);
       canvas.removeEventListener("webglcontextlost", lost);
       canvas.removeEventListener("webglcontextrestored", restored);
-      geometry.dispose();
+      geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((m) => m.dispose());
       environment.dispose();
       renderer.dispose();

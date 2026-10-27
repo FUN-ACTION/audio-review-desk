@@ -90,7 +90,9 @@ class ShowcaseTests(unittest.TestCase):
 
     def test_static_build_copies_the_score_presentation_without_workspace_inputs(self):
         source = Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static/tour'
-        paths = ('score-scene.js', 'score-math.js', 'story-demo.js', 'story-math.js',
+        paths = ('note-geometry.js', 'music-art.js', 'music-art.css', 'music-shader.js',
+                 'media/music-notes-poster.svg',
+                 'score-scene.js', 'score-math.js', 'story-demo.js', 'story-math.js',
                  'sample-playback.js', 'story-demo.css', 'type.css', 'score-serif.woff2', 'score-sans.woff2',
                  'score-serif-OFL.txt', 'media/score-poster.svg')
         with tempfile.TemporaryDirectory() as temporary:
@@ -103,7 +105,7 @@ class ShowcaseTests(unittest.TestCase):
             self.assertEqual([p.relative_to(destination).as_posix() for p in destination.rglob('*')
                               if p.is_file() and p.suffix.lower() in forbidden], [])
 
-    def test_score_entry_import_graph_does_not_load_the_legacy_gpu_runtime(self):
+    def test_music_entry_import_graph_is_complete_and_offline(self):
         static = (Path(__file__).resolve().parents[1] / 'src/audio_review_desk/static').resolve()
         pending = [static/'tour/tour.js']
         visited = set()
@@ -118,8 +120,9 @@ class ShowcaseTests(unittest.TestCase):
             path = pending.pop()
             if path in visited:
                 continue
-            self.assertNotIn(path.name, {'scene-vendor.js', 'reel-warp.js'},
-                             f'Legacy GPU code reached from the new tour entry: {path.name}')
+            self.assertNotIn(path.name, {'score-scene.js', 'story-demo.js', 'media-info.js',
+                                        'reel-warp.js', 'preview.js'},
+                             'The music presentation must not load retired software demos or video effects')
             self.assertTrue(path.is_relative_to(static), path)
             visited.add(path)
             code = path.read_text(encoding='utf-8')
@@ -135,7 +138,9 @@ class ShowcaseTests(unittest.TestCase):
                               else (path.parent/imported.path)).resolve()
                     self.assertTrue(target.is_file(), f'Missing imported module: {specifier}')
                     pending.append(target)
-        self.assertGreater(len(visited), 4, 'The import graph did not reach the score modules')
+        self.assertTrue({'scene.js', 'scene-vendor.js', 'note-geometry.js', 'music-art.js', 'music-shader.js'}.issubset({p.name for p in visited}))
+        html = (static/'tour/index.html').read_text(encoding='utf-8')
+        self.assertNotRegex(html, r'<video\b|data-story-demo|data-demo-host')
 
     def test_recording_fixture_never_overwrites_a_populated_destination(self):
         with tempfile.TemporaryDirectory() as temporary:

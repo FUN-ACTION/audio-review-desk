@@ -1,34 +1,36 @@
 # Fonts
 
-Version 0.10 uses separate Chinese heading and body faces. All files are bundled; no font service is needed at runtime.
+Version 0.11 restores the unchanged MiSans Regular file used in 0.9. It is the Chinese face for both the tour and the listening workspace. All fonts are bundled; normal use does not contact a font service.
 
-| Area | Latin | Chinese |
-| --- | --- | --- |
-| Presentation headings | Inter | Noto Serif SC, weight 500 |
-| Presentation body and controls | Inter | Noto Sans SC |
-| Listening workspace | Geist | Noto Sans SC |
+| Area                             | Latin                  | Chinese                    |
+| -------------------------------- | ---------------------- | -------------------------- |
+| Tour headings, body and controls | Inter, weights 400–700 | MiSans Regular, weight 400 |
+| Listening workspace              | Geist, weights 100–900 | MiSans Regular, weight 400 |
 
-The presentation's Chinese serif subset is `static/tour/score-serif.woff2`. Presentation body text uses `static/tour/score-sans.woff2`, a small interface subset of Noto Sans SC. The listening workspace retains the broader `static/studio-cjk.woff2` file for filenames and notes. The body subset includes common GB2312 characters; text outside its coverage can fall back to the system sans-serif face. Font synthesis is disabled.
+`static/fonts.css` maps `Desk Text` and `Desk Display` to `geist-latin.woff2`, and `Desk UI CJK` and `Desk CJK` to `MiSans-Regular.woff2`. The tour adds `Tour Grotesk`, backed by the Inter subset in `studio-latin.woff2`. Font synthesis is disabled. Characters outside a declared font range can use the system fallback.
 
-## Current heading build
+## Active files
 
-Pinned source URLs, input/output SHA-256 values, glyph coverage and variable-weight ranges are in `scripts/fonts/score.json`. The complete serif OFL licence is stored beside the output. The Noto Sans SC file keeps its existing licence and bytes.
+MiSans is embedded as supplied, without changing its glyphs, names or bytes. Its source and digest are recorded in `scripts/fonts/sources.json` and `scripts/fonts/studio.json`, alongside the Geist build. The Inter subset is recorded in `scripts/fonts/bundle.json`.
 
-In a development environment:
+To maintain those pinned files:
 
 ```sh
 python -m pip install -r scripts/fonts/requirements.txt
+python -m scripts.build_studio_fonts --source-dir /path/to/font-sources
+python scripts/build_fonts.py --download
+```
+
+Use the input files specified by the manifests. FontTools and Brotli are maintenance tools, not application runtime dependencies. Separate font licences are listed in [third-party notices](../THIRD_PARTY_NOTICES.md).
+
+## Retained 0.10 subsets
+
+The 0.10 tour used `static/tour/score-serif.woff2` for Chinese headings and `static/tour/score-sans.woff2` for body text. The workspace used the broader Noto Sans SC file, `static/studio-cjk.woff2`. Those files and their licences remain in the package, but the 0.11 stylesheets do not select them. Historical 0.10 recordings still show that typography.
+
+`scripts/fonts/score.json` records the pinned source URLs, digests, glyph coverage and variable-weight ranges. The serif subset retains weights 400–600; the sans subsets retain weights 400–700. To maintain the older set:
+
+```sh
 python scripts/build_score_type.py --download
 ```
 
-The command downloads missing sources at the pinned Google Fonts revision into the ignored `.font-build/score` directory. It checks their digests, subsets Noto Serif SC to the interface text and ordinary punctuation, and retains variable weights 400–600. It also verifies the existing Noto Sans SC file, creates the small presentation body subset, and checks both weight range and interface coverage.
-
-Add new interface wording before rebuilding. A source directory can be supplied with `--source-dir /path/to/font-sources`; it must contain the pinned `NotoSerifSC[wght].ttf` and `OFL.txt`. FontTools and Brotli are maintenance tools, not application runtime dependencies.
-
-## Earlier files
-
-Inter, Manrope and the Noto Sans SC subsets were introduced before 0.10. Their original build records remain in `scripts/fonts/bundle.json`; `scripts/build_fonts.py --download` rebuilds those pinned assets.
-
-The Geist subset and unchanged official MiSans file from 0.8/0.9 remain in the package for older pages. Their source records are in `scripts/fonts/sources.json` and `scripts/fonts/studio.json`; `python -m scripts.build_studio_fonts --source-dir /path/to/font-sources` maintains that set. MiSans is no longer the active Chinese face in 0.10.
-
-See [third-party notices](../THIRD_PARTY_NOTICES.md) for the separate font licences.
+The command checks pinned source bytes and interface coverage before writing the subsets. It accepts `--source-dir /path/to/font-sources` for local source files. Manrope and earlier Noto Sans SC subsets also remain documented in `scripts/fonts/bundle.json`.

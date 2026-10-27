@@ -1,92 +1,60 @@
-import { copy } from "./tour-copy.js?v=0.10.0";
-import { installCommands, mediaPath } from "./playback-policy.js";
-import { sampleSignal, sampleDuration } from "./studio-signal.js";
-import { filmDurations } from "./media-info.js";
-import { mountScore } from "./score-scene.js?v=0.10.0";
-import { mountStory } from "./story-demo.js?v=0.10.0";
-
-import { playbackTime, rebaseLoop } from "./sample-playback.js?v=0.10.0";
-
+import { copy } from "./tour-copy.js?v=0.11.0";
+import { installCommands } from "./playback-policy.js";
+import { sampleSignal } from "./studio-signal.js";
+import { damp } from "./scene-physics.js?v=0.11.0";
+import { mountMusicArt } from "./music-art.js?v=0.11.0";
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia("(prefers-reduced-motion:reduce)");
-const staticMotion =
-  ["off"].includes(new URLSearchParams(location.search).get("motion")) ||
+const compact = matchMedia("(max-width:812px)");
+const graphicsOff =
   new URLSearchParams(location.search).get("graphics") === "off";
 const local = ["127.0.0.1", "localhost"].includes(location.hostname);
+const easing = "cubic-bezier(.35,0,0,1)";
 let language = navigator.language.startsWith("zh") ? "zh" : "en";
 try {
   language = localStorage.getItem("ard-tour-language") || language;
 } catch {}
 if (!copy[language]) language = "en";
 const t = (key) => copy[language][key];
-const cinema = $("cinemaDialog"),
-  cinemaVideo = $("cinemaVideo"),
-  menu = $("siteMenu"),
-  scrim = $("menuScrim");
-let userPaused = staticMotion ? true : null,
+let platform = "windows",
   menuOpen = false,
   menuGeneration = 0,
-  menuEffects = [],
-  platform = "windows",
-  storyMode = "compare",
-  storyVariant = "a";
-const scene = mountScore($("heroScene"));
-const story = mountStory($("storyHost"));
+  menuEffects = [];
+let scene = null,
+  userPausedScene = null;
 let audio = null,
   sound = null,
   analyser = null,
-  audioBins = null,
-  audioFrame = 0,
-  audioGeneration = 0;
-const buffers = new Map();
-const tones = new Set();
-let toneGeneration = 0;
-const playback = {
-  owner: null,
-  pending: false,
-  playing: false,
-  position: 0,
-  offset: 0,
-  started: 0,
-  variant: "a",
-  loop: false,
-  start: 0,
-  end: sampleDuration,
-};
-const view = { hero: true, story: false };
-const timeLabel = (time) =>
-  `${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, "0")}`;
-
-function clock() {
-  return playbackTime(playback, audio ? audio.currentTime : 0, sampleDuration);
-}
-function isOnscreen(owner) {
-  const bounds = $(
-    owner === "hero" ? "top" : "details",
-  ).getBoundingClientRect();
-  return bounds.bottom > 0 && bounds.top < innerHeight;
-}
-function paintAudio() {
-  for (const [id, owner, label, keyOn, keyOff] of [
-    ["samplePlay", "hero", "[data-sample-label]", "stopListening", "listen"],
-    ["storyPlay", "story", "[data-story-play]", "examplePause", "examplePlay"],
-  ]) {
-    const active =
-      playback.owner === owner && (playback.playing || playback.pending);
-    $(id).setAttribute("aria-pressed", String(active));
-    $(id).setAttribute("aria-label", t(active ? keyOn : keyOff));
-    document.querySelector(label).textContent = t(active ? keyOn : keyOff);
-  }
-  $("storyClock").textContent = `${timeLabel(playback.position)} / 0:12`;
-  story.setPlayback({
-    time: playback.position,
-    playing: playback.playing && playback.owner === "story",
-    variant: storyVariant,
+  samples = null,
+  samplePlaying = false,
+  samplePending = false,
+  audioGeneration = 0,
+  audioFrame = 0;
+const menu = $("siteMenu"),
+  scrim = $("menuScrim");
+const artworks = [...document.querySelectorAll('[data-art]')].map(host => mountMusicArt(host, {kind:host.dataset.art, language}));
+if (new URLSearchParams(location.search).get('motion') === 'off') userPausedScene = true;
+const effect = (element, frames, options) => {
+  if (reduced.matches) return null;
+  return element.animate(frames, {
+    duration: 500,
+    easing,
+    fill: "both",
+    ...options,
   });
+};
+function paintSample() {
+  const active = samplePlaying || samplePending;
+  $("samplePlay").setAttribute("aria-pressed", String(active));
+  $("samplePlay").setAttribute(
+    "aria-label",
+    t(active ? "stopListening" : "listen"),
+  );
+  document.querySelector("[data-sample-label]").textContent = t(
+    active ? "stopListening" : "listen",
+  );
 }
-function stopAudio() {
-  stopTones();
-  if (playback.owner === "story") playback.position = clock();
+function stopSample() {
   audioGeneration++;
   cancelAnimationFrame(audioFrame);
   audioFrame = 0;
@@ -98,388 +66,179 @@ function stopAudio() {
     sound.disconnect();
     sound = null;
   }
-  playback.playing = false;
-  playback.pending = false;
-  playback.owner = null;
-  scene.setAudioLevel(0);
-  paintAudio();
+  samplePlaying = false;
+  samplePending = false;
+  scene?.setAudioLevel(0);
+  paintSample();
 }
-async function context() {
-  const Context = window.AudioContext || window.webkitAudioContext;
-  if (!Context) throw Error("audio");
-  audio ||= new Context();
-  await audio.resume();
-  return audio;
-}
-function buffer(variant) {
-  if (!buffers.has(variant)) {
-    const data = sampleSignal(22050, variant),
-      result = audio.createBuffer(1, data.length, 22050);
-    result.copyToChannel(data, 0);
-    buffers.set(variant, result);
+async function toggleSample() {
+  if (samplePlaying || samplePending) {
+    stopSample();
+    return;
   }
-  return buffers.get(variant);
-}
-async function startAudio(
-  owner,
-  { position = owner === "story" ? playback.position : 0 } = {},
-) {
-  const nextPosition = position;
-  stopAudio();
+  samplePending = true;
+  paintSample();
   const generation = ++audioGeneration;
-  playback.owner = owner;
-  playback.pending = true;
-  paintAudio();
   try {
-    await context();
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (!Context) throw Error("audio");
+    audio ||= new Context();
+    await audio.resume();
     if (generation !== audioGeneration) return;
-    if (document.hidden || cinema.open || menuOpen || !isOnscreen(owner)) {
-      stopAudio();
-      return;
-    }
-    const variant = owner === "story" ? storyVariant : "a";
-    let offset = Math.max(0, Math.min(sampleDuration, nextPosition));
-    playback.loop =
-      owner === "story" && storyMode === "range" && $("storyLoop").checked;
-    const selection = story.range;
-    playback.start = selection.start;
-    playback.end = selection.end;
-    if (playback.loop)
-      offset = Math.max(
-        selection.start,
-        Math.min(selection.end - 0.01, offset),
-      );
-    else if (offset >= sampleDuration - 0.01) offset = 0;
+    const bounds = $('top').getBoundingClientRect();
+    if (document.hidden || menuOpen || bounds.bottom <= 0 || bounds.top >= innerHeight) { stopSample(); return; }
+    const values = sampleSignal(22050, "a"),
+      buffer = audio.createBuffer(1, values.length, 22050);
+    buffer.copyToChannel(values, 0);
     sound = audio.createBufferSource();
-    sound.buffer = buffer(variant);
-    sound.loop = playback.loop;
-    if (playback.loop) {
-      sound.loopStart = selection.start;
-      sound.loopEnd = selection.end;
-    }
+    sound.buffer = buffer;
     analyser ||= audio.createAnalyser();
     analyser.fftSize = 256;
-    audioBins ||= new Float32Array(256);
+    samples ||= new Float32Array(256);
     sound.connect(analyser);
     analyser.disconnect();
     analyser.connect(audio.destination);
-    playback.variant = variant;
-    playback.offset = offset;
-    playback.started = audio.currentTime;
-    if (owner === "story") playback.position = offset;
-    playback.pending = false;
-    playback.playing = true;
     sound.onended = () => {
-      if (generation !== audioGeneration) return;
-      stopAudio();
-      if (owner === "story") playback.position = sampleDuration;
-      paintAudio();
+      if (generation === audioGeneration) stopSample();
     };
-    sound.start(0, offset);
+    samplePending = false;
+    samplePlaying = true;
+    sound.start();
     $("sampleError").hidden = true;
-    $("storyError").hidden = true;
-    paintAudio();
+    paintSample();
     const tick = () => {
-      if (!playback.playing || generation !== audioGeneration) return;
-      analyser.getFloatTimeDomainData(audioBins);
+      if (!samplePlaying) return;
+      analyser.getFloatTimeDomainData(samples);
       let energy = 0;
-      for (const n of audioBins) energy += n * n;
-      if (owner === "hero")
-        scene.setAudioLevel(Math.sqrt(energy / audioBins.length) * 5);
-      if (owner === "story") {
-        playback.position = clock();
-        $("storyClock").textContent = `${timeLabel(playback.position)} / 0:12`;
-        story.setPlayback({
-          time: playback.position,
-          playing: true,
-          variant: storyVariant,
-        });
-      }
+      for (const n of samples) energy += n * n;
+      if (scene && !scene.paused)
+        scene.setAudioLevel(Math.sqrt(energy / samples.length) * 5);
       audioFrame = requestAnimationFrame(tick);
     };
     audioFrame = requestAnimationFrame(tick);
   } catch {
     if (generation !== audioGeneration) return;
-    stopAudio();
-    const failure = $(owner === "story" ? "storyError" : "sampleError");
-    failure.textContent = t("sampleError");
-    failure.hidden = false;
-  }
-}
-function toggleAudio(owner) {
-  if (playback.owner === owner && (playback.playing || playback.pending))
-    stopAudio();
-  else startAudio(owner);
-}
-$("samplePlay").addEventListener("click", () => toggleAudio("hero"));
-$("storyPlay").addEventListener("click", () => toggleAudio("story"));
-async function pluck(frequency = 261.626, velocity = 0.6) {
-  const generation = toneGeneration;
-  try {
-    await context();
-    if (
-      generation !== toneGeneration ||
-      document.hidden ||
-      cinema.open ||
-      menuOpen ||
-      !view.hero
-    )
-      return;
-    if (!Number.isFinite(frequency) || frequency < 20 || frequency > 4000)
-      return;
-    const now = audio.currentTime,
-      gain = audio.createGain(),
-      osc = audio.createOscillator(),
-      harmonic = audio.createOscillator(),
-      partial = audio.createGain();
-    osc.type = "sine";
-    osc.frequency.value = frequency;
-    harmonic.type = "sine";
-    harmonic.frequency.value = frequency * 2.001;
-    partial.gain.value = 0.14;
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(
-      0.075 * Math.max(0.15, Math.min(1, velocity)),
-      now + 0.008,
-    );
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
-    osc.connect(gain);
-    harmonic.connect(partial);
-    partial.connect(gain);
-    gain.connect(audio.destination);
-    osc.start(now);
-    harmonic.start(now);
-    osc.stop(now + 0.72);
-    harmonic.stop(now + 0.72);
-    const voice = {
-      stop() {
-        gain.gain.cancelScheduledValues(audio.currentTime);
-        gain.gain.setTargetAtTime(0.0001, audio.currentTime, 0.008);
-        try {
-          osc.stop(audio.currentTime + 0.04);
-          harmonic.stop(audio.currentTime + 0.04);
-        } catch {}
-      },
-    };
-    if (tones.size >= 12) {
-      const first = tones.values().next().value;
-      first.stop();
-      tones.delete(first);
-    }
-    tones.add(voice);
-    osc.onended = () => {
-      tones.delete(voice);
-      osc.disconnect();
-      harmonic.disconnect();
-      partial.disconnect();
-      gain.disconnect();
-    };
-  } catch {
+    stopSample();
     $("sampleError").textContent = t("sampleError");
     $("sampleError").hidden = false;
   }
 }
-function stopTones() {
-  toneGeneration++;
-  for (const voice of tones) voice.stop();
-  tones.clear();
-}
-$("heroScene").addEventListener("scorepluck", (event) =>
-  pluck(event.detail.frequency, event.detail.velocity),
-);
-$("pluckScore").addEventListener("click", () => {
-  scene.burst();
-  [261.626, 329.628, 391.995].forEach((f) => pluck(f, 0.4));
-});
-
-function motionPaused() {
-  return userPaused ?? reduced.matches;
-}
+$("samplePlay").addEventListener("click", toggleSample);
 function paintMotion() {
-  const paused = motionPaused();
+  const paused = userPausedScene ?? reduced.matches;
   $("motionToggle").setAttribute("aria-pressed", String(paused));
   $("motionToggle").setAttribute(
     "aria-label",
     t(paused ? "motionPlay" : "motionPause"),
   );
-  $("motionLabel").textContent = t(paused ? "motionPlay" : "motionPause");
-  $("motionToggle").disabled = !scene.ready;
-}
-function syncMotion() {
-  const paused = motionPaused() || menuOpen || cinema.open;
-  scene.setPaused(paused);
-  story.setPaused(paused);
-  paintMotion();
+  const sceneReady = !!scene?.ready;
+  $("paletteToggle").hidden = !sceneReady;
+  $("heroScene").setAttribute("aria-label", t(sceneReady ? "scene" : "sceneStatic"));
 }
 $("motionToggle").addEventListener("click", () => {
-  userPaused = !motionPaused();
+  userPausedScene = !(userPausedScene ?? reduced.matches);
+  scene?.setPaused(userPausedScene);
+  scene?.setAudioLevel(0);
+  paintMotion();
   syncMotion();
 });
+if (graphicsOff) {
+  $("heroScene").dataset.ready = "false";
+  $("motionToggle").disabled = false;
+} else
+  import("./scene.js?v=0.11.0")
+    .then(({ mountScene }) => {
+      scene = mountScene($("heroScene"));
+      if (userPausedScene !== null) scene.setPaused(userPausedScene);
+      $("heroScene").dataset.ready = String(scene.ready);
+      paintMotion();
+      syncMotion();
+      if (!scene.ready) $("motionToggle").disabled = false;
+    })
+    .catch(() => {
+      $("heroScene").dataset.renderer = "poster";
+      $("heroScene").dataset.ready = "false";
+      $("motionToggle").disabled = false;
+    });
+$("paletteToggle").addEventListener("click", () => scene?.burst());
 $("heroScene").addEventListener("motionchange", () => {
-  $("heroScene").dataset.ready = String(scene.ready);
+  $("motionToggle").disabled = false;
+  $("heroScene").dataset.ready = String(!!scene?.ready);
   paintMotion();
 });
-$("heroScene").dataset.ready = String(scene.ready);
-reduced.addEventListener("change", syncMotion);
-const audioView = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      const owner = entry.target.id === "top" ? "hero" : "story";
-      view[owner] = entry.isIntersecting;
-      if (!entry.isIntersecting && owner === "hero") stopTones();
-      if (!entry.isIntersecting && playback.owner === owner) stopAudio();
-    }
+const heroObserver = new IntersectionObserver(
+  ([entry]) => {
+    if (!entry.isIntersecting) stopSample();
   },
   { threshold: 0 },
 );
-audioView.observe($("top"));
-audioView.observe($("details"));
+heroObserver.observe($("top"));
 
-const tabKeys = (event, elements, current, select) => {
-  let index = elements.indexOf(current),
-    next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? elements.length - 1
-          : event.key === "ArrowRight"
-            ? (index + 1) % elements.length
-            : event.key === "ArrowLeft"
-              ? (index + elements.length - 1) % elements.length
-              : null;
-  if (next !== null) {
-    event.preventDefault();
-    select(elements[next]);
-    elements[next].focus();
-  }
-};
-function setStoryMode(next) {
-  const resume = playback.playing && playback.owner === "story",
-    position = clock();
-  storyMode = next;
-  story.setMode(next);
-  for (const button of document.querySelectorAll("[data-story]")) {
-    const active = button.dataset.story === next;
-    button.setAttribute("aria-selected", String(active));
-    button.tabIndex = active ? 0 : -1;
-  }
-  $("storyHost").setAttribute("aria-labelledby", `story-${next}`);
-  $("loopControl").hidden = next !== "range";
-  $("storyCaption").textContent = t(
-    next === "compare"
-      ? "captionCompare"
-      : next === "range"
-        ? "captionRange"
-        : "captionNotes",
-  );
-  if (resume) startAudio("story", { position });
-}
-for (const button of document.querySelectorAll("[data-story]")) {
-  button.addEventListener("click", () => setStoryMode(button.dataset.story));
-  button.addEventListener("keydown", (event) =>
-    tabKeys(
-      event,
-      [...document.querySelectorAll("[data-story]")],
-      button,
-      (item) => setStoryMode(item.dataset.story),
-    ),
-  );
-}
-$("storyHost").addEventListener("storyvariantchange", (event) => {
-  const position = clock(),
-    resume = playback.playing && playback.owner === "story";
-  storyVariant = event.detail.variant;
-  story.setPlayback({
-    time: playback.position,
-    playing: resume,
-    variant: storyVariant,
-  });
-  if (resume) startAudio("story", { position });
-});
-$("storyHost").addEventListener("storyseek", (event) => {
-  const resume =
-    (playback.playing || playback.pending) && playback.owner === "story";
-  playback.position = event.detail.time;
-  if (resume) startAudio("story", { position: event.detail.time });
-  else paintAudio();
-});
-$("storyHost").addEventListener("storyrangechange", () => {
-  if (playback.playing && playback.owner === "story" && playback.loop) {
-    const range = story.range,
-      time = clock();
-    if (time < range.start || time >= range.end)
-      startAudio("story", { position: range.start });
-    else {
-      Object.assign(
-        playback,
-        rebaseLoop(playback, range, audio.currentTime, sampleDuration),
-      );
-      sound.loopStart = range.start;
-      sound.loopEnd = range.end;
-    }
-  }
-});
-$("storyLoop").addEventListener("change", () => {
-  if (playback.playing && playback.owner === "story")
-    startAudio("story", { position: clock() });
-});
-
-function animate(element, frames, options = {}) {
-  if (reduced.matches) return null;
-  return element.animate(frames, {
-    duration: 220,
-    easing: "cubic-bezier(.23,1,.32,1)",
-    fill: "both",
-    ...options,
-  });
-}
 async function setMenu(open, { focus = true } = {}) {
-  const generation = ++menuGeneration,
-    card = menu.querySelector(".menu-card"),
-    wasHidden = menu.hidden;
-  const current = {
-      opacity: getComputedStyle(card).opacity,
-      transform: getComputedStyle(card).transform,
-    },
-    scrimOpacity = scrim.hidden ? "0" : getComputedStyle(scrim).opacity;
-  menuEffects.forEach((effect) => effect?.cancel());
+  const generation = ++menuGeneration;
+  const cards = [...menu.querySelectorAll(".menu-links,.menu-bottom")];
+  const wasHidden = menu.hidden;
+  const presentation = cards.map((card) => {
+    const st = getComputedStyle(card);
+    return { opacity: st.opacity, transform: st.transform };
+  });
+  const scrimOpacity = scrim.hidden ? "0" : getComputedStyle(scrim).opacity;
+  menuEffects.forEach((e) => e?.cancel());
   menuEffects = [];
   menuOpen = open;
   $("menuToggle").setAttribute("aria-expanded", String(open));
   $("menuToggle").setAttribute("aria-label", t(open ? "close" : "menu"));
-  $("menuLabel").textContent = t(open ? "close" : "menu");
   $("main").toggleAttribute("inert", open);
+  $("main").setAttribute("aria-hidden", String(open));
   if (open) {
     menu.hidden = false;
     menu.removeAttribute("inert");
     scrim.hidden = false;
-    stopAudio();
     menuEffects.push(
-      animate(card, [
-        wasHidden
-          ? { opacity: 0, transform: "translateY(-8px) scale(.98)" }
-          : current,
-        { opacity: 1, transform: "translateY(0) scale(1)" },
-      ]),
-      animate(scrim, [{ opacity: scrimOpacity }, { opacity: 1 }]),
+      effect(scrim, [{ opacity: scrimOpacity }, { opacity: 1 }], {
+        duration: 400,
+      }),
+    );
+    cards.forEach((card, i) =>
+      menuEffects.push(
+        effect(
+          card,
+          [
+            wasHidden
+              ? { opacity: 0, transform: "translateY(80px) rotate(3.5deg)" }
+              : presentation[i],
+            { opacity: 1, transform: "translateY(0) rotate(0)" },
+          ],
+          { delay: wasHidden ? i * 20 : 0, easing: "cubic-bezier(.4,0,.1,1)" },
+        ),
+      ),
     );
   } else {
     menu.setAttribute("inert", "");
     if (focus) $("menuToggle").focus({ preventScroll: true });
-    menuEffects.push(
-      animate(
-        card,
-        [current, { opacity: 0, transform: "translateY(-8px) scale(.98)" }],
-        { duration: 160 },
+    cards.forEach((card, i) =>
+      menuEffects.push(
+        effect(
+          card,
+          [
+            presentation[i],
+            { opacity: 0, transform: "translateY(80px) rotate(3.5deg)" },
+          ],
+          {
+            duration: 400,
+            delay: (cards.length - i - 1) * 20,
+            easing: "cubic-bezier(.4,0,.1,1)",
+          },
+        ),
       ),
-      animate(scrim, [{ opacity: scrimOpacity }, { opacity: 0 }], {
-        duration: 160,
+    );
+    menuEffects.push(
+      effect(scrim, [{ opacity: scrimOpacity }, { opacity: 0 }], {
+        duration: 400,
       }),
     );
     await Promise.all(
-      menuEffects
-        .filter(Boolean)
-        .map((effect) => effect.finished.catch(() => {})),
+      menuEffects.filter(Boolean).map((e) => e.finished.catch(() => {})),
     );
     if (generation !== menuGeneration) return;
     menu.hidden = true;
@@ -495,14 +254,14 @@ document.addEventListener("keydown", (event) => {
     setMenu(false);
   }
   if (event.key === "Tab" && menuOpen) {
-    const controls = [$("menuToggle"), ...menu.querySelectorAll("a,button")],
-      index = controls.indexOf(document.activeElement);
+    const items = [$("menuToggle"), ...menu.querySelectorAll("a,button")];
+    const index = items.indexOf(document.activeElement);
     if (event.shiftKey && index <= 0) {
       event.preventDefault();
-      controls.at(-1).focus();
-    } else if (!event.shiftKey && index === controls.length - 1) {
+      items.at(-1).focus();
+    } else if (!event.shiftKey && index === items.length - 1) {
       event.preventDefault();
-      controls[0].focus();
+      items[0].focus();
     }
   }
 });
@@ -512,69 +271,70 @@ document.querySelectorAll('a[href^="#"]').forEach((link) =>
     if (!target) return;
     event.preventDefault();
     if (menuOpen) setMenu(false, { focus: false });
-    const destination = target.querySelector(".section-heading,h2") || target;
-    destination.setAttribute("tabindex", "-1");
-    destination.focus({ preventScroll: true });
-    destination.scrollIntoView({
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({
       behavior: reduced.matches ? "instant" : "smooth",
       block: "start",
     });
   }),
 );
 
-let filmTrigger = null,
-  filmKind = null,
-  filmGeneration = 0;
-for (const button of document.querySelectorAll("[data-open-film]"))
-  button.addEventListener("click", () => {
-    filmTrigger = button;
-    filmKind = button.dataset.openFilm;
-    const generation = ++filmGeneration;
-    stopAudio();
-    if (menuOpen) setMenu(false, { focus: false });
-    $("cinemaTitle").textContent = t(
-      filmKind === "workflow"
-        ? "workflowFilm"
-        : filmKind === "notes"
-          ? "notesFilm"
-          : "rangeFilm",
-    );
-    $("cinemaError").hidden = true;
-    cinemaVideo.poster = `${mediaPath(filmKind, language, "webp")}?v=0.10.0`;
-    cinemaVideo.src = `${mediaPath(filmKind, language)}?v=0.10.0`;
-    cinemaVideo.load();
-    cinema.showModal();
-    document.documentElement.style.overflow = "hidden";
-    syncMotion();
-    animate(cinema, [{ opacity: 0 }, { opacity: 1 }], {
-      duration: 200,
-      fill: "none",
-    });
-    cinemaVideo.play().catch(() => {
-      if (generation === filmGeneration && cinema.open)
-        $("cinemaError").hidden = false;
-    });
-  });
-$("closeCinema").addEventListener("click", () => cinema.close());
-cinema.addEventListener("close", () => {
-  filmGeneration++;
-  cinemaVideo.pause();
-  cinemaVideo.removeAttribute("src");
-  cinemaVideo.load();
-  document.documentElement.style.overflow = "";
-  syncMotion();
-  filmTrigger?.focus({ preventScroll: true });
-});
-cinemaVideo.addEventListener("error", () => {
-  if (cinema.open) $("cinemaError").hidden = false;
-});
+
+function syncMotion() {
+  const paused = (userPausedScene ?? reduced.matches) || menuOpen || document.hidden;
+  scene?.setPaused(paused);
+  artworks.forEach(art => art.setPaused(paused));
+  if (menuOpen) stopSample();
+}
+let scrollFrame=0, progress=0, lastScroll=0;
+const ribbon=$('ribbonPath'), ribbonLength=ribbon.getTotalLength();
+ribbon.style.strokeDasharray=String(ribbonLength);
+function scrollTick(now) {
+  scrollFrame=0;
+  if (document.hidden) { lastScroll=0; return; }
+  $('header').classList.toggle('is-scrolled', scrollY > 80);
+  const dt=lastScroll ? Math.min(.05,(now-lastScroll)/1000) : .016; lastScroll=now;
+  const bounds=$('artHold').getBoundingClientRect();
+  const target=reduced.matches || compact.matches ? 1 : Math.max(0,Math.min(1,(innerHeight*.95-bounds.top)/(innerHeight*.8)));
+  progress=reduced.matches ? target : damp(progress,target,12,dt);
+  const p=Math.abs(progress-target)<.001 ? target : progress;
+  document.querySelector('.art-score').style.transform=reduced.matches || compact.matches ? 'none' : `translate3d(0,${24*(1-p)}px,0) scale(${.94+.06*p})`;
+  const section=$('reel').getBoundingClientRect();
+  const rp=Math.max(0,Math.min(1,(innerHeight-section.top)/(section.height*.82)));
+  ribbon.style.strokeDashoffset=String((1-(reduced.matches ? 1 : rp))*ribbonLength);
+  if (Math.abs(progress-target)>.001) requestScroll();
+}
+function requestScroll() { if (!scrollFrame && !document.hidden) scrollFrame=requestAnimationFrame(scrollTick); }
+window.addEventListener('scroll',requestScroll,{passive:true});
+window.addEventListener('resize',requestScroll,{passive:true});
+const reveals = new IntersectionObserver(
+  (changes) => {
+    for (const entry of changes) {
+      if (!entry.isIntersecting) continue;
+      reveals.unobserve(entry.target);
+      effect(
+        entry.target,
+        [
+          { opacity: 0, transform: "translateY(30px)" },
+          { opacity: 1, transform: "translateY(0)" },
+        ],
+        { duration: 800, fill: "none" },
+      );
+    }
+  },
+  { threshold: 0.2 },
+);
+document
+  .querySelectorAll(".work-card,.work-heading,.download-section")
+  .forEach((e) => reveals.observe(e));
 
 function showPlatform(next) {
   platform = next;
-  for (const button of document.querySelectorAll("[data-platform]")) {
-    const active = button.dataset.platform === next;
-    button.setAttribute("aria-selected", String(active));
-    button.tabIndex = active ? 0 : -1;
+  for (const tab of document.querySelectorAll("[data-platform]")) {
+    const active = tab.dataset.platform === next;
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
   }
   $("installInstructions").setAttribute("aria-labelledby", `platform-${next}`);
   $("installHint").textContent = t(
@@ -585,16 +345,27 @@ function showPlatform(next) {
   $("copyInstall").hidden = next === "windows";
   $("copyStatus").textContent = "";
 }
-for (const button of document.querySelectorAll("[data-platform]")) {
-  button.addEventListener("click", () => showPlatform(button.dataset.platform));
-  button.addEventListener("keydown", (event) =>
-    tabKeys(
-      event,
-      [...document.querySelectorAll("[data-platform]")],
-      button,
-      (item) => showPlatform(item.dataset.platform),
-    ),
-  );
+for (const tab of document.querySelectorAll("[data-platform]")) {
+  tab.addEventListener("click", () => showPlatform(tab.dataset.platform));
+  tab.addEventListener("keydown", (event) => {
+    const all = [...document.querySelectorAll("[data-platform]")],
+      index = all.indexOf(tab);
+    let next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? 2
+          : event.key === "ArrowRight"
+            ? (index + 1) % 3
+            : event.key === "ArrowLeft"
+              ? (index + 2) % 3
+              : null;
+    if (next !== null) {
+      event.preventDefault();
+      showPlatform(all[next].dataset.platform);
+      all[next].focus();
+    }
+  });
 }
 $("copyInstall").addEventListener("click", async () => {
   try {
@@ -606,46 +377,38 @@ $("copyInstall").addEventListener("click", async () => {
 });
 function translate() {
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  document.title = "Audio Review Desk";
   document.querySelector("meta[name=description]").content = t("intro");
   document
     .querySelectorAll("[data-copy]")
-    .forEach((element) => (element.textContent = t(element.dataset.copy)));
+    .forEach((e) => (e.textContent = t(e.dataset.copy)));
   document
     .querySelectorAll("[data-label]")
-    .forEach((element) =>
-      element.setAttribute("aria-label", t(element.dataset.label)),
-    );
+    .forEach((e) => e.setAttribute("aria-label", t(e.dataset.label)));
+  menu.setAttribute("aria-label", language === "zh" ? "导航" : "Navigation");
+  $("menuToggle").setAttribute("aria-label", t(menuOpen ? "close" : "menu"));
   $("language").textContent = language === "zh" ? "English" : "中文";
   $("language").setAttribute(
     "aria-label",
     language === "zh" ? "Switch to English" : "切换到中文",
   );
-  menu.setAttribute("aria-label", language === "zh" ? "导航" : "Navigation");
-  $("menuLabel").textContent = t(menuOpen ? "close" : "menu");
-  $("menuToggle").setAttribute("aria-label", t(menuOpen ? "close" : "menu"));
-  for (const link of document.querySelectorAll("[data-primary]")) {
-    link.href = local
+  for (const primary of document.querySelectorAll("[data-primary]")) {
+    primary.href = local
       ? "/"
       : "https://github.com/FUN-ACTION/audio-review-desk/releases/latest";
-    if (local) link.querySelector("[data-copy]").textContent = t("open");
+    const label = primary.querySelector("[data-copy]");
+    if (local) label.textContent = t("open");
   }
-  $("installCard").hidden = local;
-  $("localInstallHint").hidden = !local;
-  document.querySelector(".source-link").hidden = !local;
-  document
-    .querySelectorAll("[data-duration]")
-    .forEach(
-      (element) =>
-        (element.textContent = timeLabel(
-          filmDurations[element.dataset.duration][language],
-        )),
-    );
-  story.setLanguage(language);
-  setStoryMode(storyMode);
-  showPlatform(platform);
-  paintMotion();
-  paintAudio();
+  artworks.forEach(art => art.setLanguage(language));
+  $('installCard').hidden=local;
+  $('localInstallHint').hidden=!local;
+  document.querySelector('.source-link').hidden=!local;
   if (!$("sampleError").hidden) $("sampleError").textContent = t("sampleError");
+  showPlatform(platform);
+  paintSample();
+  paintMotion();
+  syncMotion();
+  requestScroll();
 }
 $("language").addEventListener("click", () => {
   language = language === "zh" ? "en" : "zh";
@@ -654,32 +417,43 @@ $("language").addEventListener("click", () => {
   } catch {}
   translate();
 });
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    stopAudio();
-    cinemaVideo.pause();
-  }
+
+const modeChange = () => { syncMotion(); paintMotion(); requestScroll(); };
+reduced.addEventListener('change',modeChange);
+compact.addEventListener('change',requestScroll);
+document.addEventListener('visibilitychange',()=>{
+  if (document.hidden) { stopSample(); cancelAnimationFrame(scrollFrame); scrollFrame=0; lastScroll=0; }
+  else requestScroll();
   syncMotion();
 });
-const reveals = new IntersectionObserver(
+window.addEventListener('pagehide',(event)=>{
+  if (event.persisted) return;
+  stopSample(); scene?.dispose(); artworks.forEach(art=>art.dispose());
+  cancelAnimationFrame(scrollFrame); heroObserver.disconnect(); reveals.disconnect();
+  audio?.close().catch(()=>{});
+});
+window.addEventListener('pageshow',event=>{ if (event.persisted) { syncMotion(); requestScroll(); } });
+translate(); requestScroll();
+const lineReveal = new IntersectionObserver(
   (changes) => {
     for (const entry of changes) {
       if (!entry.isIntersecting) continue;
-      reveals.unobserve(entry.target);
-      animate(
-        entry.target,
-        [
-          { opacity: 0, transform: "translateY(14px)" },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        { duration: 400, fill: "none" },
+      lineReveal.unobserve(entry.target);
+      [...entry.target.querySelectorAll(".title-line > span")].forEach(
+        (line, i) =>
+          effect(
+            line,
+            [
+              { transform: "translateY(110%) rotate(2deg)" },
+              { transform: "translateY(0) rotate(0)" },
+            ],
+            { duration: 850, delay: i * 70, fill: "none" },
+          ),
       );
     }
   },
-  { threshold: 0.15 },
+  { threshold: 0.35 },
 );
 document
-  .querySelectorAll(".section-heading,.film-list,.download-section")
-  .forEach((element) => reveals.observe(element));
-translate();
-syncMotion();
+  .querySelectorAll(".reveal-lines")
+  .forEach((e) => lineReveal.observe(e));

@@ -18,11 +18,11 @@ from .picker import choose
 from .errors import error_code
 from . import __version__
 
-TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js", "studio.js", "studio-signal.js", "studio.css", "scene.js", "scene-physics.js", "scene-vendor.js", "three-LICENSE.txt", "reel-warp.js", "score-scene.js", "score-math.js", "story-demo.js", "story-demo.css", "story-math.js", "type.css", "score-serif.woff2", "score-serif-OFL.txt", "sample-playback.js", "score-sans.woff2"}
+TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js", "studio.js", "studio-signal.js", "studio.css", "scene.js", "scene-physics.js", "scene-vendor.js", "three-LICENSE.txt", "reel-warp.js", "score-scene.js", "score-math.js", "story-demo.js", "story-demo.css", "story-math.js", "type.css", "score-serif.woff2", "score-serif-OFL.txt", "sample-playback.js", "score-sans.woff2", "note-geometry.js", "music-art.js", "music-art.css", "music-shader.js"}
 TOUR_MEDIA = { "workflow-zh.mp4", "workflow-en.mp4",
               "notes-zh.mp4", "notes-en.mp4", "range-zh.mp4", "range-en.mp4",
               "workflow-zh.webp", "workflow-en.webp", "notes-zh.webp", "notes-en.webp",
-              "range-zh.webp", "range-en.webp", "scene-poster.webp", "score-poster.svg"}
+              "range-zh.webp", "range-en.webp", "scene-poster.webp", "score-poster.svg", "music-notes-poster.svg"}
 
 
 STATIC_MIME = {

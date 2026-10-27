@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 820" fill="none">
+  <defs>
+    <radialGradient id="room" cx=".52" cy=".44" r=".75">
+      <stop stop-color="#222634" />
+      <stop offset="1" stop-color="#10121a" />
+    </radialGradient>
+    <linearGradient
+      id="ivory"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2=".85"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop stop-color="#93989e" />
+      <stop offset=".18" stop-color="#fff" />
+      <stop offset=".48" stop-color="#e7e8e7" />
+      <stop offset=".76" stop-color="#a4a7a9" />
+      <stop offset="1" stop-color="#eff1ee" />
+    </linearGradient>
+    <linearGradient
+      id="cobalt"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2="1"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop stop-color="#3025b0" />
+      <stop offset=".19" stop-color="#8d85ff" />
+      <stop offset=".29" stop-color="#3f32fa" />
+      <stop offset=".65" stop-color="#2010c8" />
+      <stop offset=".89" stop-color="#11058c" />
+      <stop offset="1" stop-color="#5549fa" />
+    </linearGradient>
+    <linearGradient
+      id="black"
+      x1="0"
+      y1=".1"
+      x2="1"
+      y2=".8"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop stop-color="#07080b" />
+      <stop offset=".17" stop-color="#687078" />
+      <stop offset=".25" stop-color="#14171b" />
+      <stop offset=".65" stop-color="#07080a" />
+      <stop offset="1" stop-color="#30343b" />
+    </linearGradient>
+    <linearGradient
+      id="edge"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2="1"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop stop-color="#fff" stop-opacity=".9" />
+      <stop offset=".45" stop-color="#fff" stop-opacity=".03" />
+      <stop offset="1" stop-color="#000" stop-opacity=".7" />
+    </linearGradient>
+    <filter
+      id="shadow"
+      x="-60%"
+      y="-40%"
+      width="220%"
+      height="200%"
+      color-interpolation-filters="sRGB"
+    >
+      <feDropShadow
+        dx="13"
+        dy="22"
+        stdDeviation="13"
+        flood-color="#000"
+        flood-opacity=".36"
+      />
+    </filter>
+    <path
+      id="quarter"
+      d="M.10 1Q.10 1.10 .21 1.10Q.32 1.10 .32 1V-.58C.35-.82 .05-1.13-.32-1.05C-.74-.96-.82-.67-.47-.48C-.25-.36-.04-.36 .10-.40Z"
+    />
+    <path
+      id="eighth"
+      d="M.10 1Q.10 1.10 .21 1.10Q.31 1.10 .34.98C.40.82 .73.85 .83.59C.94.31 .87.10 .72-.04Q.64-.15 .57-.04Q.53.02 .59.11C.75.35 .60.51 .32.60V-.58C.35-.82 .05-1.13-.32-1.05C-.74-.96-.82-.67-.47-.48C-.25-.36-.04-.36 .10-.40Z"
+    />
+    <path
+      id="beamed"
+      d="M-.47 1.04L1.02 1.25V-.37C1.05-.64 .74-.96 .38-.83C-.02-.71-.07-.47 .23-.29C.43-.17 .64-.18 .80-.19V.95L-.25.80V-.58C-.22-.85-.54-1.16-.90-1.03C-1.30-.91-1.35-.67-1.05-.49C-.85-.37-.64-.38-.47-.40Z"
+    />
+    <path
+      id="clef"
+      d="M-.18-1.27C-.62-1.43-.79-1.01-.44-.90C-.14-.82 .24-1.02 .15-.56C.02.05-.25.86-.23 1.35C-.20 1.94 .09 1.94 .25 1.53C.47.96-.32.56-.58.14C-.98-.49-.46-.89 .10-.71C.77-.50 .86.15 .36.35C-.05.51-.44.14-.20-.13C-.13-.22 .01-.25 .11-.16"
+      stroke-width=".18"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </defs>
+  <path fill="url(#room)" d="M0 0h1440v820H0z" />
+  <g filter="url(#shadow)">
+    <g transform="translate(130 160) rotate(-24) scale(100 -100)">
+      <use href="#beamed" fill="#858990" transform="translate(.06 -.06)" />
+      <use
+        href="#beamed"
+        fill="url(#ivory)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(450 45) rotate(18) scale(106 -106)">
+      <use href="#quarter" fill="#0c075c" transform="translate(.06 -.07)" />
+      <use
+        href="#quarter"
+        fill="url(#cobalt)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(730 135) rotate(-18) scale(113 -113)">
+      <use href="#eighth" fill="#050608" transform="translate(.07 -.06)" />
+      <use
+        href="#eighth"
+        fill="url(#black)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(1085 85) rotate(24) scale(117 -117)">
+      <use href="#quarter" fill="#999da0" transform="translate(.07 -.07)" />
+      <use
+        href="#quarter"
+        fill="url(#ivory)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(1370 205) rotate(-20) scale(95 -95)">
+      <use href="#beamed" fill="#100763" transform="translate(.06 -.06)" />
+      <use
+        href="#beamed"
+        fill="url(#cobalt)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(318 350) rotate(24) scale(123 -123)">
+      <use href="#eighth" fill="#959a9e" transform="translate(.07 -.07)" />
+      <use
+        href="#eighth"
+        fill="url(#ivory)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(600 360) rotate(-16) scale(109 -109)">
+      <use href="#clef" stroke="#10064c" transform="translate(.08 -.07)" />
+      <use href="#clef" stroke="url(#cobalt)" />
+    </g>
+    <g transform="translate(920 390) rotate(16) scale(120 -120)">
+      <use href="#beamed" fill="#969a9c" transform="translate(.08 -.07)" />
+      <use
+        href="#beamed"
+        fill="url(#ivory)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(1245 395) rotate(-28) scale(104 -104)">
+      <use href="#eighth" fill="#040507" transform="translate(.07 -.07)" />
+      <use
+        href="#eighth"
+        fill="url(#black)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(62 585) rotate(23) scale(127 -127)">
+      <use href="#quarter" fill="#060608" transform="translate(.07 -.07)" />
+      <use
+        href="#quarter"
+        fill="url(#black)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(356 666) rotate(-23) scale(124 -124)">
+      <use href="#beamed" fill="#11076c" transform="translate(.07 -.07)" />
+      <use
+        href="#beamed"
+        fill="url(#cobalt)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(684 681) rotate(15) scale(115 -115)">
+      <use href="#quarter" fill="#92969a" transform="translate(.07 -.07)" />
+      <use
+        href="#quarter"
+        fill="url(#ivory)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(1015 713) rotate(-16) scale(106 -106)">
+      <use href="#eighth" fill="#060608" transform="translate(.07 -.07)" />
+      <use
+        href="#eighth"
+        fill="url(#black)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+    <g transform="translate(1300 719) rotate(20) scale(120 -120)">
+      <use href="#quarter" fill="#130666" transform="translate(.07 -.07)" />
+      <use
+        href="#quarter"
+        fill="url(#cobalt)"
+        stroke="url(#edge)"
+        stroke-width=".025"
+      />
+    </g>
+  </g>
+</svg>

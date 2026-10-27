@@ -54,7 +54,9 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 403)
 
     def test_static_assets_are_packaged_and_private_paths_not_served(self):
-        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/listening.js", "/markers.js", "/fonts.css", "/transport.js"):
+        for path in ("/", "/app.js", "/style.css", "/ui.js", "/copy.js", "/motion.js", "/waveform.js", "/wave-math.js", "/listening.js", "/markers.js", "/fonts.css", "/transport.js",
+                     "/tour/note-geometry.js", "/tour/music-art.js", "/tour/music-shader.js",
+                     "/tour/music-art.css", "/tour/media/music-notes-poster.svg"):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])

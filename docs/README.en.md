@@ -2,7 +2,7 @@
 
 Listen through audio collections, compare references, and save keep ranges and timestamped notes. Export reviews as CSV or JSON.
 
-[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.10 changes](releases/0.10.0.md)
+[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.11 changes](releases/0.11.0.md)
 
 [![Project website](screenshot-tour.png)](https://fun-action.github.io/audio-review-desk/tour/)
 
@@ -41,7 +41,7 @@ Undo restores an earlier review without deleting history. Batch changes keep not
 
 ## Files and updates
 
-The website now uses an original animated score and a playable phrase to show A/B comparison, range listening and time markers. Collection reviews remain in the workspace. Version 0.10 also revises Chinese type, navigation and the recording list. All six Chinese and English walkthroughs were re-recorded in the 0.10 interface, keeping the full application frame. [The release notes](releases/0.10.0.md) include changes and upgrade steps.
+Version 0.11 restores the lavender layout and MiSans type from 0.9. The draggable 3D scene now uses musical notes. Three generative material studies replace the software illustrations and recordings. [The release notes](releases/0.11.0.md) cover changes and upgrade steps.
 
 Source audio is read-only. Ranges do not crop it. The separate workspace stores the database, review history and listening copies. Stop the old server, back up the **entire workspace**, install in the app's existing environment, and reopen the original path. [Every version](releases/README.md) has its own upgrade notes.
 
