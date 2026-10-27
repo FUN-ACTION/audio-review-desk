@@ -13,7 +13,7 @@ def build(destination: Path) -> Path:
     source = Path(__file__).resolve().parents[1] / "src/audio_review_desk/static"
     destination.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source / "tour", destination / "tour")
-    for name in ("fonts.css", "desk-cjk-ui.woff2", "desk-display.woff2", "studio-latin.woff2", "studio-cjk.woff2", "manrope-OFL.txt", "inter-OFL.txt", "notosanssc-OFL.txt", "motion-vendor.js", "motion-LICENSE.txt"):
+    for name in ("geist-latin.woff2", "MiSans-Regular.woff2", "MiSans-License.pdf", "geist-OFL.txt", "fonts.css", "desk-cjk-ui.woff2", "desk-display.woff2", "studio-latin.woff2", "studio-cjk.woff2", "manrope-OFL.txt", "inter-OFL.txt", "notosanssc-OFL.txt", "motion-vendor.js", "motion-LICENSE.txt"):
         shutil.copy2(source / name, destination / name)
     (destination / ".nojekyll").touch()
     (destination / "index.html").write_text(

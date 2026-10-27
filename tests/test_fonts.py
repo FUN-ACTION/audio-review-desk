@@ -17,8 +17,14 @@ class FontBundleTests(unittest.TestCase):
             self.assertEqual(data[:4], b'wOF2')
             self.assertEqual(hashlib.sha256(data).hexdigest(), font['sha256'])
             self.assertEqual(len(data), font['bytes'])
-        self.assertTrue(ui_characters(static) <= set(record['ui_cjk_unicodes']),
-                        'Interface copy changed: rebuild fonts with scripts/build_fonts.py')
+        current=json.loads((repo/'scripts/fonts/studio.json').read_text(encoding='utf-8'))
+        for font in current['fonts']:
+            data=(static/font['file']).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest(),font['sha256'])
+            if font['unchanged']:
+                self.assertEqual(font['sha256'],font['source_sha256'])
+        self.assertTrue(ui_characters(static) <= set(current['ui_cjk_unicodes']),
+                        'Interface copy changed: rebuild the type manifest with scripts/build_studio_fonts.py')
         ui = next(font for font in record['fonts'] if font['file'] == 'desk-cjk-ui.woff2')
         common = next(font for font in record['fonts'] if font['file'] == 'studio-cjk.woff2')
         self.assertLess(ui['bytes'], common['bytes'] / 4)

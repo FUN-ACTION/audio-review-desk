@@ -63,7 +63,9 @@ class ShowcaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             destination=build(Path(temporary)/'site')
             self.assertEqual(len(list((destination/'tour/media').glob('*.mp4'))),6)
-            self.assertEqual((destination/'studio-latin.woff2').read_bytes()[:4],b'wOF2')
+            self.assertEqual((destination/'geist-latin.woff2').read_bytes()[:4],b'wOF2')
+            self.assertEqual((destination/'MiSans-Regular.woff2').read_bytes(), (Path(__file__).resolve().parents[1]/'src/audio_review_desk/static/MiSans-Regular.woff2').read_bytes())
+            self.assertTrue((destination/'tour/studio-signal.js').is_file())
             self.assertEqual(list(destination.rglob('*.sqlite')),[])
             self.assertEqual(list(destination.rglob('*.wav')),[])
             with self.assertRaisesRegex(ValueError,'new or empty'):build(destination)

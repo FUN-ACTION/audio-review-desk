@@ -1,5 +1,5 @@
-import { copy } from "./tour-copy.js";
-import { filmDurations } from "./media-info.js";
+import { copy } from "./tour-copy.js?v=0.8.0";
+import { filmDurations } from "./media-info.js?v=0.8.0";
 import {
   shouldPlay,
   activeClip,
@@ -27,7 +27,7 @@ const entries = [...document.querySelectorAll("video[data-clip]")].map(
     id: video.dataset.clip,
     video,
     ratio: 0,
-    choice: "auto",
+    choice: video.hasAttribute("data-manual") ? "pause" : "auto",
     loaded: false,
     failed: false,
     rejected: false,
@@ -82,7 +82,7 @@ function load(entry) {
   if (entry.loaded) return;
   entry.loaded = true;
   entry.failed = false;
-  entry.video.src = `${mediaPath(entry.id, language)}?v=0.7.0`;
+  entry.video.src = `${mediaPath(entry.id, language)}?v=0.8.0`;
   entry.video.load();
 }
 function sync() {
@@ -195,11 +195,11 @@ for (const entry of entries) {
       const time =
         entry.completed || entry.video.ended ? 0 : entry.video.currentTime || 0;
       $("cinemaError").hidden = true;
-      cinemaVideo.poster = `${mediaPath(entry.id, language, "webp")}?v=0.7.0`;
+      cinemaVideo.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.0`;
       cinemaVideo.onloadedmetadata = () => {
         cinemaVideo.currentTime = clampFilmTime(time, cinemaVideo.duration);
       };
-      cinemaVideo.src = `${mediaPath(entry.id, language)}?v=0.7.0`;
+      cinemaVideo.src = `${mediaPath(entry.id, language)}?v=0.8.0`;
       cinemaVideo.load();
       cinema.showModal();
       sync();
@@ -322,7 +322,7 @@ function translate() {
     entry.seeking = false;
     entry.resume = false;
     entry.video.removeAttribute("src");
-    entry.video.poster = `${mediaPath(entry.id, language, "webp")}?v=0.7.0`;
+    entry.video.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.0`;
     entry.video.load();
     paint(entry);
   }
@@ -367,3 +367,36 @@ if (["127.0.0.1", "localhost"].includes(location.hostname)) {
   document.querySelector("[data-download]").hidden = true;
 }
 translate();
+
+for (const button of document.querySelectorAll("[data-recording-tab]")) {
+  const choose = () => {
+    for (const tab of document.querySelectorAll("[data-recording-tab]")) {
+      const active = tab === button;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+    for (const panel of document.querySelectorAll("[data-recording]"))
+      panel.hidden = panel.dataset.recording !== button.dataset.recordingTab;
+    for (const entry of entries) {
+      entry.video.pause();
+      entry.choice = "pause";
+      paint(entry);
+    }
+  };
+  button.addEventListener("click", choose);
+  button.addEventListener("keydown", (event) => {
+    const all = [...document.querySelectorAll("[data-recording-tab]")],
+      index = all.indexOf(button);
+    const next =
+      event.key === "ArrowRight"
+        ? (index + 1) % all.length
+        : event.key === "ArrowLeft"
+          ? (index + all.length - 1) % all.length
+          : null;
+    if (next !== null) {
+      event.preventDefault();
+      all[next].click();
+      all[next].focus();
+    }
+  });
+}

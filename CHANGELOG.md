@@ -2,6 +2,12 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.8.0 — 2026-10-27
+
+Redesign the workspace and tour with Geist and MiSans, a pale lavender palette and a separate review panel. Add a playable piano sample with A/B switching, range selection, looping and a time note. Re-record the Chinese and English walkthroughs as focused clips with inline controls. Respect reduced motion and stop playback offscreen.
+
+[Changes and upgrade steps](docs/releases/0.8.0.md).
+
 ## 0.7.1 — 2026-10-27
 
 Restore keyboard focus after saving a time note. Keep focus in another control if the user moved there while saving.

@@ -2,7 +2,7 @@
 
 [Watch the walkthrough](https://fun-action.github.io/audio-review-desk/tour/).
 
-The six MP4 files record Audio Review Desk 0.7 running in Chromium. Chinese and English takes were recorded separately. The main film shows playback, reference switching, range selection and Save & continue. Close-ups show editing a time note and looping a selected range.
+The six MP4 files record the development UI for Audio Review Desk 0.8 running in Chromium. Chinese and English takes were recorded separately. The main film shows playback, reference switching and Save & continue. Close-ups show adding and seeking to a time note and looping a selected range.
 
 ## Source material
 
@@ -16,11 +16,11 @@ Browser input operates visible controls. A cursor is composited from the recorde
 
 | Clip | Source viewport | Crop x, y, width, height |
 | --- | --- | --- |
-| Workflow | 1280 × 720 | Full viewport |
-| Time notes | 1280 × 720 | 284, 180, 600, 480 |
-| Keep range | 1280 × 720 | 284, 70, 600, 600 |
+| Workflow | 1280 × 720 | 282, 136, 964, 576 |
+| Time notes | 1280 × 720 | 300, 180, 650, 460 |
+| Keep range | 1280 × 720 | 300, 240, 650, 420 |
 
-The files and posters are bundled in the wheel and standalone site. The interface loads a film near the viewport, pauses it out of view and offers replay, seeking and a larger viewer. Reduced motion and data saving keep the poster until manual play. The app preview always waits for a click.
+The files and posters are bundled in the wheel and standalone site. The interface loads a film on request, pauses it out of view and offers replay, seeking and a larger viewer. Reduced motion and data saving keep the poster until manual play. The app preview always waits for a click.
 
 ## Rebuilding
 
@@ -36,8 +36,14 @@ Asset hashes, capture counts, dimensions and durations are in [the manifest](sho
 
 ## Visual reference
 
-[Superlist](https://www.superlist.com/) informed the warm-white background, display/body type hierarchy, alternating sections and inline films. This version uses direct application footage and open fonts. Reference-site photographs, videos, logos and Haffer fonts are not distributed. See [font and Motion licences](../THIRD_PARTY_NOTICES.md).
+[Superlist](https://www.superlist.com/) informed the product demonstrations and type hierarchy. [Lusion](https://lusion.co/) informed the pale background, asymmetric heading and spacious composition. This version uses direct application footage and open fonts. Reference-site photographs, videos, logos and Haffer fonts are not distributed. See [font and Motion licences](../THIRD_PARTY_NOTICES.md).
 
 The generated desk backdrop used in 0.6 is no longer included. Its provenance remains in the [0.6 media notes](https://github.com/FUN-ACTION/audio-review-desk/blob/v0.6.0/docs/showcase-media.md).
 
-The 0.7.1 package retains the recordings made with 0.7.0. Media hashes are unchanged; `recorded_app_version` identifies the captured application.
+The recordings were captured from the new source UI before the release version was stamped. The six files replace the 0.7 recordings.
+
+## Interactive sample
+
+The homepage sample is separate from the recordings. `studio-signal.js` generates a twelve-second piano phrase with two timbral variants, matched to the same RMS level. The browser draws peaks from those buffers and plays them through Web Audio after a click. Range handles, A/B, loop and the note field are interactive. Nothing is saved as a real review. No audio API or upload endpoint is called.
+
+The short silent introduction plays once while visible. It can be paused or replayed. Reduced-motion and data-saving preferences suppress the introduction; explicit controls remain available. The waveform is redrawn when its content, selection or size changes; the playhead uses a transform.

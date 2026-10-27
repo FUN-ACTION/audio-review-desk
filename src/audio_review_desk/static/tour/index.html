@@ -3,29 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#fffdf9" />
-    <meta
-      name="description"
-      content="Audio Review Desk — 本机音频试听与审核。"
-    />
+    <meta name="theme-color" content="#f4f4f8" />
+    <meta name="description" content="Audio Review Desk" />
     <title>Audio Review Desk</title>
     <link
       rel="preload"
-      href="../desk-display.woff2"
+      href="../geist-latin.woff2"
       as="font"
       type="font/woff2"
       crossorigin
     />
-    <link
-      rel="preload"
-      href="../desk-cjk-ui.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link rel="stylesheet" href="../fonts.css" />
-    <link rel="stylesheet" href="./tour.css" />
-    <script type="module" src="./tour.js"></script>
+    <link rel="stylesheet" href="../fonts.css?v=0.8.0" />
+    <link rel="stylesheet" href="./tour.css?v=0.8.0" />
+    <link rel="stylesheet" href="./studio.css?v=0.8.0" />
+    <script type="module" src="./tour.js?v=0.8.0"></script>
+    <script type="module" src="./studio.js?v=0.8.0"></script>
   </head>
   <body>
     <a class="skip-link" href="#main" data-copy="skip">跳到内容</a>
@@ -35,150 +27,180 @@
           <path d="M3 11v6m5-11v16m6-20v24m6-20v16m5-11v6" /></svg
         ><span>Audio Review Desk</span></a
       >
-      <nav aria-label="导航" data-label="navigation">
-        <a href="#features" data-copy="navTour">功能</a
+      <nav data-label="navigation">
+        <a href="#features" data-copy="navTour">概览</a
+        ><a href="#recordings" data-copy="navRecording">录屏</a
         ><a
           href="https://github.com/FUN-ACTION/audio-review-desk/releases"
           data-copy="releases"
-          >更新记录</a
-        ><a href="https://github.com/FUN-ACTION/audio-review-desk">GitHub ↗</a>
+          >更新</a
+        >
       </nav>
       <div class="header-actions">
         <button id="language" type="button" aria-label="Switch to English">
           English</button
-        ><a href="#install" class="button primary small" data-copy="navInstall"
-          >开始使用</a
+        ><a href="#install" class="button small" data-copy="navInstall"
+          >下载 <span aria-hidden="true">↗</span></a
         >
       </div>
     </header>
     <main id="main">
       <section class="hero wrap" id="top">
-        <p class="eyebrow" data-copy="eyebrow">本机音频审核</p>
-        <h1>
-          <span data-copy="heroLead">试听、对照、批注。</span
-          ><span data-copy="heroEnd">在同一个窗口。</span>
+        <h1 aria-label="Audio Review Desk">
+          <span>Audio Review</span
+          ><span>Desk<span class="title-dot">.</span></span>
         </h1>
-        <p class="hero-intro" data-copy="heroIntro">
-          打开一批音频，对照参考版本，把区间和处理意见一起留下。下一次打开，可以接着审核。
-        </p>
-        <div class="actions">
-          <a
-            class="button primary"
-            data-local
-            href="/"
-            data-copy="openApp"
-            hidden
-            >打开工作台</a
-          ><a
-            class="button primary"
-            data-download
-            href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
-            data-copy="download"
-            >下载并开始</a
-          ><a href="#workflow" class="text-link" data-copy="seeWorkflow"
-            >看看怎么用 ↘</a
-          >
+        <div class="hero-aside">
+          <p class="hero-intro" data-copy="heroIntro">音频试听与标注工具。</p>
+
+          <div class="actions">
+            <a
+              class="button primary"
+              data-local
+              href="/"
+              data-copy="openApp"
+              hidden
+              >打开工作台</a
+            ><a
+              class="button primary"
+              data-download
+              href="https://github.com/FUN-ACTION/audio-review-desk/releases/latest"
+              data-copy="download"
+              >下载源码</a
+            ><a class="text-link" href="#features" data-copy="seeWorkflow"
+              >试用示例 ↓</a
+            >
+          </div>
         </div>
       </section>
       <section
-        class="hero-recording wrap"
-        id="workflow"
-        aria-label="实际操作录屏"
-        data-label="heroMedia"
+        class="studio-section wrap"
+        id="features"
+        aria-label="交互式音频示例"
+        data-label="interactiveSample"
       >
-        <div class="app-window">
-          <video
-            data-clip="workflow"
-            poster="./media/workflow-zh.webp"
-            muted
-            playsinline
-            preload="none"
-            data-label="workflowVideo"
-            aria-label="操作录屏"
-          ></video>
-        </div>
-        <div class="film-controls">
-          <button
-            class="film-play"
-            type="button"
-            data-for="workflow"
-            aria-pressed="false"
-            data-copy="play"
-          >
-            播放演示</button
-          ><input
-            class="film-seek"
-            data-seek="workflow"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value="0"
-            data-label="videoPosition"
-            aria-label="演示进度"
-            disabled
-          /><span class="film-time" data-time="workflow">0:00 / 0:00</span
-          ><button
-            class="film-expand"
-            type="button"
-            data-expand="workflow"
-            data-label="expand"
-            aria-label="放大观看"
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
-            </svg>
-          </button>
-        </div>
-        <p class="film-caption" data-copy="workflowCaption">
-          试听 · A/B 对照 · 保存并继续
-        </p>
-        <p class="platforms" data-copy="platforms">
-          Windows · macOS · Linux　/　MIT 开源
-        </p>
+        <div id="studioRoot"></div>
       </section>
-      <section class="features wrap" id="features">
+      <section class="recordings wrap" id="recordings">
         <div class="section-heading">
-          <p class="eyebrow" data-copy="workflowEyebrow">
-            把一批音频，逐条听完
-          </p>
-          <h2 data-copy="workflowTitle">
-            需要回看的地方，<br />不必从头再找。
-          </h2>
-          <p data-copy="workflowIntro">
-            在播放的位置写批注，圈出要保留的区间。决定保存后，接着看下一条。
-          </p>
-        </div>
-        <article class="feature-row">
-          <div class="feature-copy">
-            <p class="eyebrow" data-copy="noteEyebrow">01 / 时间批注</p>
-            <h2 data-copy="noteTitle">把问题标在听到的地方。</h2>
-            <p data-copy="noteBody"></p>
-            <p class="key-hint">
-              <kbd>M</kbd><span data-copy="noteKey"></span>
-            </p>
+          <h2 data-copy="recordingsTitle">操作录屏</h2>
+          <div
+            class="recording-tabs"
+            role="tablist"
+            data-label="recordingChoice"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              id="recording-tab-workflow"
+              aria-controls="recording-workflow"
+              data-recording-tab="workflow"
+              data-copy="workflowTab"
+            >
+              听审</button
+            ><button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              tabindex="-1"
+              id="recording-tab-notes"
+              aria-controls="recording-notes"
+              data-recording-tab="notes"
+              data-copy="noteTab"
+            >
+              批注</button
+            ><button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              tabindex="-1"
+              id="recording-tab-range"
+              aria-controls="recording-range"
+              data-recording-tab="range"
+              data-copy="rangeTab"
+            >
+              区间
+            </button>
           </div>
-          <figure class="feature-film">
-            <div class="detail-window">
-              <video
-                data-clip="notes"
-                poster="./media/notes-zh.webp"
-                muted
-                playsinline
-                preload="none"
-                data-label="notesVideo"
-                aria-label="操作录屏"
-              ></video>
-            </div>
+        </div>
+        <div
+          class="recording-pane"
+          id="recording-workflow"
+          role="tabpanel"
+          aria-labelledby="recording-tab-workflow"
+          data-recording="workflow"
+        >
+          <div class="app-window">
+            <video
+              data-clip="workflow"
+              data-manual
+              poster="./media/workflow-zh.webp"
+              muted
+              playsinline
+              preload="none"
+              data-label="workflowVideo"
+            ></video>
             <div class="film-controls">
               <button
-                class="film-play"
                 type="button"
+                class="film-play"
+                data-for="workflow"
+                aria-pressed="false"
+                data-copy="play"
+              >
+                播放</button
+              ><input
+                class="film-seek"
+                data-seek="workflow"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0"
+                data-label="videoPosition"
+                disabled
+              /><span class="film-time" data-time="workflow">0:00</span
+              ><button
+                class="film-expand"
+                data-expand="workflow"
+                type="button"
+                data-label="expand"
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="recording-pane"
+          id="recording-notes"
+          role="tabpanel"
+          aria-labelledby="recording-tab-notes"
+          data-recording="notes"
+          hidden
+        >
+          <div class="app-window">
+            <video
+              data-clip="notes"
+              data-manual
+              poster="./media/notes-zh.webp"
+              muted
+              playsinline
+              preload="none"
+              data-label="notesVideo"
+            ></video>
+            <div class="film-controls">
+              <button
+                type="button"
+                class="film-play"
                 data-for="notes"
                 aria-pressed="false"
                 data-copy="play"
               >
-                播放演示</button
+                播放</button
               ><input
                 class="film-seek"
                 data-seek="notes"
@@ -188,53 +210,48 @@
                 step="0.01"
                 value="0"
                 data-label="videoPosition"
-                aria-label="演示进度"
                 disabled
-              /><span class="film-time" data-time="notes">0:00 / 0:00</span
+              /><span class="film-time" data-time="notes">0:00</span
               ><button
                 class="film-expand"
-                type="button"
                 data-expand="notes"
+                type="button"
                 data-label="expand"
-                aria-label="放大观看"
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
                 </svg>
               </button>
             </div>
-          </figure>
-        </article>
-        <article class="feature-row reverse">
-          <div class="feature-copy">
-            <p class="eyebrow" data-copy="rangeEyebrow">02 / 保留区间</p>
-            <h2 data-copy="rangeTitle">留下这一段，再仔细听一遍。</h2>
-            <p data-copy="rangeBody"></p>
-            <p class="key-hint">
-              <kbd>[ / ]</kbd><span data-copy="rangeKey"></span>
-            </p>
           </div>
-          <figure class="feature-film">
-            <div class="detail-window">
-              <video
-                data-clip="range"
-                poster="./media/range-zh.webp"
-                muted
-                playsinline
-                preload="none"
-                data-label="rangeVideo"
-                aria-label="操作录屏"
-              ></video>
-            </div>
+        </div>
+        <div
+          class="recording-pane"
+          id="recording-range"
+          role="tabpanel"
+          aria-labelledby="recording-tab-range"
+          data-recording="range"
+          hidden
+        >
+          <div class="app-window">
+            <video
+              data-clip="range"
+              data-manual
+              poster="./media/range-zh.webp"
+              muted
+              playsinline
+              preload="none"
+              data-label="rangeVideo"
+            ></video>
             <div class="film-controls">
               <button
-                class="film-play"
                 type="button"
+                class="film-play"
                 data-for="range"
                 aria-pressed="false"
                 data-copy="play"
               >
-                播放演示</button
+                播放</button
               ><input
                 class="film-seek"
                 data-seek="range"
@@ -244,31 +261,28 @@
                 step="0.01"
                 value="0"
                 data-label="videoPosition"
-                aria-label="演示进度"
                 disabled
-              /><span class="film-time" data-time="range">0:00 / 0:00</span
+              /><span class="film-time" data-time="range">0:00</span
               ><button
                 class="film-expand"
-                type="button"
                 data-expand="range"
+                type="button"
                 data-label="expand"
-                aria-label="放大观看"
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M7 3H3v4m10-4h4v4M3 13v4h4m6 0h4v-4" />
                 </svg>
               </button>
             </div>
-          </figure>
-        </article>
+          </div>
+        </div>
       </section>
       <section class="install-section" id="install">
         <div class="wrap install-layout">
           <div>
-            <p class="eyebrow" data-copy="installEyebrow">开始使用</p>
-            <h2 data-copy="installTitle">从你自己的音频开始。</h2>
+            <h2 data-copy="installTitle">在本机打开。</h2>
             <p data-copy="installBody">
-              下载并解压源码包，在电脑上打开工作台。
+              下载源码包，解压后启动。
             </p>
             <a
               class="button primary"
@@ -379,7 +393,8 @@
     </dialog>
     <noscript
       ><p class="no-script">
-        视频需要 JavaScript。Video playback requires JavaScript.
+        请启用 JavaScript 以使用试听示例和录屏。Enable JavaScript to use the
+        sample and recordings.
       </p></noscript
     >
   </body>

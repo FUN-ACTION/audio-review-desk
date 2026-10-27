@@ -8,7 +8,7 @@ from scripts.build_release import check_release_notes
 class ReleaseNotesTests(unittest.TestCase):
     def test_all_published_versions_have_changes_and_upgrade_steps(self):
         repo = Path(__file__).resolve().parents[1]
-        for version in ('0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.7.1'):
+        for version in ('0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.7.1', '0.8.0'):
             self.assertTrue(check_release_notes(repo, version).is_file())
 
     def test_missing_or_incomplete_release_cannot_be_built(self):

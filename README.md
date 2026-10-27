@@ -1,8 +1,8 @@
 # Audio Review Desk
 
-本地音频听审工具。逐条试听、切换参考音频，记录保留区间和时间批注，最后导出 CSV 或 JSON。
+逐条听音频，比较参考版本，保存区间和批注。审核记录可导出为 CSV 或 JSON。
 
-[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.7 更新](docs/releases/0.7.0.md) · [0.7.1 修复](docs/releases/0.7.1.md)
+[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.8 更新](docs/releases/0.8.0.md)
 
 [![试听、批注与区间编辑](docs/walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
 
@@ -41,7 +41,7 @@ python3 -m venv .venv
 
 ## 更新与记录
 
-0.7 可以直接编辑时间批注、搜索备注、恢复播放位置，并修复大素材库切换时重复重建列表的问题。界面和演示页重新调整了字体、版面和视频交互。[本版说明](docs/releases/0.7.0.md)列出变化、兼容处理和升级步骤。
+0.8 重做了字体、工作台和展示页。网页中可以直接试听示例，新的中英文录屏分别演示听审、批注和区间操作。[本版说明](docs/releases/0.8.0.md)包含变化与升级步骤。
 
 原文件只供读取，保留区间不会裁剪音频。数据库、审核历史和试听副本位于独立工作区。升级前停止旧服务，备份**整个工作区**，在应用原有虚拟环境中安装新版，然后指定原路径启动。[每个版本](docs/releases/README.md)都有独立的升级说明。
 

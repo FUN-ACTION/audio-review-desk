@@ -1,5 +1,6 @@
 export const words = {
   zh: {
+    typefaces: "字体",
     versionLabel: "版本",
     settings: "设置",
     loadingWorkspace: "正在打开工作区…",
@@ -79,7 +80,7 @@ export const words = {
     save: "保存",
     undo: "撤销上次审核",
     shortcuts: "空格 播放 · B 对照 · J/K 切换 · 1–4 状态 · Ctrl+Enter 保存",
-    welcome: "添加待审音频",
+    welcome: "打开音频素材",
     folderHelp: "包含子文件夹中的音频",
     manifestHelp: "CSV / JSON",
     enterPath: "输入路径",
@@ -89,7 +90,7 @@ export const words = {
     zoomOut: "缩小波形",
     fitRange: "查看完整保留区间",
     panWave: "移动波形视图",
-    welcomeHelp: "选择文件、文件夹，或导入已有清单。",
+    welcomeHelp: "选择文件、文件夹或已有清单。",
     importType: "来源",
     folder: "文件夹",
     manifest: "CSV / JSON 清单",
@@ -196,6 +197,7 @@ export const words = {
     reviewProgress: "审核进度",
   },
   en: {
+    typefaces: "Fonts",
     versionLabel: "Version",
     settings: "Settings",
     loadingWorkspace: "Opening workspace…",
@@ -277,7 +279,7 @@ export const words = {
     undo: "Undo last review",
     shortcuts:
       "Space Play · B Compare · J/K Navigate · 1–4 Status · Ctrl+Enter Save",
-    welcome: "Add audio to review",
+    welcome: "Open an audio collection",
     folderHelp: "Include audio in subfolders",
     manifestHelp: "CSV / JSON",
     enterPath: "Enter a path",

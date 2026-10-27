@@ -91,7 +91,7 @@ class ServerTests(unittest.TestCase):
             thread.join()
 
     def test_walkthrough_assets_ranges_and_path_boundary(self):
-        for path in ('/tour/', '/tour/tour.js', '/tour/tour.css', '/tour/media-info.js', '/tour/preview.js', '/tour/media/workflow-zh.webp'):
+        for path in ('/tour/', '/tour/tour.js', '/tour/tour.css', '/tour/media-info.js', '/tour/preview.js', '/tour/studio.js', '/tour/studio-signal.js', '/tour/studio.css', '/geist-latin.woff2', '/MiSans-Regular.woff2', '/MiSans-License.pdf', '/workbench-studio.css', '/tour/media/workflow-zh.webp'):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn("frame-ancestors 'none'", response.headers['Content-Security-Policy'])

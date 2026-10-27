@@ -1,13 +1,10 @@
-# Roadmap
+# Next changes
 
-The first release focuses on a small, reproducible local review loop. There are no promised delivery dates.
+The current release has native file selection, editable time notes, note search, playback memory and recorded walkthroughs. Changes under consideration:
 
-Next candidates:
+- Export presets for dataset tools, without tying the review database to a model.
+- Resumable scans for large collections.
+- Optional loudness measurements.
+- A comparison view for earlier review versions.
 
-- A native folder chooser in addition to the path-based GUI importer.
-- Export profiles for downstream dataset tools without coupling to a specific model.
-- Pagination and resumable analysis for large collections.
-- Optional perceptual loudness analysis and more decoder precision modes.
-- A side-by-side history view for inactive audio versions.
-
-Community feedback should determine priority. Voice identification, transcription, training, and automatic human-approval simulation are outside the initial scope.
+There are no fixed delivery dates. Reports with a small reproducible example help set priorities.

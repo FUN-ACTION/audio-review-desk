@@ -13,7 +13,7 @@ node --test tests-js/*.test.mjs
 
 FFmpeg integration tests are conditional on FFmpeg and ffprobe being available. The app itself does not require Node.js. Frontend files are served directly as packaged resources; no JavaScript build step is required.
 
-Frontend modules separate copy, motion, waveform drawing and media controls. See [design notes](docs/design.md) for the type and motion system. Bundled fonts are ready to use. To rebuild them, install `fonttools[woff]` in a separate build environment and run `python scripts/build_fonts.py`; source revisions and hashes are pinned in that script. The font build cache is ignored by Git.
+Frontend modules separate copy, motion, waveform drawing and media controls. See [design notes](docs/design.md) for the type and motion system. Bundled fonts are ready to use. For the current Geist and MiSans files, follow [the font maintenance guide](docs/fonts.md). The older `build_fonts.py` maintains the legacy subsets. The font build cache is ignored by Git.
 
 ## Invariants
 
@@ -34,7 +34,7 @@ Before a PR, explain what changed and which checks you ran. Add a regression cas
 After tests pass and changes are committed, build from the committed tree:
 
 ```sh
-python scripts/build_release.py --output ../release/0.5.0
+python scripts/build_release.py --output ../release/0.8.0
 ```
 
 Use a new output directory for each release. The script archives the commit, builds its wheel in a clean temporary directory, and writes SHA256 checksums. This avoids packaging stale frontend files from a previous local build. Install that wheel in a separate environment before publishing, and check the CI result for the exact release commit.
