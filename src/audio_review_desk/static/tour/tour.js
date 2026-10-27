@@ -1,5 +1,5 @@
-import { copy } from "./tour-copy.js?v=0.8.0";
-import { filmDurations } from "./media-info.js?v=0.8.0";
+import { copy } from "./tour-copy.js?v=0.8.1";
+import { filmDurations } from "./media-info.js?v=0.8.1";
 import {
   shouldPlay,
   activeClip,
@@ -82,7 +82,7 @@ function load(entry) {
   if (entry.loaded) return;
   entry.loaded = true;
   entry.failed = false;
-  entry.video.src = `${mediaPath(entry.id, language)}?v=0.8.0`;
+  entry.video.src = `${mediaPath(entry.id, language)}?v=0.8.1`;
   entry.video.load();
 }
 function sync() {
@@ -195,11 +195,11 @@ for (const entry of entries) {
       const time =
         entry.completed || entry.video.ended ? 0 : entry.video.currentTime || 0;
       $("cinemaError").hidden = true;
-      cinemaVideo.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.0`;
+      cinemaVideo.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.1`;
       cinemaVideo.onloadedmetadata = () => {
         cinemaVideo.currentTime = clampFilmTime(time, cinemaVideo.duration);
       };
-      cinemaVideo.src = `${mediaPath(entry.id, language)}?v=0.8.0`;
+      cinemaVideo.src = `${mediaPath(entry.id, language)}?v=0.8.1`;
       cinemaVideo.load();
       cinema.showModal();
       sync();
@@ -322,7 +322,7 @@ function translate() {
     entry.seeking = false;
     entry.resume = false;
     entry.video.removeAttribute("src");
-    entry.video.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.0`;
+    entry.video.poster = `${mediaPath(entry.id, language, "webp")}?v=0.8.1`;
     entry.video.load();
     paint(entry);
   }

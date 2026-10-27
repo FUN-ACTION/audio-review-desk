@@ -1,6 +1,6 @@
 # Release verification
 
-Version 0.8.0 · 2026-10-27
+Version 0.8.1 · 2026-10-27
 
 ## Automated checks
 
@@ -9,6 +9,8 @@ Version 0.8.0 · 2026-10-27
 The sample tests verify finite audio with headroom and matching RMS levels, waveform bins, seek bounds and the minimum selectable interval. Font checks verify packaged bytes and Chinese character coverage. The server tests request the new fonts, licence, styles and sample modules through the same static-file boundary as the app. Media tests verify all six video/poster hashes, capture duration and the final still-frame hold.
 
 Tests use temporary workspaces and generated signals. Optional FFmpeg cases run when tools are available. CI uses Python 3.11 and 3.13 on Windows, Linux and macOS, plus one FFmpeg job; the release links the result for its exact commit.
+
+The 0.8.1 follow-up increases small-label contrast and mobile touch targets. It retains the 0.8.0 font and recording bytes.
 
 ## Browser inspection
 

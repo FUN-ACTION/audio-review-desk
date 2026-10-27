@@ -4,7 +4,7 @@ import {
   sampleDuration,
   clampSampleTime,
   moveSampleEdge,
-} from "./studio-signal.js?v=0.8.0";
+} from "./studio-signal.js?v=0.8.1";
 
 const words = {
   zh: {
@@ -175,7 +175,7 @@ function mount(root) {
     motionButton
       .querySelector("path")
       .setAttribute("d", intro ? "M4 3h3v10H4zm5 0h3v10H9z" : "m5 3 8 5-8 5z");
-    for (const button of $$("[data-variant]"))
+    for (const button of $$(".sample-segment button[data-variant]"))
       button.setAttribute(
         "aria-pressed",
         String(button.dataset.variant === variant),
@@ -417,7 +417,7 @@ function mount(root) {
     }
   });
   seek.addEventListener("input", () => seekTo(Number(seek.value)));
-  for (const b of $$("[data-variant]"))
+  for (const b of $$(".sample-segment button[data-variant]"))
     b.addEventListener("click", () => {
       const resume = playing;
       position = readTime();

@@ -104,7 +104,7 @@
 .sample-heading p {
   margin: 0;
   font-size: 11px;
-  color: #7f8393;
+  color: #626b80;
 }
 .sample-tag {
   background: #f0f2f9;
@@ -197,7 +197,7 @@
   justify-content: space-between;
   font-size: 9px;
   line-height: 1;
-  color: #8a8e9d;
+  color: #626b80;
   margin: 10px 0 18px;
   font-variant-numeric: tabular-nums;
 }
@@ -252,7 +252,7 @@
   padding: 8px 14px;
   font-size: 11px;
   border-radius: 5px;
-  color: #7d8295;
+  color: #626b80;
 }
 .sample-segment button[aria-pressed="true"] {
   color: #252c45;
@@ -278,7 +278,7 @@
   width: 34px;
   height: 34px;
   padding: 7px;
-  color: #8a8fa2;
+  color: #626b80;
 }
 .sample-loop[aria-pressed="true"] {
   color: #314af6;
@@ -301,7 +301,7 @@
   padding-top: 18px;
   margin-top: 18px;
   font-size: 11px;
-  color: #858a99;
+  color: #626b80;
 }
 .sample-range {
   font-variant-numeric: tabular-nums;
@@ -357,7 +357,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 10px;
-  color: #958459;
+  color: #6b5c38;
   margin-bottom: 10px;
 }
 .note-meta button {
@@ -365,7 +365,7 @@
   padding: 0 0 0 8px;
   font-size: 15px;
   line-height: 1;
-  color: #a18e62;
+  color: #6b5c38;
 }
 .sample-note input {
   font: inherit;
@@ -387,7 +387,7 @@
   z-index: 4;
   background: #fff7df;
   border: 1px solid #f5e6bf;
-  color: #978455;
+  color: #6b5c38;
   border-radius: 6px;
   font-size: 10px;
   padding: 3px 7px;
@@ -410,7 +410,7 @@
   background: #fff4;
   border: 1px solid #fff5;
   border-radius: 50px;
-  color: #7a829e;
+  color: #4e5b7e;
   transition:
     background-color 0.2s,
     color 0.2s;
@@ -711,5 +711,102 @@
     height: 28px;
     padding: 5px;
     margin-left: 0;
+  }
+}
+
+/* Readable labels and comfortable touch controls. */
+.sample-heading p,
+.sample-tag {
+  font-size: 12px;
+}
+.sample-ruler {
+  font-size: 11px;
+}
+.sample-range,
+.sample-segment button,
+.sample-annotation {
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  .studio-top,
+  .sample-heading p,
+  .sample-tag,
+  .sample-ruler {
+    font-size: 11px;
+  }
+  .sample-time,
+  .sample-segment button,
+  .sample-annotation,
+  .note-meta,
+  .sample-note input {
+    font-size: 12px;
+  }
+  .sample-segment {
+    order: 3;
+    width: 100%;
+    margin: 8px 0 0;
+  }
+  .sample-segment button {
+    width: 50%;
+    min-height: 38px;
+  }
+  .sample-bottom {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .sample-range {
+    font-size: 10px;
+  }
+  .sample-annotation {
+    min-height: 36px;
+    margin-left: auto;
+  }
+  .sample-loop {
+    width: 36px;
+    height: 36px;
+  }
+  .studio-chapters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .studio-chapters button {
+    min-height: 44px;
+    padding: 9px 7px;
+    font-size: 12px;
+    line-height: 1.3;
+    white-space: normal;
+    text-align: center;
+    justify-content: center;
+  }
+  .studio-chapters button:before {
+    display: none;
+  }
+  .studio-hint {
+    font-size: 12px;
+  }
+}
+
+.note-meta {
+  font-size: 11px;
+  padding-right: 22px;
+}
+.note-meta button {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+}
+.sample-pin {
+  font-size: 11px;
+}
+@media (max-width: 720px) {
+  .sample-note {
+    width: 188px;
+  }
+  .note-meta {
+    font-size: 11px;
   }
 }

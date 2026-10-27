@@ -2,6 +2,12 @@
 
 Every version has [installation and workspace notes](docs/releases/README.md).
 
+## 0.8.1 — 2026-10-27
+
+Increase sample label sizes and contrast. Give mobile A/B controls their own row and allow action labels to wrap in larger touch targets. The 0.8.0 recordings and font files are unchanged.
+
+[Changes and upgrade steps](docs/releases/0.8.1.md).
+
 ## 0.8.0 — 2026-10-27
 
 Redesign the workspace and tour with Geist and MiSans, a pale lavender palette and a separate review panel. Add a playable piano sample with A/B switching, range selection, looping and a time note. Re-record the Chinese and English walkthroughs as focused clips with inline controls. Respect reduced motion and stop playback offscreen.

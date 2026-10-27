@@ -2,7 +2,7 @@
 
 逐条听音频，比较参考版本，保存区间和批注。审核记录可导出为 CSV 或 JSON。
 
-[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.8 更新](docs/releases/0.8.0.md)
+[English](docs/README.en.md) · [安装](docs/installation.md) · [清单格式](docs/manifests.md) · [0.8 更新](docs/releases/0.8.0.md) · [0.8.1 修订](docs/releases/0.8.1.md)
 
 [![试听、批注与区间编辑](docs/walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
 

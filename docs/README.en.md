@@ -2,7 +2,7 @@
 
 Listen through audio collections, compare references, and save keep ranges and timestamped notes. Export reviews as CSV or JSON.
 
-[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.8 changes](releases/0.8.0.md)
+[中文](../README.md) · [Install](installation.md) · [Manifest format](manifests.md) · [0.8 changes](releases/0.8.0.md) · [0.8.1 readability fix](releases/0.8.1.md)
 
 [![Listening, notes and review decisions](walkthrough.gif)](https://fun-action.github.io/audio-review-desk/tour/)
 
