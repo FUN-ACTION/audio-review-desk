@@ -139,7 +139,7 @@ class ShowcaseTests(unittest.TestCase):
                               else (path.parent/imported.path)).resolve()
                     self.assertTrue(target.is_file(), f'Missing imported module: {specifier}')
                     pending.append(target)
-        self.assertTrue({'art-stage.js', 'music-player.js', 'studio-signal.js'}.issubset({p.name for p in visited}))
+        self.assertTrue({'signal-stage.js', 'music-player.js', 'studio-signal.js'}.issubset({p.name for p in visited}))
         html = (static/'tour/index.html').read_text(encoding='utf-8')
         self.assertNotRegex(html, r'<video\b|data-story-demo|data-demo-host')
 

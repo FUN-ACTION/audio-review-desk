@@ -18,7 +18,7 @@ from .picker import choose
 from .errors import error_code
 from . import __version__
 
-TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js", "studio.js", "studio-signal.js", "studio.css", "scene.js", "scene-physics.js", "scene-vendor.js", "three-LICENSE.txt", "reel-warp.js", "score-scene.js", "score-math.js", "story-demo.js", "story-demo.css", "story-math.js", "type.css", "score-serif.woff2", "score-serif-OFL.txt", "sample-playback.js", "score-sans.woff2", "note-geometry.js", "music-art.js", "music-art.css", "music-shader.js", "music-player.js", "art-stage.js"}
+TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js", "studio.js", "studio-signal.js", "studio.css", "scene.js", "scene-physics.js", "scene-vendor.js", "three-LICENSE.txt", "reel-warp.js", "score-scene.js", "score-math.js", "story-demo.js", "story-demo.css", "story-math.js", "type.css", "score-serif.woff2", "score-serif-OFL.txt", "sample-playback.js", "score-sans.woff2", "note-geometry.js", "music-art.js", "music-art.css", "music-shader.js", "music-player.js", "art-stage.js", "signal-stage.js"}
 TOUR_MEDIA = { "workflow-zh.mp4", "workflow-en.mp4",
               "notes-zh.mp4", "notes-en.mp4", "range-zh.mp4", "range-en.mp4",
               "workflow-zh.webp", "workflow-en.webp", "notes-zh.webp", "notes-en.webp",
@@ -121,7 +121,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
-                if path in {"/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/listening.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2", "/desk-cjk-ui.woff2", "/fonts.css", "/desk-display.woff2", "/geist-latin.woff2", "/MiSans-Regular.woff2", "/MiSans-License.pdf", "/workbench-studio.css"}:
+                if path in {"/audition.js", "/spectrogram.js", "/spectrum-math.js", "/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/listening.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2", "/desk-cjk-ui.woff2", "/fonts.css", "/desk-display.woff2", "/geist-latin.woff2", "/MiSans-Regular.woff2", "/MiSans-License.pdf", "/workbench-studio.css"}:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()

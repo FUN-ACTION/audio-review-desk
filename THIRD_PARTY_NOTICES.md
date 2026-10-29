@@ -2,7 +2,7 @@
 
 The application code is MIT-licensed. Bundled libraries and fonts retain their own licences.
 
-## Active typefaces in 0.12
+## Active typefaces
 
 - **MiSans** is Copyright Xiaomi Inc. The official, unchanged `MiSans-Regular.woff2` is the Chinese face for the tour and review workspace. No glyph, name or font bytes were modified. Its supplied [licence](src/audio_review_desk/static/MiSans-License.pdf), together with the [official font FAQ](https://hyperos.mi.com/font/en/faq/), applies to the font; the application's MIT licence does not relicense it. The source and digest are recorded in `scripts/fonts/sources.json` and `scripts/fonts/studio.json`.
 - **Inter** is used for Latin text in the presentation. The bundled subset uses optical size 14 and weights 400–700 under the SIL Open Font License 1.1. See [source](https://github.com/google/fonts/tree/main/ofl/inter) and [licence](src/audio_review_desk/static/inter-OFL.txt).
@@ -26,7 +26,7 @@ The bundled `static/motion-vendor.js` contains Motion, framer-motion, motion-dom
 
 Source: [motiondivision/motion](https://github.com/motiondivision/motion). The build entry, exact dependency lock and output hash are in `scripts/motion-build/`. Normal application use does not contact a CDN or package registry.
 
-## Retained Three.js 0.180.0
+## Three.js 0.180.0
 
 The local `scene-vendor.js` bundle contains Three.js 0.180.0 and its RoomEnvironment and MarchingCubes addons, under the MIT licence. Copyright and licence text are preserved in [three-LICENSE.txt](src/audio_review_desk/static/tour/three-LICENSE.txt).
 
@@ -37,13 +37,13 @@ npm ci --prefix scripts/scene-build
 node scripts/scene-build/build.mjs
 ```
 
-This bundle remains packaged for earlier renderers, along with the reel-warp module. The current image-relief renderer uses native WebGL rather than this bundle.
+The current acoustic sculpture uses this bundle, including its room environment. Earlier model renderers and the reel-warp module remain packaged for reproducibility.
 
 ## Project artwork and reference studies
 
-The current PNG artwork was newly generated for this project with the built-in ImageGen tool. The images are `art-bloom.png`, `art-wave.png` and `art-prism.png`. Their provenance is recorded in [artwork notes](docs/artwork.md).
+The current sculpture geometry and motion in `signal-stage.js`, and the synthesized listening examples, are project code. Apple's product pages informed the typography and feature grouping; no Apple image, logo, font file or source code is included.
 
-The single-image depth preparation, relief mesh, perspective interaction and WebGL shaders in `art-stage.js` are project code. The original image remains the texture; this is a shallow relief rather than a complete 3D model. The synthesized piano sample is also project code. User-supplied PDF scores, local songs, private recordings and model weights are not included in the artwork.
+The retained 0.12 images `art-bloom.png`, `art-wave.png` and `art-prism.png` were generated for this project with ImageGen. Their depth-relief renderer is inactive in the current page. See [artwork notes](docs/artwork.md). User-supplied PDF scores, local songs, private recordings and model weights are not included.
 
 Six application recordings remain packaged from 0.10. They were captured using generated test signals and complete application frames. Their source and timing are documented in [media notes](docs/showcase-media.md); the current tour does not load them.
 

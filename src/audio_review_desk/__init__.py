@@ -1,3 +1,3 @@
 """Audio Review Desk: local analysis and listening review."""
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"

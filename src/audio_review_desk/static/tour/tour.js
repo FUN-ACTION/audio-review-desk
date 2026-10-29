@@ -1,373 +1,310 @@
-import { copy } from "./tour-copy.js?v=0.12.0";
-import { installCommands } from "./playback-policy.js";
-import { createMusicPlayer } from "./music-player.js?v=0.12.0";
-import { damp } from "./scene-physics.js?v=0.12.0";
-import { mountArtStage } from "./art-stage.js?v=0.12.0";
-const $ = (id) => document.getElementById(id);
-const reduced = matchMedia("(prefers-reduced-motion:reduce)");
-const compact = matchMedia("(max-width:812px)");
-const graphicsOff =
-  new URLSearchParams(location.search).get("graphics") === "off";
-const local = ["127.0.0.1", "localhost"].includes(location.hostname);
-const easing = "cubic-bezier(.35,0,0,1)";
-let language = navigator.language.startsWith("zh") ? "zh" : "en";
-try {
-  language = localStorage.getItem("ard-tour-language") || language;
-} catch {}
-if (!copy[language]) language = "en";
-const t = (key) => copy[language][key];
-let platform = "windows",
-  menuOpen = false,
-  menuGeneration = 0,
-  menuEffects = [];
-let scene = null,
-  userPausedScene = null;
-const menu = $("siteMenu"), scrim = $("menuScrim");
-const artworks = [...document.querySelectorAll('[data-world]')].map(host => mountArtStage(host, {scene:Number(host.dataset.world), language}));
-const sceneKinds = ['bloom','wave','prism'];
-let activeScene = 'bloom';
-if (new URLSearchParams(location.search).get('motion') === 'off') userPausedScene = true;
-const player = createMusicPlayer({
-  onChange: paintSample,
-  onLevel: level => {
-    if (level !== 0 && ((userPausedScene ?? reduced.matches) || menuOpen || document.hidden)) return;
-    scene?.setAudioLevel(level);
-    artworks.forEach(art => art.setAudioLevel(level));
-  },
-  onError: () => { $('sampleError').textContent=t('sampleError'); $('sampleError').hidden=false; }
+import { copy } from './tour-copy.js?v=0.13.0';
+import { createMusicPlayer } from './music-player.js?v=0.13.0';
+import { sampleSignal, signalPeaks, sampleDuration, moveSampleEdge } from './studio-signal.js';
+import { mountSignalStage } from './signal-stage.js?v=0.13.0';
+
+const $ = id => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+const releaseURL = 'https://github.com/FUN-ACTION/audio-review-desk/releases/latest';
+let language = navigator.language.startsWith('zh') ? 'zh' : 'en';
+try { language = localStorage.getItem('ard-tour-language') || language; } catch {}
+if (!copy[language]) language = 'en';
+const t = key => copy[language][key] || key;
+let userPaused = new URLSearchParams(location.search).get('motion') === 'off' ? true : null;
+const stage = mountSignalStage($('heroStage'), { paused: userPaused ?? reduced.matches });
+let examples;
+const music = createMusicPlayer({
+  onChange: paintMusic,
+  onLevel: level => stage.setAudioLevel(level),
+  onError: () => { $('musicError').textContent = t('fileError'); $('musicError').hidden = false; },
 });
-const effect = (element, frames, options) => {
-  if (reduced.matches) return null;
-  return element.animate(frames, {
-    duration: 500,
-    easing,
-    fill: "both",
-    ...options,
-  });
-};
-function paintSample(state = player.state) {
-  const active=state.playing || state.pending;
-  $('samplePlay').setAttribute('aria-pressed',String(active));
-  $('samplePlay').setAttribute('aria-label',t(active ? 'stopListening' : 'listen'));
-  document.querySelector('[data-sample-label]').textContent=t(active ? 'stopListening' : 'listen');
-  $('musicName').textContent=state.name; $('musicName').hidden=!state.name;
-  $('resetMusic').hidden=!state.name;
+function paintMusic(state = music.state) {
+  const active = state.playing || state.pending;
+  $('musicPlay').setAttribute('aria-pressed', String(active));
+  $('musicPlay').setAttribute('aria-label', t(active ? 'pause' : 'listen'));
+  $('musicLabel').textContent = t(active ? 'pause' : 'listen');
+  document.querySelector('.music-icon').textContent = active ? 'Ⅱ' : '▶';
+  $('musicName').textContent = state.name || t('soundLabel');
+  $('resetMusic').hidden = !state.name;
 }
-const stopSample=()=>player.pause();
-$('samplePlay').addEventListener('click',()=>{ $('sampleError').hidden=true; player.toggle(); });
-$('chooseMusic').addEventListener('click',()=>$('musicFile').click());
-$('musicFile').addEventListener('change',()=>{ const file=$('musicFile').files[0]; if(file) { player.selectFile(file); $('sampleError').hidden=true; } $('musicFile').value=''; });
-$('resetMusic').addEventListener('click',()=>{ player.reset(); $('sampleError').hidden=true; });
-function changeScene(kind) {
-  if (!sceneKinds.includes(kind)) return;
-  activeScene=kind; scene?.setScene(sceneKinds.indexOf(kind));
-  $('heroScene').dataset.theme=kind==='wave' ? 'light' : 'dark';
-  document.querySelectorAll('button[data-scene]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.scene===kind)));
-}
-document.querySelectorAll('button[data-scene]').forEach(button=>button.addEventListener('click',()=>changeScene(button.dataset.scene)));
 function paintMotion() {
-  const paused = userPausedScene ?? reduced.matches;
-  $("motionToggle").setAttribute("aria-pressed", String(paused));
-  $("motionToggle").setAttribute(
-    "aria-label",
-    t(paused ? "motionPlay" : "motionPause"),
-  );
-  const sceneReady = !graphicsOff;
-  $("paletteToggle").hidden = !sceneReady;
-  $("heroScene").setAttribute("aria-label", t(sceneReady ? "scene" : "sceneStatic"));
+  const paused = userPaused ?? reduced.matches;
+  stage.setPaused(paused);
+  $('motionToggle').setAttribute('aria-pressed', String(paused));
+  $('motionToggle').setAttribute('aria-label', t(paused ? 'playMotion' : 'pauseMotion'));
 }
-$("motionToggle").addEventListener("click", () => {
-  userPausedScene = !(userPausedScene ?? reduced.matches);
-  scene?.setPaused(userPausedScene);
-  scene?.setAudioLevel(0);
-  paintMotion();
-  syncMotion();
+$('motionToggle').addEventListener('click', () => {
+  userPaused = !(userPaused ?? reduced.matches); paintMotion();
 });
-scene = mountArtStage($('heroWorld'),{scene:0,language});
-$('heroScene').dataset.ready=String(scene.ready);
-$('paletteToggle').addEventListener('click',()=>changeScene(sceneKinds[(sceneKinds.indexOf(activeScene)+1)%sceneKinds.length]));
-$('heroWorld').addEventListener('motionchange',()=>{ $('heroScene').dataset.ready=String(!!scene?.ready); paintMotion(); });
-async function setMenu(open, { focus = true } = {}) {
-  const generation = ++menuGeneration;
-  const cards = [...menu.querySelectorAll(".menu-links,.menu-bottom")];
-  const wasHidden = menu.hidden;
-  const presentation = cards.map((card) => {
-    const st = getComputedStyle(card);
-    return { opacity: st.opacity, transform: st.transform };
-  });
-  const scrimOpacity = scrim.hidden ? "0" : getComputedStyle(scrim).opacity;
-  menuEffects.forEach((e) => e?.cancel());
-  menuEffects = [];
-  menuOpen = open;
-  $("menuToggle").setAttribute("aria-expanded", String(open));
-  $("menuToggle").setAttribute("aria-label", t(open ? "close" : "menu"));
-  $("main").toggleAttribute("inert", open);
-  $("main").setAttribute("aria-hidden", String(open));
-  if (open) {
-    menu.hidden = false;
-    menu.removeAttribute("inert");
-    scrim.hidden = false;
-    menuEffects.push(
-      effect(scrim, [{ opacity: scrimOpacity }, { opacity: 1 }], {
-        duration: 400,
-      }),
-    );
-    cards.forEach((card, i) =>
-      menuEffects.push(
-        effect(
-          card,
-          [
-            wasHidden
-              ? { opacity: 0, transform: "translateY(80px) rotate(3.5deg)" }
-              : presentation[i],
-            { opacity: 1, transform: "translateY(0) rotate(0)" },
-          ],
-          { delay: wasHidden ? i * 20 : 0, easing: "cubic-bezier(.4,0,.1,1)" },
-        ),
-      ),
-    );
-  } else {
-    menu.setAttribute("inert", "");
-    if (focus) $("menuToggle").focus({ preventScroll: true });
-    cards.forEach((card, i) =>
-      menuEffects.push(
-        effect(
-          card,
-          [
-            presentation[i],
-            { opacity: 0, transform: "translateY(80px) rotate(3.5deg)" },
-          ],
-          {
-            duration: 400,
-            delay: (cards.length - i - 1) * 20,
-            easing: "cubic-bezier(.4,0,.1,1)",
-          },
-        ),
-      ),
-    );
-    menuEffects.push(
-      effect(scrim, [{ opacity: scrimOpacity }, { opacity: 0 }], {
-        duration: 400,
-      }),
-    );
-    await Promise.all(
-      menuEffects.filter(Boolean).map((e) => e.finished.catch(() => {})),
-    );
-    if (generation !== menuGeneration) return;
-    menu.hidden = true;
-    scrim.hidden = true;
-  }
-  syncMotion();
-}
-$("menuToggle").addEventListener("click", () => setMenu(!menuOpen));
-scrim.addEventListener("click", () => setMenu(false));
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && menuOpen) {
-    event.preventDefault();
-    setMenu(false);
-  }
-  if (event.key === "Tab" && menuOpen) {
-    const items = [$("menuToggle"), ...menu.querySelectorAll("a,button")];
-    const index = items.indexOf(document.activeElement);
-    if (event.shiftKey && index <= 0) {
-      event.preventDefault();
-      items.at(-1).focus();
-    } else if (!event.shiftKey && index === items.length - 1) {
-      event.preventDefault();
-      items[0].focus();
-    }
-  }
+$('musicPlay').addEventListener('click', () => {
+  examples?.pause(); $('musicError').hidden = true; music.toggle();
 });
-document.querySelectorAll('a[href^="#"]').forEach((link) =>
-  link.addEventListener("click", (event) => {
-    const target = document.querySelector(link.getAttribute("href"));
-    if (!target) return;
-    event.preventDefault();
-    if (menuOpen) setMenu(false, { focus: false });
-    target.setAttribute("tabindex", "-1");
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({
-      behavior: reduced.matches ? "instant" : "smooth",
-      block: "start",
-    });
-  }),
-);
-
-
-function syncMotion() {
-  const paused = (userPausedScene ?? reduced.matches) || menuOpen || document.hidden;
-  scene?.setPaused(paused);
-  artworks.forEach(art => art.setPaused(paused));
-  if (menuOpen) stopSample();
-}
-let scrollFrame=0, progress=0, lastScroll=0;
-const ribbon=$('ribbonPath'), ribbonLength=ribbon.getTotalLength();
-ribbon.style.strokeDasharray=String(ribbonLength);
-function scrollTick(now) {
-  scrollFrame=0;
-  if (document.hidden) { lastScroll=0; return; }
-  $('header').classList.toggle('is-scrolled', scrollY > 80);
-  const dt=lastScroll ? Math.min(.05,(now-lastScroll)/1000) : .016; lastScroll=now;
-  const bounds=$('artHold').getBoundingClientRect();
-  const target=reduced.matches || compact.matches ? 1 : Math.max(0,Math.min(1,(innerHeight*.95-bounds.top)/(innerHeight*.8)));
-  progress=reduced.matches ? target : damp(progress,target,12,dt);
-  const p=Math.abs(progress-target)<.001 ? target : progress;
-  document.querySelector('.art-score').style.transform=reduced.matches || compact.matches ? 'none' : `translate3d(0,${24*(1-p)}px,0) scale(${.94+.06*p})`;
-  const section=$('reel').getBoundingClientRect();
-  const rp=Math.max(0,Math.min(1,(innerHeight-section.top)/(section.height*.82)));
-  ribbon.style.strokeDashoffset=String((1-(reduced.matches ? 1 : rp))*ribbonLength);
-  if (Math.abs(progress-target)>.001) requestScroll();
-}
-function requestScroll() { if (!scrollFrame && !document.hidden) scrollFrame=requestAnimationFrame(scrollTick); }
-window.addEventListener('scroll',requestScroll,{passive:true});
-window.addEventListener('resize',requestScroll,{passive:true});
-const reveals = new IntersectionObserver(
-  (changes) => {
-    for (const entry of changes) {
-      if (!entry.isIntersecting) continue;
-      reveals.unobserve(entry.target);
-      effect(
-        entry.target,
-        [
-          { opacity: 0, transform: "translateY(30px)" },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        { duration: 800, fill: "none" },
-      );
-    }
-  },
-  { threshold: 0.2 },
-);
-document
-  .querySelectorAll(".work-card,.work-heading,.download-section")
-  .forEach((e) => reveals.observe(e));
-
-function showPlatform(next) {
-  platform = next;
-  for (const tab of document.querySelectorAll("[data-platform]")) {
-    const active = tab.dataset.platform === next;
-    tab.setAttribute("aria-selected", String(active));
-    tab.tabIndex = active ? 0 : -1;
-  }
-  $("installInstructions").setAttribute("aria-labelledby", `platform-${next}`);
-  $("installHint").textContent = t(
-    next === "windows" ? "installWindows" : "installUnix",
-  );
-  $("installCode").textContent = installCommands(next);
-  $("installCode").parentElement.hidden = next === "windows";
-  $("copyInstall").hidden = next === "windows";
-  $("copyStatus").textContent = "";
-}
-for (const tab of document.querySelectorAll("[data-platform]")) {
-  tab.addEventListener("click", () => showPlatform(tab.dataset.platform));
-  tab.addEventListener("keydown", (event) => {
-    const all = [...document.querySelectorAll("[data-platform]")],
-      index = all.indexOf(tab);
-    let next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? 2
-          : event.key === "ArrowRight"
-            ? (index + 1) % 3
-            : event.key === "ArrowLeft"
-              ? (index + 2) % 3
-              : null;
-    if (next !== null) {
-      event.preventDefault();
-      showPlatform(all[next].dataset.platform);
-      all[next].focus();
-    }
-  });
-}
-$("copyInstall").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(installCommands(platform));
-    $("copyStatus").textContent = t("copied");
-  } catch {
-    $("copyStatus").textContent = t("copyFailed");
-  }
+$('chooseMusic').addEventListener('click', () => $('musicFile').click());
+$('musicFile').addEventListener('change', () => {
+  const file = $('musicFile').files[0];
+  if (file) { examples?.pause(); music.selectFile(file); $('musicError').hidden = true; }
+  $('musicFile').value = '';
 });
+$('resetMusic').addEventListener('click', () => { music.reset(); $('musicError').hidden = true; });
 function translate() {
-  document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-  document.title = "Audio Review Desk";
-  document.querySelector("meta[name=description]").content = t("intro");
-  document
-    .querySelectorAll("[data-copy]")
-    .forEach((e) => (e.textContent = t(e.dataset.copy)));
-  document
-    .querySelectorAll("[data-label]")
-    .forEach((e) => e.setAttribute("aria-label", t(e.dataset.label)));
-  menu.setAttribute("aria-label", language === "zh" ? "导航" : "Navigation");
-  $("menuToggle").setAttribute("aria-label", t(menuOpen ? "close" : "menu"));
-  $("language").textContent = language === "zh" ? "English" : "中文";
-  $("language").setAttribute(
-    "aria-label",
-    language === "zh" ? "Switch to English" : "切换到中文",
-  );
-  for (const primary of document.querySelectorAll("[data-primary]")) {
-    primary.href = local
-      ? "/"
-      : "https://github.com/FUN-ACTION/audio-review-desk/releases/latest";
-    const label = primary.querySelector("[data-copy]");
-    if (local) label.textContent = t("open");
-  }
-  artworks.forEach(art => art.setLanguage(language)); scene?.setLanguage(language); changeScene(activeScene);
-  document.querySelectorAll('[data-workspace]').forEach(link=>link.href=local ? '/' : '#download');
-  $('installCard').hidden=local;
-  $('localInstallHint').hidden=!local;
-  document.querySelector('.source-link').hidden=!local;
-  if (!$("sampleError").hidden) $("sampleError").textContent = t("sampleError");
-  showPlatform(platform);
-  paintSample();
-  paintMotion();
-  syncMotion();
-  requestScroll();
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.querySelector('.nav-inner').setAttribute('aria-label', t('navigation'));
+  document.querySelectorAll('[data-copy]').forEach(element => { element.textContent = t(element.dataset.copy); });
+  document.querySelectorAll('[data-placeholder]').forEach(element => { element.placeholder = t(element.dataset.placeholder); });
+  document.querySelectorAll('[data-open]').forEach(link => {
+    link.href = local ? '/' : releaseURL;
+    link.textContent = t(local ? 'open' : 'get');
+  });
+  $('languageToggle').textContent = language === 'zh' ? 'EN' : '中文';
+  $('languageToggle').setAttribute('aria-label', t('language'));
+  $('heroStage').setAttribute('aria-label', t('heroLabel'));
+  $('installHint').textContent = t(local ? 'localReady' : 'installBody');
+  paintMusic(); paintMotion(); examples?.translate();
 }
-$("language").addEventListener("click", () => {
-  language = language === "zh" ? "en" : "zh";
-  try {
-    localStorage.setItem("ard-tour-language", language);
-  } catch {}
+$('languageToggle').addEventListener('click', () => {
+  language = language === 'zh' ? 'en' : 'zh';
+  try { localStorage.setItem('ard-tour-language', language); } catch {}
   translate();
 });
+reduced.addEventListener('change', paintMotion);
 
-const modeChange = () => { userPausedScene = null; syncMotion(); paintMotion(); requestScroll(); };
-reduced.addEventListener('change',modeChange);
-compact.addEventListener('change',requestScroll);
-document.addEventListener('visibilitychange',()=>{
-  if (document.hidden) { stopSample(); cancelAnimationFrame(scrollFrame); scrollFrame=0; lastScroll=0; }
-  else requestScroll();
-  syncMotion();
-});
-window.addEventListener('pagehide',(event)=>{
-  if (event.persisted) return;
-  stopSample(); scene?.dispose(); artworks.forEach(art=>art.dispose());
-  cancelAnimationFrame(scrollFrame); reveals.disconnect(); lineReveal.disconnect();
-  player.dispose();
-});
-window.addEventListener('pageshow',event=>{ if (event.persisted) { syncMotion(); requestScroll(); } });
-translate(); requestScroll();
-const lineReveal = new IntersectionObserver(
-  (changes) => {
-    for (const entry of changes) {
-      if (!entry.isIntersecting) continue;
-      lineReveal.unobserve(entry.target);
-      [...entry.target.querySelectorAll(".title-line > span")].forEach(
-        (line, i) =>
-          effect(
-            line,
-            [
-              { transform: "translateY(110%) rotate(2deg)" },
-              { transform: "translateY(0) rotate(0)" },
-            ],
-            { duration: 850, delay: i * 70, fill: "none" },
-          ),
-      );
+function mountExamples() {
+  const cards = [...document.querySelectorAll('[data-example]')].map(root => ({
+    root, kind: root.dataset.example, variant: 'a', time: root.dataset.example === 'range' ? 3 : 0,
+    range: [3, 6.2], loop: root.dataset.example === 'range', notes: [],
+    canvas: root.querySelector('canvas'), seek: root.querySelector('.sample-seek'),
+    play: root.querySelector('.sample-play'), timeLabel: root.querySelector('.sample-time'),
+  }));
+  const signals = new Map(), peaks = new Map(), buffers = new Map();
+  let context, source, gain, playing = null, pending = null, generation = 0, frame = 0, anchor = 0, offset = 0, disposed = false;
+  for (const variant of ['a','b']) {
+    const signal = sampleSignal(22050, variant);
+    signals.set(variant, signal); peaks.set(variant, signalPeaks(signal, 120));
+  }
+  const precise = value => {
+    const centiseconds = Math.round(value * 100);
+    return `${Math.floor(centiseconds / 6000)}:${Math.floor(centiseconds / 100 % 60).toString().padStart(2,'0')}.${(centiseconds % 100).toString().padStart(2,'0')}`;
+  };
+  const clock = value => `0:${Math.floor(value).toString().padStart(2,'0')}`;
+  function currentTime() {
+    if (!playing || !context) return playing?.time || 0;
+    const elapsed = Math.max(0, context.currentTime - anchor);
+    if (playing.kind === 'range' && playing.loop) {
+      const [start, end] = playing.range;
+      return start + ((offset - start + elapsed) % (end - start) + end - start) % (end - start);
     }
-  },
-  { threshold: 0.35 },
-);
-document
-  .querySelectorAll(".reveal-lines")
-  .forEach((e) => lineReveal.observe(e));
+    return Math.min(sampleDuration, offset + elapsed);
+  }
+  function draw(card) {
+    const canvas = card.canvas, rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const ratio = Math.min(2, devicePixelRatio || 1);
+    const width = Math.round(rect.width * ratio), height = Math.round(rect.height * ratio);
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, width, height);
+    const left = card.kind === 'range' ? card.range[0] / sampleDuration : 0;
+    const right = card.kind === 'range' ? card.range[1] / sampleDuration : 1;
+    if (card.kind === 'range') {
+      ctx.fillStyle = '#eaf4ff'; ctx.fillRect(width * left, 5 * ratio, width * (right - left), height - 10 * ratio);
+    }
+    const values = peaks.get(card.variant);
+    const step = width / values.length;
+    const progress = card.time / sampleDuration;
+    values.forEach((peak, index) => {
+      const u = index / (values.length - 1);
+      const selected = u >= left && u <= right;
+      ctx.fillStyle = selected ? (card.variant === 'a' ? '#0071e3' : '#7860cc') : '#d5dce5';
+      ctx.globalAlpha = selected && u > progress ? .65 : 1;
+      const barHeight = Math.max(2 * ratio, Math.min(1, peak * 2.0) * (height - 30 * ratio));
+      ctx.beginPath();
+      ctx.roundRect(index * step, (height - barHeight) / 2, Math.max(1.2 * ratio, step * .50), barHeight, 1.2 * ratio);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (card.kind === 'range') {
+      ctx.strokeStyle = '#0071e3'; ctx.lineWidth = ratio;
+      for (const edge of card.range) { ctx.beginPath(); ctx.moveTo(edge / sampleDuration * width, 5 * ratio); ctx.lineTo(edge / sampleDuration * width, height - 5 * ratio); ctx.stroke(); }
+    }
+    if (card.time > 0) {
+      ctx.fillStyle = '#1d1d1f'; ctx.fillRect(progress * width, 8 * ratio, ratio, height - 16 * ratio);
+    }
+    if (card.kind === 'notes') {
+      for (const note of card.notes) {
+        ctx.fillStyle = '#0071e3';
+        ctx.beginPath(); ctx.arc(note.at / sampleDuration * width, 6 * ratio, 3 * ratio, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+  function paint(card) {
+    const active = playing === card || pending === card;
+    card.play.setAttribute('aria-pressed', String(active));
+    card.play.setAttribute('aria-label', t(active ? 'pauseClip' : 'playClip'));
+    card.seek.value = card.time;
+    card.timeLabel.textContent = `${clock(card.time)} / 0:12`;
+    if (card.kind === 'range') {
+      card.root.querySelector('.range-start').value = card.range[0];
+      card.root.querySelector('.range-end').value = card.range[1];
+      card.root.querySelector('.range-start-value').textContent = card.range[0].toFixed(2) + ' s';
+      card.root.querySelector('.range-end-value').textContent = card.range[1].toFixed(2) + ' s';
+    }
+    draw(card);
+  }
+  function detachSource() {
+    if (source) {
+      const oldSource = source, oldGain = gain;
+      oldSource.onended = null; source = gain = null;
+      try {
+        oldGain.gain.cancelScheduledValues(context.currentTime);
+        oldGain.gain.setTargetAtTime(0, context.currentTime, .003);
+        oldSource.stop(context.currentTime + .015);
+      } catch {}
+      oldSource.onended = () => { oldSource.disconnect(); oldGain.disconnect(); };
+    }
+  }
+  function pause() {
+    generation++;
+    if (playing) playing.time = currentTime();
+    const previous = playing || pending;
+    playing = pending = null; detachSource();
+    cancelAnimationFrame(frame); frame = 0;
+    if (previous) paint(previous);
+  }
+  function animate() {
+    frame = 0;
+    if (!playing || disposed) return;
+    playing.time = currentTime(); paint(playing);
+    frame = requestAnimationFrame(animate);
+  }
+  async function play(card) {
+    pause(); music.pause();
+    const ticket = ++generation;
+    pending = card; paint(card);
+    try {
+      const Context = window.AudioContext || window.webkitAudioContext;
+      if (!Context) throw Error('audio unavailable');
+      context ||= new Context();
+      await context.resume();
+      if (disposed || ticket !== generation) return;
+      if (!buffers.has(card.variant)) {
+        const data = signals.get(card.variant);
+        const buffer = context.createBuffer(1, data.length, 22050);
+        buffer.copyToChannel(data, 0); buffers.set(card.variant, buffer);
+      }
+      if (card.time >= sampleDuration - .015 || (card.kind === 'range' && (card.time < card.range[0] || card.time >= card.range[1]))) {
+        card.time = card.kind === 'range' ? card.range[0] : 0;
+      }
+      source = context.createBufferSource(); gain = context.createGain();
+      source.buffer = buffers.get(card.variant);
+      gain.gain.value = 0; gain.gain.setTargetAtTime(.72, context.currentTime, .004);
+      source.connect(gain); gain.connect(context.destination);
+      source.loop = card.kind === 'range' && card.loop;
+      if (source.loop) { source.loopStart = card.range[0]; source.loopEnd = card.range[1]; }
+      source.onended = () => {
+        if (ticket !== generation || disposed) return;
+        card.time = currentTime();
+        source.disconnect(); gain.disconnect(); source = gain = null;
+        pause();
+      };
+      offset = card.time; anchor = context.currentTime;
+      pending = null; playing = card;
+      if (card.kind === 'range' && !card.loop) source.start(0, offset, card.range[1] - offset);
+      else source.start(0, offset);
+      $('sampleError').hidden = true; paint(card); frame = requestAnimationFrame(animate);
+    } catch {
+      if (ticket !== generation || disposed) return;
+      pause(); $('sampleError').textContent = t('audioError'); $('sampleError').hidden = false;
+    }
+  }
+  function renderNotes(card) {
+    const list = card.root.querySelector('.sample-notes');
+    list.replaceChildren();
+    if (!card.notes.length) { const empty = document.createElement('p'); empty.className = 'no-notes'; empty.textContent = t('noNotes'); list.append(empty); return; }
+    for (const note of card.notes) {
+      const row = document.createElement('div'); row.className = 'sample-note';
+      const position = document.createElement('button'); position.type = 'button'; position.textContent = precise(note.at);
+      position.addEventListener('click', () => { const active = playing === card; if (active) pause(); card.time = note.at; paint(card); if (active) play(card); });
+      const text = document.createElement('p'); text.textContent = note.text;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'delete-note'; remove.textContent = '×'; remove.setAttribute('aria-label', t('removeNote'));
+      remove.addEventListener('click', () => { card.notes = card.notes.filter(item => item !== note); renderNotes(card); draw(card); card.root.querySelector('.note-input').focus(); });
+      row.append(position, text, remove); list.append(row);
+    }
+  }
+  for (const card of cards) {
+    card.play.addEventListener('click', () => { if (playing === card || pending === card) pause(); else play(card); });
+    card.seek.addEventListener('input', () => {
+      const requestedTime = Number(card.seek.value);
+      const active = playing === card; if (active || pending === card) pause();
+      card.time = requestedTime; paint(card); if (active) play(card);
+    });
+    card.root.querySelectorAll('[data-variant]').forEach(button => button.addEventListener('click', () => {
+      if (button.dataset.variant === card.variant) return;
+      const active = playing === card; if (active || pending === card) pause();
+      card.variant = button.dataset.variant;
+      card.root.querySelectorAll('[data-variant]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      paint(card); if (active) play(card);
+    }));
+    if (card.kind === 'range') {
+      for (const edge of ['start','end']) card.root.querySelector('.range-' + edge).addEventListener('input', event => {
+        const requestedEdge = Number(event.target.value);
+        const active = playing === card; if (active || pending === card) pause();
+        card.range = moveSampleEdge(...card.range, edge, requestedEdge);
+        card.time = Math.max(card.range[0], Math.min(card.range[1] - .01, card.time));
+        paint(card); if (active) play(card);
+      });
+      card.root.querySelector('.sample-loop').addEventListener('change', event => {
+        const active = playing === card; if (active || pending === card) pause();
+        card.loop = event.target.checked; if (active) play(card);
+      });
+    }
+    if (card.kind === 'notes') card.root.querySelector('.note-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const input = card.root.querySelector('.note-input'), text = input.value.trim();
+      if (!text || card.notes.length >= 20) return;
+      card.notes.push({ at: playing === card ? currentTime() : card.time, text: text.slice(0,120) });
+      card.notes.sort((a,b) => a.at - b.at); input.value = ''; renderNotes(card); draw(card);
+    });
+    paint(card);
+  }
+  const observer = new ResizeObserver(() => cards.forEach(draw));
+  cards.forEach(card => observer.observe(card.canvas));
+  const visibility = () => { if (document.hidden) pause(); };
+  document.addEventListener('visibilitychange', visibility);
+  const intersection = new IntersectionObserver(entries => {
+    for (const entry of entries) if (!entry.isIntersecting && (playing?.root === entry.target || pending?.root === entry.target)) pause();
+  });
+  cards.forEach(card => intersection.observe(card.root));
+  return {
+    pause,
+    translate() {
+      cards.forEach(card => {
+        card.seek.setAttribute('aria-label', t('seek'));
+        card.root.querySelector('.range-start')?.setAttribute('aria-label', t('start'));
+        card.root.querySelector('.range-end')?.setAttribute('aria-label', t('end'));
+        card.root.querySelector('.note-input')?.setAttribute('aria-label', t('noteLabel'));
+        card.root.querySelector('.note-add')?.setAttribute('aria-label', t('addNote'));
+        if (card.kind === 'notes') renderNotes(card); paint(card);
+      });
+    },
+    dispose() { disposed = true; pause(); observer.disconnect(); intersection.disconnect(); document.removeEventListener('visibilitychange', visibility); context?.close().catch(() => {}); },
+  };
+}
+examples = mountExamples();
+const heroVisibility = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) music.pause(); });
+heroVisibility.observe($('heroStage'));
+const pageVisibility = () => { if (document.hidden) music.pause(); };
+document.addEventListener('visibilitychange', pageVisibility);
+const revealObserver = new IntersectionObserver(entries => {
+  for (const entry of entries) if (entry.isIntersecting) { entry.target.dataset.reveal = 'visible'; revealObserver.unobserve(entry.target); }
+}, { threshold: .08 });
+if (!reduced.matches) document.querySelectorAll('.section-heading,.feature-card,.tools-grid article,.download-copy').forEach(element => {
+  element.classList.add('reveal'); element.dataset.reveal = 'pending'; revealObserver.observe(element);
+});
+window.addEventListener('pagehide', event => {
+  if (event.persisted) { music.pause(); examples.pause(); return; }
+  music.dispose(); examples.dispose(); stage.dispose(); revealObserver.disconnect(); heroVisibility.disconnect();
+  document.removeEventListener('visibilitychange', pageVisibility); reduced.removeEventListener('change', paintMotion);
+});
+translate();

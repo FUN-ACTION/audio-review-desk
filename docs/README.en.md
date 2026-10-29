@@ -30,6 +30,10 @@ The workspace has a library, a listening area and a review panel. Search matches
 | Task | Controls |
 | --- | --- |
 | Compare | Switch A / B between the original and the reference in a manifest; change speed or loop a phrase |
+| View spectrum | Switch between waveform and a spectrogram of the actual preview PCM |
+| Check boundaries | Audition either edge with context, or play the complete selection |
+| Trim quiet edges | Suggest a range from detected edge silence, then listen before saving |
+| Mark an issue | Add a noise, cut or distortion note at the playhead |
 | Annotate | Press M to add a note at the playhead; click its time to seek, or its text to edit the note and timestamp |
 | Set a range | Drag the waveform edges, or press `[` / `]` to mark the playhead position |
 | Decide | Approve, mark for work, or exclude; Save & continue opens the next pending clip |
@@ -47,7 +51,7 @@ Changed audio or references start a new pending version. Use stable manifest IDs
 
 ## Website artwork
 
-The website uses three original CGI-style images with live WebGL motion. You can play the generated piano phrase or choose a local audio file to influence the animation. Playback starts when you press Play; selected files stay in the browser. See [artwork](artwork.md) and [media notes](showcase-media.md) for the source files and implementation.
+The website renders an original acoustic sculpture from code. Three examples let you compare a synthesized phrase, loop a range and add temporary time notes. You can also choose local music for the main visual. See [artwork](artwork.md) and [media notes](showcase-media.md).
 
 ## Development
 

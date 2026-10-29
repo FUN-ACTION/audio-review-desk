@@ -6,6 +6,8 @@ import { mountMarkers } from "./markers.js";
 import { mountCommands } from "./commands.js";
 import { errorText } from "./errors.js";
 import { createListeningMemory, resumedTime } from "./listening.js";
+import { auditionBounds, quietRange, createAudition } from "./audition.js";
+import { mountSpectrogram } from "./spectrogram.js";
 import {
   formatTime,
   filterItems,
@@ -36,6 +38,8 @@ let state = null,
   handledJob = null;
 const selectedKeys = new Set(),
   player = $("player");
+const savedThisSession = new Set();
+let spectrumVisible = false;
 const issueNames = [
   "cut_start",
   "cut_end",
@@ -48,49 +52,7 @@ const issueNames = [
   "identity",
   "other",
 ];
-const workbenchWords = {
-  zh: {
-    welcome: "添加音频",
-    welcomeHelp: "选择文件、文件夹或清单。",
-    watchTour: "查看介绍 ↗",
-    chooseFiles: "音频文件",
-    filesHelp: "单个或多个文件",
-    chooseFolder: "文件夹",
-    folderHelp: "包括子文件夹",
-    chooseManifest: "已有清单",
-    search: "搜索文件或批注",
-    markerPlaceholder: "添加此处的批注…",
-    notesPlaceholder: "写下审核意见…",
-    emptyTitle: "素材库为空",
-    queueComplete: "本批审核完成",
-    reopenLast: "返回最后一条",
-    discardTitle: "更改尚未保存",
-    discard: "放弃更改并离开，或返回继续编辑。",
-    noPending: "没有待审音频",
-    candidateDuration: "可审时长",
-  },
-  en: {
-    welcome: "Add audio",
-    welcomeHelp: "Choose files, a folder or a manifest.",
-    watchTour: "About the workspace ↗",
-    chooseFiles: "Audio files",
-    filesHelp: "One or more files",
-    chooseFolder: "Folder",
-    folderHelp: "Include subfolders",
-    chooseManifest: "Manifest",
-    search: "Search files or notes",
-    markerPlaceholder: "Add a note here…",
-    notesPlaceholder: "Write a review note…",
-    emptyTitle: "The library is empty",
-    queueComplete: "Batch reviewed",
-    reopenLast: "Return to the last clip",
-    discardTitle: "Unsaved changes",
-    discard: "Discard these changes or return to editing.",
-    noPending: "No pending audio",
-    candidateDuration: "To review",
-  },
-};
-const t = (key) => workbenchWords[language]?.[key] || words[language][key] || key;
+const t = (key) => words[language][key] || key;
 const precise = (seconds) =>
   `${formatTime(seconds)}.${Math.floor(((seconds || 0) % 1) * 1000)
     .toString()
@@ -107,6 +69,21 @@ const queueRows = new Map();
 let visibleCache = null;
 let noticeTimer,
   choosing = false;
+const spectrumView = mountSpectrogram({ canvas: $("spectrogram"), status: $("analysisStatus"), language, alignWaveform: true });
+const audition = createAudition({
+  player,
+  loop: $("loop"),
+  onChange(kind) {
+    for (const [id, value] of [["auditionStart", "start"], ["auditionEnd", "end"], ["auditionSelection", "selection"]])
+      $(id).setAttribute("aria-pressed", String(kind === value));
+  },
+  onError: () => notice(t("audioError")),
+});
+// A manual transport action ends the temporary audition window immediately.
+for (const id of ["play", "skipBack", "skipForward"])
+  $(id).addEventListener("click", () => audition.cancel());
+$("seek").addEventListener("pointerdown", () => audition.cancel());
+$("seek").addEventListener("input", () => audition.cancel());
 const waveformView = mountWaveform(
   $("waveform"),
   $("seek"),
@@ -117,6 +94,7 @@ const waveformView = mountWaveform(
     end: $("trimEndHandle"),
     pan: $("wavePan"),
     onEdit(start, end) {
+      audition.cancel();
       const duration = selected?.quality.duration || 0;
       $("trimStart").value = Math.min(duration, Number(start.toFixed(3)));
       $("trimEnd").value = Math.min(duration, Number(end.toFixed(3)));
@@ -124,6 +102,7 @@ const waveformView = mountWaveform(
     },
     onView(start, end, zoom) {
       markersView?.view(start, end);
+      spectrumView.setView({ start, end, duration: selected?.quality.duration || 0 });
       $("rulerStart").textContent = precise(start);
       $("rulerMid").textContent = precise((start + end) / 2);
       $("rulerEnd").textContent = precise(end);
@@ -272,6 +251,8 @@ const importing = () => job && ["running", "cancelling"].includes(job.state);
 function translate() {
   const completed = !$("queueComplete").hidden;
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  spectrumView.setLanguage(language);
+  $("sessionCard").setAttribute("aria-label", t("sessionOverview"));
   if (!$("importError").hidden && $("importError").dataset.code)
     $("importError").textContent = errorText(
       { code: $("importError").dataset.code },
@@ -340,12 +321,17 @@ function renderSummary() {
   $("reviewProgress").max = stats.files || 1;
   $("reviewProgress").value = done;
   $("fileCount").textContent = stats.files;
+  $("sessionCard").hidden = stats.files === 0;
+  $("sessionSavedCount").textContent = state.items.filter(item => savedThisSession.has(item.key)).length;
+  $("sessionPendingCount").textContent = stats.review_counts.pending;
+  $("sessionApprovedTime").textContent = formatTime(stats.human_approved_seconds);
+  $("nextPending").disabled = busy || !state.items.some(item => item.key !== selected?.key && item.review.status === "pending");
   $("pendingCount").textContent = stats.review_counts.pending;
   $("approvedCount").textContent = stats.review_counts.pass;
   $("flagCount").textContent = stats.warnings + stats.errors;
   $("candidateTime").textContent = formatTime(stats.candidate_seconds);
   $("approvedTime").textContent = formatTime(stats.human_approved_seconds);
-  $("version").textContent = state.version || "0.12.0";
+  $("version").textContent = state.version || "0.13.0";
   $("scanTime").textContent = state.scan
     ? new Date(state.scan.at).toLocaleString(language === "zh" ? "zh-CN" : "en")
     : "";
@@ -515,6 +501,9 @@ function range() {
   );
 }
 function updateTime(seconds = player.currentTime || 0, text = true) {
+  audition.check(seconds);
+  for (const id of ["auditionStart", "auditionEnd", "auditionSelection"])
+    $(id).disabled = busy || !selected?.quality.decoded || player.readyState < 1;
   if (text) {
     $("playTime").textContent = precise(seconds);
     $("totalTime").textContent =
@@ -577,12 +566,17 @@ function renderDetails(restore = true) {
   );
   $("qualityFlags").hidden = !q.flags.length && !item.error && item.eligible;
   $("audioSection").hidden = !q.decoded;
+  spectrumView.setVisible(spectrumVisible && q.decoded);
   for (const id of ["play", "skipBack", "skipForward", "volume"])
     $(id).disabled = !q.decoded;
   $("seek").disabled = !q.decoded || player.readyState === 0;
   $("rulerMid").textContent = formatTime((q.duration || 0) / 2);
   $("rulerEnd").textContent = formatTime(q.duration || 0);
   $("variantB").disabled = !item.reference_quality || busy;
+  for (const button of document.querySelectorAll("[data-marker-preset]")) button.disabled = busy || !q.decoded;
+  for (const id of ["auditionStart", "auditionEnd", "auditionSelection", "showSpectrogram", "showWaveform"])
+    $(id).disabled = busy || !q.decoded;
+  $("suggestRange").disabled = busy || !quietRange(q);
   for (const [id, value] of [
     ["variantA", "a"],
     ["variantB", "b"],
@@ -670,12 +664,14 @@ function renderDetails(restore = true) {
   $("clipPosition").textContent =
     index >= 0 ? `${index + 1} / ${list.length}` : "";
   $("outsideFilter").hidden = index >= 0;
+  $("nextPending").disabled = busy || !state.items.some(row => row.key !== item.key && row.review.status === "pending");
   syncGlider();
   updateTime();
   drawWave();
 }
 async function select(item) {
   if (busy || !(await discardAllowed())) return;
+  audition.cancel();
   rememberPosition();
   const turn = ++generation;
   player.pause();
@@ -694,6 +690,7 @@ async function select(item) {
   dirty = false;
   variant = "a";
   wave = { a: [], b: [] };
+  spectrumView.setSource(item.quality.decoded ? `/media/${item.key}/a.wav` : null, item.key);
   waveformView.reset();
   notice();
   renderQueue();
@@ -771,6 +768,8 @@ async function refresh(force = false) {
       state.items[0];
     if (item) await select(item);
     else {
+      spectrumView.setSource(null, "");
+      spectrumView.setVisible(false);
       $("detailPanel").hidden = true;
       $("emptyDetail").hidden = false;
     }
@@ -807,6 +806,7 @@ async function save(advance = false) {
   try {
     const result = await post("/api/review", payload);
     target.review = result.review;
+    savedThisSession.add(target.key);
     visibleCache = null;
     dirty = false;
     success = true;
@@ -838,6 +838,7 @@ async function save(advance = false) {
 }
 function showCompletion() {
   player.pause();
+  spectrumView.setVisible(false);
   $("detailPanel").hidden = true;
   $("queueComplete").hidden = false;
   $("queueCompleteSummary").textContent = t("queueCompleteSummary")
@@ -860,6 +861,7 @@ async function batch() {
       status: $("batchStatus").value,
     });
     count = result.saved;
+    if (count === changes.length) for (const change of changes) savedThisSession.add(change.key);
     selectedKeys.clear();
   } catch (error) {
     notice(errorText(error, language));
@@ -884,6 +886,7 @@ async function undo() {
       key: target.key,
       expected_version: target.review.version,
     });
+    savedThisSession.add(target.key);
     dirty = false;
     success = true;
   } catch (error) {
@@ -903,11 +906,13 @@ async function switchVariant(next) {
     (next === "b" && !selected.reference_quality)
   )
     return;
+  audition.cancel();
   const time = player.currentTime,
     resume = !player.paused;
   player.pause();
   variant = next;
   player.src = `/media/${selected.key}/${variant}.wav`;
+  spectrumView.setSource(player.getAttribute("src"), `${selected.key}:${variant}`);
   player.onloadedmetadata = () => {
     player.currentTime = Math.min(time, player.duration || 0);
     player.playbackRate = Number($("speed").value);
@@ -1004,6 +1009,7 @@ async function startImport(event) {
 }
 function markBoundary(side) {
   if (!selected?.quality.decoded || busy) return;
+  audition.cancel();
   $(side === "start" ? "trimStart" : "trimEnd").value = (
     player.currentTime || 0
   ).toFixed(3);
@@ -1199,20 +1205,65 @@ for (const [id, direction] of [
   });
 $("variantA").addEventListener("click", () => switchVariant("a"));
 $("variantB").addEventListener("click", () => switchVariant("b"));
+for (const [id, visible] of [["showWaveform", false], ["showSpectrogram", true]])
+  $(id).addEventListener("click", () => {
+    spectrumVisible = visible;
+    $("showWaveform").setAttribute("aria-pressed", String(!visible));
+    $("showSpectrogram").setAttribute("aria-pressed", String(visible));
+    // Keep the waveform's layout box for zoom and trim hit-testing.
+    $("waveform").style.visibility = visible ? "hidden" : "visible";
+    $("waveArea").dataset.view = visible ? "spectrum" : "waveform";
+    $("analysisStatus").hidden = !visible;
+    spectrumView.setVisible(visible && Boolean(selected?.quality.decoded));
+    drawWave();
+  });
+for (const [id, kind] of [["auditionStart", "start"], ["auditionEnd", "end"], ["auditionSelection", "selection"]])
+  $(id).addEventListener("click", () => {
+    if (busy || !selected?.quality.decoded) return;
+    const [start, end] = range();
+    audition.start(auditionBounds(selected.quality.duration, start, end, kind), kind);
+  });
+$("suggestRange").addEventListener("click", () => {
+  if (busy || !selected) return;
+  const suggestion = quietRange(selected.quality);
+  if (!suggestion) return;
+  audition.cancel();
+  $("trimStart").value = suggestion[0].toFixed(3);
+  $("trimEnd").value = suggestion[1].toFixed(3);
+  markDirty();
+  drawWave();
+  notice(t("rangeSuggested"), true);
+});
+for (const button of document.querySelectorAll("[data-marker-preset]"))
+  button.addEventListener("click", () => {
+    if (busy || !selected?.quality.decoded || !markersView.flush()) return;
+    $("markerText").value = t(button.dataset.markerPreset);
+    $("addMarker").click();
+  });
+$("nextPending").addEventListener("click", async () => {
+  const list = state?.items || [], index = list.findIndex(item => item.key === selected?.key);
+  const ordered = [...list.slice(index + 1), ...list.slice(0, index + 1)];
+  const item = ordered.find(row => row.key !== selected?.key && row.review.status === "pending");
+  if (item) await select(item);
+  else notice(t("noPending"), true);
+});
 $("markIn").addEventListener("click", () => markBoundary("start"));
 $("markOut").addEventListener("click", () => markBoundary("end"));
 $("resetRange").addEventListener("click", () => {
+  audition.cancel();
   $("trimStart").value = "";
   $("trimEnd").value = "";
   markDirty();
+  drawWave();
 });
 $("speed").addEventListener("change", () => {
   player.playbackRate = Number($("speed").value);
   listeningMemory?.preferences({ speed: player.playbackRate });
 });
-$("loop").addEventListener("change", () =>
-  listeningMemory?.preferences({ loop: $("loop").checked }),
-);
+$("loop").addEventListener("change", () => {
+  audition.cancel({ restore: false });
+  listeningMemory?.preferences({ loop: $("loop").checked });
+});
 $("volume").addEventListener("change", () =>
   listeningMemory?.preferences({ volume: player.volume }),
 );
@@ -1231,6 +1282,17 @@ player.addEventListener("timeupdate", () => {
 });
 player.addEventListener("pause", rememberPosition);
 window.addEventListener("pagehide", rememberPosition);
+window.addEventListener("pagehide", (event) => {
+  audition.cancel();
+  spectrumView.setVisible(false);
+  if (!event.persisted) spectrumView.dispose();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) spectrumView.setVisible(spectrumVisible && Boolean(selected?.quality.decoded) && !$("detailPanel").hidden);
+});
+document.addEventListener("visibilitychange", () => {
+  spectrumView.setVisible(!document.hidden && spectrumVisible && Boolean(selected?.quality.decoded) && !$("detailPanel").hidden);
+});
 player.addEventListener("play", () => {
   player.playbackRate = Number($("speed").value);
   const [start, end] = range();
@@ -1418,7 +1480,7 @@ for (const dialog of document.querySelectorAll("dialog"))
 const checkVersion = async () => {
   try {
     const result = await request("/api/version");
-    $("updateNotice").hidden = result.version === "0.12.0";
+    $("updateNotice").hidden = result.version === "0.13.0";
   } catch {}
 };
 window.addEventListener("focus", checkVersion);
