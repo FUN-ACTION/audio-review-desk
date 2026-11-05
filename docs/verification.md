@@ -1,6 +1,8 @@
 # Verification — 0.13.0
 
-The current test and package results are recorded against the release commit. The checks below describe the scope, not a visual quality score.
+This is the historical verification scope for 0.13.0. Its test and package results are recorded against the release commit. The checks below describe that scope, not a visual quality score.
+
+For later source changes, see [unreleased maintenance verification](verification-2026-11-maintenance.md). That work does not represent a new versioned release or website deployment.
 
 ## Automated checks
 

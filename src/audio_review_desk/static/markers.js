@@ -1,5 +1,22 @@
+import { stripMarkerText } from "./marker-text.js";
+import { copyMarkerDraft } from "./draft-recovery.js";
+
+const markerTextLimit = 240;
+// Match Python and reload/history validation: Unicode codepoints, not UTF-16
+// units. A native ceiling of twice this limit still bounds supplementary text.
+const validMarkerText = text => Boolean(text) && text.length <= markerTextLimit * 2 &&
+  [...text].length <= markerTextLimit;
+
 export const copyMarkers = (rows) =>
   (rows || []).map((row) => ({ time: row.time, text: row.text }));
+
+export function formatMarkerTime(time) {
+  if (!Number.isFinite(time) || time < 0) return "—";
+  const milliseconds = Math.round(time * 1000);
+  const minutes = Math.floor(milliseconds / 60000);
+  const seconds = Math.floor((milliseconds % 60000) / 1000);
+  return `${minutes}:${String(seconds).padStart(2, "0")}.${String(milliseconds % 1000).padStart(3, "0")}`;
+}
 
 export function parseMarkerTime(value, duration) {
   if (!Number.isFinite(duration) || duration < 0) return null;
@@ -24,8 +41,9 @@ export function reviseMarker(rows, index, time, text, duration) {
     throw new RangeError("marker_index");
   const seconds = parseMarkerTime(time, duration);
   if (seconds === null) throw new RangeError("marker_time");
-  const note = String(text).trim();
-  if (!note || note.length > 240) throw new RangeError("marker_text");
+  const note = stripMarkerText(text);
+  if (!note) throw new RangeError("marker_blank");
+  if (!validMarkerText(note)) throw new RangeError("marker_text");
   const next = copyMarkers(rows);
   next[index] = { time: seconds, text: note };
   return next.sort((a, b) => a.time - b.time);
@@ -38,16 +56,32 @@ export function mountMarkers({
   player,
   duration,
   t,
+  onSeek = () => {},
   onChange,
   onError,
 }) {
   let draft = [],
     view = [0, 0],
     disabled = true,
-    editing = null;
-  const format = (time) =>
-    `${Math.floor(time / 60)}:${(time % 60).toFixed(3).padStart(6, "0")}`;
+    editing = null,
+    editingId;
+  // Duplicate time/text pairs are valid. Identity belongs to this mounted
+  // editor only and must not enter reviews, reload snapshots or exported rows.
+  const rowIds = new WeakMap();
+  const mint = (row, id = Symbol()) => {
+    const copy = { time: row.time, text: row.text };
+    rowIds.set(copy, id);
+    return copy;
+  };
+  const rowIndex = (id) => id === undefined
+    ? -1 : draft.findIndex((row) => rowIds.get(row) === id);
+  const clearEditing = () => { editing = null; editingId = undefined; };
+  const focusNote = (id) => list.children[rowIndex(id)]
+    ?.querySelector(".marker-note")?.focus();
+  const format = formatMarkerTime;
   const seek = (time) => {
+    // Release one-shot ownership before the session's synchronous time update.
+    onSeek(time);
     player.currentTime = time;
   };
   const button = (label, className, action) => {
@@ -60,10 +94,15 @@ export function mountMarkers({
   };
   function commit(options = {}) {
     if (!editing) return true;
+    const id = editingId, index = rowIndex(id);
+    let revised;
     try {
-      draft = reviseMarker(
-        draft,
-        editing.index,
+      if (index < 0) throw new RangeError("marker_index");
+      // Validate through the public pure function without replacing every
+      // unrelated private row. Keep the original slot before stable sorting.
+      [revised] = reviseMarker(
+        [draft[index]],
+        0,
         editing.timeDirty ? editing.time : editing.originalTime,
         editing.text,
         duration(),
@@ -73,7 +112,7 @@ export function mountMarkers({
         t(
           error.message === "marker_time"
             ? "markerTimeInvalid"
-            : "markerRequired",
+            : error.message === "marker_blank" ? "markerBlankEdit" : "markerRequired",
         ),
       );
       list
@@ -85,24 +124,13 @@ export function mountMarkers({
         ?.focus();
       return false;
     }
-    const changed = {
-      time: parseMarkerTime(
-        editing.timeDirty ? editing.time : editing.originalTime,
-        duration(),
-      ),
-      text: editing.text.trim(),
-    };
-    editing = null;
+    const next = [...draft];
+    next[index] = mint(revised, id);
+    draft = next.sort((a, b) => a.time - b.time);
+    clearEditing();
     render();
     onChange();
-    if (options.focus)
-      list
-        .querySelectorAll(".marker-note")
-        [
-          draft.findIndex(
-            (row) => row.time === changed.time && row.text === changed.text,
-          )
-        ]?.focus();
+    if (options.focus) focusNote(id);
     return true;
   }
   function renderTicks() {
@@ -121,12 +149,12 @@ export function mountMarkers({
         }),
     );
   }
-  function edit(index) {
+  function edit(id) {
+    if (disabled || rowIndex(id) < 0 || !commit()) return;
+    const index = rowIndex(id);
+    if (index < 0) return;
     const target = draft[index];
-    if (disabled || !commit()) return;
-    index = draft.findIndex(
-      (row) => row.time === target.time && row.text === target.text,
-    );
+    editingId = id;
     editing = {
       index,
       time: format(target.time),
@@ -142,6 +170,7 @@ export function mountMarkers({
     input.disabled = disabled;
     list.replaceChildren(
       ...draft.map((row, index) => {
+        const id = rowIds.get(row);
         const wrapper = document.createElement("div");
         wrapper.className = "marker-row";
         if (editing?.index === index) {
@@ -157,7 +186,7 @@ export function mountMarkers({
           text.type = "text";
           text.className = "marker-edit-text";
           text.value = editing.text;
-          text.maxLength = 240;
+          text.maxLength = markerTextLimit * 2;
           text.setAttribute("aria-label", t("editMarkerText"));
           for (const [field, key] of [
             [time, "time"],
@@ -165,11 +194,16 @@ export function mountMarkers({
           ]) {
             field.disabled = disabled;
             field.addEventListener("input", () => {
+              if (!editing || editingId !== id) return;
               editing[key] = field.value;
               if (key === "time") editing.timeDirty = true;
               onChange();
             });
             field.addEventListener("keydown", (event) => {
+              if (!editing || editingId !== id) return;
+              // 229 also covers IME boundary keys when isComposing is already false.
+              if (event.defaultPrevented || event.isComposing || event.keyCode === 229 ||
+                event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
               if (event.key === "Enter") {
                 event.preventDefault();
                 commit({ focus: true });
@@ -177,22 +211,23 @@ export function mountMarkers({
               if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
-                editing = null;
+                clearEditing();
                 render();
                 onChange();
-                list.querySelectorAll(".marker-note")[index]?.focus();
+                focusNote(id);
               }
             });
           }
           actions.className = "marker-edit-actions";
-          const apply = button(t("apply"), "text-button", () =>
-            commit({ focus: true }),
-          );
+          const apply = button(t("apply"), "text-button", () => {
+            if (editingId === id) commit({ focus: true });
+          });
           const cancel = button(t("cancel"), "text-button", () => {
-            editing = null;
+            if (editingId !== id) return;
+            clearEditing();
             render();
             onChange();
-            list.querySelectorAll(".marker-note")[index]?.focus();
+            focusNote(id);
           });
           apply.disabled = disabled;
           cancel.disabled = disabled;
@@ -203,18 +238,24 @@ export function mountMarkers({
             seek(row.time),
           );
           time.title = t("seekNote");
-          const text = button(row.text, "marker-note", () => edit(index));
+          const text = button(row.text, "marker-note", () => edit(id));
           text.title = t("editMarker");
           text.disabled = disabled;
-          const remove = button("", "icon-button", () => {
-            if (editing && editing.index !== index && !commit()) return;
-            const target = draft.findIndex(
-              (note) => note.time === row.time && note.text === row.text,
-            );
-            if (target >= 0) draft.splice(target, 1);
-            editing = null;
+          const remove = button("", "icon-button marker-remove", () => {
+            if (disabled || rowIndex(id) < 0) return;
+            const restoreFocus = document.activeElement === remove;
+            if (editing && editingId !== id && !commit()) return;
+            const target = rowIndex(id);
+            if (target < 0) return;
+            draft.splice(target, 1);
+            clearEditing();
             render();
             onChange();
+            if (restoreFocus) {
+              const next = list.children[Math.min(target, draft.length - 1)]
+                ?.querySelector(".marker-remove");
+              (next || input).focus();
+            }
           });
           remove.disabled = disabled;
           remove.setAttribute("aria-label", t("removeMarker"));
@@ -227,25 +268,32 @@ export function mountMarkers({
     );
     renderTicks();
   }
-  const append = (options = {}) => {
-    if (disabled || !commit()) return false;
-    const text = input.value.trim();
-    if (!text || text.length > 240) {
-      onError(t("markerRequired"));
+  const pendingText = () => {
+    const text = stripMarkerText(input.value);
+    if (!validMarkerText(text)) {
+      onError(t(!text && input.value !== "" ? "markerBlankPending" : "markerRequired"));
       input.focus();
-      return false;
+      return null;
     }
     if (draft.length >= 100) {
       onError(t("markerLimit"));
-      return false;
+      input.focus();
+      return null;
     }
-    draft.push({
+    return text;
+  };
+  const append = (options = {}) => {
+    if (disabled) return false;
+    // Reject every pending-note failure before committing another inline edit.
+    const text = pendingText();
+    if (text === null || !commit()) return false;
+    draft.push(mint({
       time: Math.max(
         0,
         Math.min(duration(), Number((player.currentTime || 0).toFixed(3))),
       ),
       text,
-    });
+    }));
     draft.sort((a, b) => a.time - b.time);
     input.value = "";
     render();
@@ -253,9 +301,25 @@ export function mountMarkers({
     if (options.focus !== false) input.focus();
     return true;
   };
+  const recoverySnapshot = (snapshot) => {
+    const next = copyMarkerDraft(snapshot);
+    if (!next) return null;
+    const limit = duration();
+    if (
+      next.rows.length &&
+      (!Number.isFinite(limit) ||
+        limit < 0 ||
+        next.rows.some((row) => row.time > limit))
+    )
+      return null;
+    return next;
+  };
   add.addEventListener("click", append);
   input.addEventListener("input", onChange);
   input.addEventListener("keydown", (event) => {
+    // 229 also covers IME boundary keys when isComposing is already false.
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 ||
+        event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
     if (event.key === "Enter") {
       event.preventDefault();
       append();
@@ -263,8 +327,8 @@ export function mountMarkers({
   });
   return {
     set(rows, locked) {
-      draft = copyMarkers(rows);
-      editing = null;
+      draft = copyMarkers(rows).map((row) => mint(row));
+      clearEditing();
       disabled = locked;
       input.value = "";
       render();
@@ -280,34 +344,49 @@ export function mountMarkers({
     get() {
       return copyMarkers(draft);
     },
+    snapshot() {
+      // Recovery is a copy of the editor, not an implicit Apply or Add.
+      return {
+        rows: copyMarkers(draft),
+        input: input.value,
+        editing: editing ? { ...editing } : null,
+      };
+    },
+    canRestore(snapshot) {
+      return recoverySnapshot(snapshot) !== null;
+    },
+    restore(snapshot, locked) {
+      const next = recoverySnapshot(snapshot);
+      if (!next) return false;
+      // Validate everything before replacing even the uncommitted input.
+      draft = next.rows.map((row) => mint(row));
+      editing = next.editing;
+      editingId = editing ? rowIds.get(draft[editing.index]) : undefined;
+      input.value = next.input;
+      disabled = locked;
+      render();
+      return true;
+    },
     captureFocus() {
       const active = document.activeElement;
       const row = active?.closest(".marker-row");
       if (!row || !list.contains(row)) return null;
       const index = [...list.children].indexOf(row);
-      const marker = editing?.index === index
-        ? {
-            time: parseMarkerTime(
-              editing.timeDirty ? editing.time : editing.originalTime,
-              duration(),
-            ),
-            text: editing.text.trim(),
-          }
-        : draft[index];
+      const id = rowIds.get(draft[index]);
+      if (id === undefined) return null;
       const selector = active.classList.contains("marker-time")
         ? ".marker-time"
         : ".marker-note";
       return () => {
-        const current = draft.findIndex(
-          (note) => note.time === marker?.time && note.text === marker?.text,
-        );
-        list.children[current >= 0 ? current : index]
+        // set/restore replace the editor's identity domain. An old capture
+        // must never guess a same-valued row or fall back to its old index.
+        list.children[rowIndex(id)]
           ?.querySelector(selector)
           ?.focus({ preventScroll: true });
       };
     },
     hasChanges(saved) {
-      if (input.value.trim()) return true;
+      if (input.value !== "") return true;
       let current = draft;
       if (editing) {
         try {
@@ -328,7 +407,8 @@ export function mountMarkers({
       );
     },
     flush() {
-      return commit() && (!input.value.trim() || append({ focus: false }));
+      // Raw nonempty input is a draft even if Python would strip it to empty.
+      return input.value !== "" ? append({ focus: false }) : commit();
     },
     focus() {
       if (!disabled) input.focus();

@@ -80,14 +80,13 @@ class ImportJobs:
         try:
             method = {"directory": self.workspace.scan, "manifest": self.workspace.import_manifest, "files": self.workspace.import_files}[kind]
             result = method(path, append=append, progress=self.progress, cancelled=self.cancelled)
-            with self.lock:
-                self.current.update(state="succeeded", stats=result["stats"], phase="done", label="" if isinstance(path, list) else path.name)
+            outcome = dict(state="succeeded", stats=result["stats"], phase="done", label="" if isinstance(path, list) else path.name)
         except ImportCancelled:
-            with self.lock:
-                self.current.update(state="cancelled", phase="done", error=None)
+            outcome = dict(state="cancelled", phase="done", error=None)
         except Exception as exc:
-            with self.lock:
-                self.current.update(state="failed", phase="done", error=str(exc)[:600], error_code=error_code(exc))
-        finally:
-            with self.lock:
-                self.cancellable = False
+            outcome = dict(state="failed", phase="done", error=str(exc)[:600], error_code=error_code(exc))
+        with self.lock:
+            # A terminal state lets start() admit the next import. Finish all
+            # cleanup before publishing it so this worker cannot alter that job.
+            self.cancellable = False
+            self.current.update(outcome)

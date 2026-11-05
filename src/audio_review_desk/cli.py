@@ -3,13 +3,61 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 import webbrowser
 from pathlib import Path
 
 from . import __version__
 from .audio import Decoder
+from .json_input import loads_unique
 from .workspace import Workspace, encode
+
+
+def _publish_export(temporary: str, output: Path) -> None:
+    """Publish a closed file without ever replacing an existing destination."""
+    if os.name == "nt":
+        # Unlike POSIX rename, Windows rename refuses an existing destination.
+        os.rename(temporary, output)
+    else:
+        try:
+            os.link(temporary, output)
+        except FileExistsError:
+            raise
+        except OSError as exc:
+            raise OSError(
+                f"Could not confirm safe export publication to {output}: {exc}. "
+                "Use a writable filesystem that supports hard links."
+            ) from exc
+
+
+def _write_export(output: Path, data: bytes) -> None:
+    """Keep failed writes off the final path; cleanup cannot undo publication."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    stream = tempfile.NamedTemporaryFile(
+        mode="wb", prefix=".audio-review-export-", suffix=".tmp",
+        dir=output.parent, delete=False,
+    )
+    try:
+        with stream:
+            if stream.write(data) != len(data):
+                raise OSError("Incomplete export write")
+            stream.flush()
+            os.fsync(stream.fileno())
+        _publish_export(stream.name, output)
+    finally:
+        try:
+            os.unlink(stream.name)
+        except FileNotFoundError:
+            pass  # Windows rename already consumed the temporary name.
+        except OSError as exc:
+            # Never remove output or turn a published export into a failure.
+            # Also preserve the original write/publication error on failure.
+            try:
+                print(f"Warning: could not remove temporary export {stream.name}: {exc}", file=sys.stderr)
+            except OSError:
+                pass
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -75,21 +123,24 @@ def main(argv: list[str] | None = None) -> int:
                 finally:
                     server.server_close()
             elif args.command == "export":
-                # Exclusive creation also prevents accidental overwrites of source audio or manifests.
-                args.output.parent.mkdir(parents=True, exist_ok=True)
-                with args.output.open("x", encoding="utf-8") as stream:
-                    if args.format == "csv":
-                        stream.write("\ufeff" + workspace.export_csv(args.status, args.include_paths))
-                    else:
-                        result = workspace.export(args.include_paths)
-                        if args.status != "all":
-                            from .workspace import statistics
-                            result["items"] = [row for row in result["items"] if row["review"]["status"] == args.status]
-                            result["stats"] = statistics(result["items"])
-                        stream.write(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
+                # Validate and serialize before creating the output. A failed
+                # export must not leave an empty file that blocks a fixed retry.
+                if args.format == "csv":
+                    content = "\ufeff" + workspace.export_csv(args.status, args.include_paths)
+                else:
+                    result = workspace.export(args.include_paths)
+                    if args.status != "all":
+                        from .workspace import statistics
+                        result["items"] = [row for row in result["items"] if row["review"]["status"] == args.status]
+                        result["stats"] = statistics(result["items"])
+                    content = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
+                data = content.encode("utf-8")
+                # Binary output also preserves CSV CRLF without OS translation.
+                _write_export(args.output, data)
                 print(f"Exported reviews to {args.output}")
             elif args.command == "restore":
-                count = workspace.import_reviews(json.loads(args.input.read_text(encoding="utf-8-sig")))
+                count = workspace.import_reviews(loads_unique(args.input.read_text(encoding="utf-8-sig"),
+                                                             context="Review restore JSON"))
                 print(f"Restored {count} matching version-bound reviews")
         return 0
     except (ValueError, OSError, KeyError, TypeError) as exc:

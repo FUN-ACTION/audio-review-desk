@@ -28,6 +28,8 @@ Floating-point inputs and some compressed formats are quantized to signed PCM32 
 - `multichannel`: more than two channels.
 - `decode_error`: the file is missing, unreadable, empty, truncated, changed during analysis, or failed full decode.
 
-Quiet-edge durations use a per-frame peak threshold of 0.001 full scale. The waveform is a reduced peak display used to position saved trim suggestions. It does not edit source samples or provide spectral analysis.
+Quiet-edge durations use a per-frame peak threshold of 0.001 full scale. The waveform is a reduced peak display used to position saved trim suggestions, not a sample-accurate editor. It does not edit source samples. A and B share the original clip's review timeline, but each waveform uses its own audio duration; a shorter reference leaves a baseline after its end rather than stretching to fill the original.
+
+The separate spectrogram analyzes the current PCM16 listening preview, which can include the A/B gain adjustment described below. It is not a replacement for the original-file measurements above. Browser analysis is limited to the first two minutes and previews up to 32 MiB.
 
 A/B previews are PCM16 listening copies. Where both clips have RMS above -120 dBFS, constant attenuation lowers the louder RMS to the quieter RMS. A common headroom attenuation keeps sample peaks at or below 0.98. A silent reference does not mute the audible signal. RMS matching is not LUFS matching, and previews are not exported training material.

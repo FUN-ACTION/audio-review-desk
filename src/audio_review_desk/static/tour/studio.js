@@ -455,6 +455,8 @@ function mount(root) {
     $(".sample-annotation").focus();
   });
   noteInput.addEventListener("keydown", (event) => {
+    // 229 also covers IME boundary keys when isComposing is already false.
+    if (event.isComposing || event.keyCode === 229) return;
     if (event.key === "Escape") {
       event.preventDefault();
       noteVisible = false;

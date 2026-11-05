@@ -1,9 +1,11 @@
 import json
+import re
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+import urllib.parse
 import time
 from importlib.resources import files
 from unittest.mock import patch
@@ -68,11 +70,38 @@ class ServerTests(unittest.TestCase):
 
     def test_packaged_fonts_and_version_endpoint(self):
         from audio_review_desk import __version__
-        self.assertEqual(self.get('/api/version'), {'version': __version__})
+        self.assertEqual(self.get('/api/version'), {'application': 'audio-review-desk', 'version': __version__})
+        with urllib.request.urlopen(self.origin + '/tour/workspace-link.js') as response:
+            self.assertEqual(response.headers.get_content_type(), 'text/javascript')
+            self.assertIn(b'probeLocalWorkspace', response.read())
         for path in ('/studio-latin.woff2', '/studio-cjk.woff2', '/desk-display.woff2', '/desk-cjk-ui.woff2'):
             with urllib.request.urlopen(self.origin + path) as response:
                 self.assertEqual(response.read(4), b'wOF2')
                 self.assertIn('font', response.headers['Content-Type'])
+
+    def test_workbench_module_graph_is_served_with_javascript_content_type(self):
+        pending = ["/app.js"]
+        visited = set()
+        while pending:
+            path = pending.pop()
+            if path in visited:
+                continue
+            visited.add(path)
+            with self.subTest(path=path), urllib.request.urlopen(self.origin + path) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.headers.get_content_type(), "text/javascript")
+                source = response.read().decode("utf-8")
+            imports = re.findall(r'(?:from\s*|import\s*\(\s*)["\'](\./[^"\']+\.js)["\']', source)
+            pending.extend(urllib.parse.urljoin(path, module) for module in imports)
+        self.assertIn("/trim.js", visited)
+        self.assertIn("/media-session.js", visited)
+        self.assertIn("/job-poller.js", visited)
+        self.assertIn("/read-recovery.js", visited)
+        self.assertIn("/read-once.js", visited)
+        self.assertIn("/draft-recovery.js", visited)
+        self.assertIn("/draft-session.js", visited)
+        self.assertIn("/waveform.js", visited)
+        self.assertIn("/motion-vendor.js", visited)
 
     def test_workspace_scope_is_stable_opaque_and_separates_equal_folder_names(self):
         scope = self.state['workspace_id']
@@ -243,6 +272,24 @@ class ServerTests(unittest.TestCase):
             self.post(self.payload())
         self.assertEqual(caught.exception.code, 409)
 
+    def test_unverified_primary_returns_conflict_without_mutation(self):
+        missing = self.root / 'audio/missing.wav'
+        item = self.workspace.ingest([dict(id='missing', path=str(missing))], self.root, kind='manifest')['items'][0]
+        before = self.workspace.state()
+        for operation in (
+            lambda: self.post(dict(key=item['key'], status='exclude', score=None, expected_version=0)),
+            lambda: self.post(dict(changes=[dict(key=item['key'], expected_version=0)], status='exclude'), path='/api/batch'),
+            lambda: self.get('/api/export'),
+            lambda: self.get('/api/export?format=csv&status=pass'),
+        ):
+            with self.subTest(operation=operation):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    operation()
+                self.assertEqual(caught.exception.code, 409)
+                self.assertEqual(json.load(caught.exception)['code'], 'primary_unverified')
+                self.assertEqual(self.workspace.state(), before)
+                self.assertEqual(self.workspace.history(item['key']), [])
+
     def test_export_omits_explicit_paths_and_has_no_cors(self):
         with urllib.request.urlopen(self.origin + "/api/export") as response:
             self.assertNotIn("Access-Control-Allow-Origin", response.headers)
@@ -256,6 +303,33 @@ class ServerTests(unittest.TestCase):
         with self.post({'key':key,'expected_version':1},path='/api/undo') as response:
             self.assertEqual(json.load(response)['review']['status'],'pending')
         self.assertEqual(len(self.get('/api/history/'+key)['history']),2)
+
+    def test_batch_response_keeps_saved_count_and_adds_exact_committed_reviews(self):
+        key = self.state["items"][0]["key"]
+        self.workspace.save_review(key, dict(status="pass", score=0, note="Keep note", issues=["noise"],
+            expected_version=0, trim_start=0, trim_end=.123456, markers=[{"time": .012345, "text": "Keep marker"}]))
+        with self.post({"changes": [{"key": key, "expected_version": 1}], "status": "exclude"}, path="/api/batch") as response:
+            result = json.load(response)
+        self.assertIs(type(result["saved"]), int)
+        self.assertEqual(result["saved"], 1)
+        self.assertEqual(result["reviews"], [{"key": key, "review": self.workspace.history(key)[-1]}])
+        review = result["reviews"][0]["review"]
+        self.assertEqual((review["status"], review["version"], review["score"], review["origin"]), ("exclude", 2, 0, "batch_ui"))
+        self.assertEqual((review["note"], review["trim_end"], review["markers"][0]["time"]), ("Keep note", .123456, .012345))
+        self.assertEqual(len(self.workspace.history(key)), 2)
+
+    def test_conflicting_batch_response_has_no_success_or_committed_records(self):
+        key = self.state["items"][0]["key"]
+        self.workspace.save_review(key, dict(status="fix", score=None, note="Newer", issues=[], expected_version=0))
+        before = self.workspace.history(key)
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.post({"changes": [{"key": key, "expected_version": 0}], "status": "exclude"}, path="/api/batch")
+        self.assertEqual(caught.exception.code, 409)
+        result = json.load(caught.exception)
+        self.assertIn("error", result)
+        self.assertNotIn("saved", result)
+        self.assertNotIn("reviews", result)
+        self.assertEqual(self.workspace.history(key), before)
 
     def test_gui_import_and_rescan_with_session_authorization(self):
         payload={'kind':'directory','path':str(self.root/'audio'),'append':True}

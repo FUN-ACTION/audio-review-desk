@@ -8,9 +8,33 @@ export const errorMessages = {
     "另一页刚更新了这条审核。刷新后再保存；当前编辑仍保留。",
     "This review changed in another page. Refresh before saving; your draft is still here.",
   ],
+  batch_unconfirmed: [
+    "无法确认批量结果。请刷新清单后重试。",
+    "Could not confirm the batch result. Refresh the catalog before trying again.",
+  ],
   source_changed: [
     "音频文件已有变化。重新扫描后再审核。",
     "The audio changed. Rescan it before reviewing.",
+  ],
+  reference_legacy_collision: [
+    "这个条目与旧参考版本的记录冲突。请先备份整个工作区，再为清单中的这个条目设置新的 ID。旧记录保留，新条目需要重新审核。",
+    "This item conflicts with an old unverified reference version. Back up the whole workspace, then choose a new manifest ID for this item. Old records stay intact; the new item needs a new review.",
+  ],
+  primary_version_collision: [
+    "这个条目与旧音频版本的路径冲突。请先备份整个工作区，再为清单中的这个条目设置新的 ID。旧记录保留，新条目需要重新审核。",
+    "This path conflicts with an old unverified audio version. Back up the whole workspace, then choose a new manifest ID for this item. Old records stay intact; the new item needs a new review.",
+  ],
+  primary_unverified: [
+    "无法确认原音频的版本。请先备份整个工作区，再确认 A 文件可以读取并重新导入。旧审核记录保留，新版本需要重新审核。",
+    "The primary audio version cannot be verified. Back up the whole workspace, make A readable, and reimport. Old reviews remain stored; the new version needs a new review.",
+  ],
+  reference_unverified: [
+    "无法确认参考文件的版本。请先备份整个工作区，再确认参考文件可以读取并重新导入。旧审核记录保留，新版本需要重新审核。",
+    "The reference version cannot be verified. Back up the whole workspace, make B readable, and reimport. Old reviews remain stored; the new version needs a new review.",
+  ],
+  source_unavailable: [
+    "无法读取原文件。请恢复扫描时的文件，或先备份整个工作区再重新导入。",
+    "A source file is unavailable. Restore the exact scanned file, or back up the whole workspace before reimporting.",
   ],
   path_required: [
     "请先选择文件，或输入完整路径。",

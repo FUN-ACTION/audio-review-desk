@@ -26,11 +26,14 @@ export function createMusicPlayer({ onChange = () => {}, onLevel = () => {}, onE
     if (playing || pending) { pause(); return; }
     pending = true; notify();
     const ticket = ++generation;
+    let errorKind = 'playback';
     try {
       const Context = runtime.AudioContext || runtime.webkitAudioContext;
-      if (!Context) throw Error('audio_unavailable');
+      if (!Context) { errorKind = 'unavailable'; throw Error('audio_unavailable'); }
       context ||= new Context();
-      await context.resume();
+      // Classify only the resume call itself, not later graph/playback failures.
+      try { await context.resume(); }
+      catch (error) { errorKind = 'resume'; throw error; }
       if (disposed || generation !== ticket) return;
       if (!analyser) { analyser = context.createAnalyser(); analyser.fftSize = 512; analyser.connect(context.destination); values = new Float32Array(512); }
       if (media) {
@@ -60,7 +63,7 @@ export function createMusicPlayer({ onChange = () => {}, onLevel = () => {}, onE
       frame = runtime.requestAnimationFrame(tick);
     } catch (error) {
       if (generation !== ticket || disposed) return;
-      pause(); onError(error);
+      pause(); onError(error, errorKind);
     }
   }
   function selectFile(file) {
@@ -73,7 +76,8 @@ export function createMusicPlayer({ onChange = () => {}, onLevel = () => {}, onE
     media.onended = () => { if (!disposed && media === selectedMedia) pause(); };
     media.onerror = () => {
       if (disposed || media !== selectedMedia) return;
-      pause(); onError(Error('file_unreadable'));
+      const code = selectedMedia.error?.code;
+      pause(); onError(Error('file_unreadable'), code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'playback');
     };
     notify();
   }

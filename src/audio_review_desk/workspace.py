@@ -6,6 +6,9 @@ import hashlib
 import json
 import math
 import sqlite3
+import shutil
+import sys
+import tempfile
 import threading
 import wave
 import io
@@ -16,6 +19,7 @@ from pathlib import Path
 
 from .audio import AudioError, Decoder, SUPPORTED, analyze, file_sha256, write_preview
 from .errors import error_code
+from .json_input import loads_unique
 
 SCHEMA = "audio-review-desk/v1"
 STATUSES = {"pending", "pass", "fix", "exclude"}
@@ -29,6 +33,11 @@ class Conflict(ValueError):
 
 class ImportCancelled(ValueError):
     """An import stopped before replacing the active catalog."""
+
+
+def check_cancelled(cancelled: threading.Event | None) -> None:
+    if cancelled is not None and cancelled.is_set():
+        raise ImportCancelled("Import cancelled; the previous file list is unchanged")
 
 
 def utc() -> str:
@@ -55,6 +64,14 @@ def merge_ranges(intervals: list[tuple[float, float]]) -> list[list[float]]:
         else:
             result.append([start, end])
     return result
+
+
+def finite_number_in_range(value: object, minimum: float, maximum: float) -> bool:
+    # Integers are finite without conversion. math.isfinite() converts them to
+    # float and can overflow on valid JSON integers, before range rejection.
+    return (type(value) in (int, float)
+            and (type(value) is int or math.isfinite(value))
+            and minimum <= value <= maximum)
 
 
 def default_review() -> dict:
@@ -105,13 +122,23 @@ class Workspace:
 
     def scan(self, source: Path, *, append: bool = False, progress: Callable | None = None,
              cancelled: threading.Event | None = None) -> dict:
+        check_cancelled(cancelled)
         source = source.resolve(strict=True)
         if not source.is_dir():
             raise ValueError("scan expects a directory; use import for a manifest")
         self.assert_input_separate(source)
-        rows = [{"id": str(path.relative_to(source).as_posix()), "path": str(path), "label": path.name}
-                for path in sorted(source.rglob("*"))
-                if path.is_file() and path.suffix.lower() in SUPPORTED and not path.is_symlink()]
+        candidates = []
+        for path in source.rglob("*"):
+            check_cancelled(cancelled)
+            if path.is_file() and path.suffix.lower() in SUPPORTED and not path.is_symlink():
+                candidates.append(path)
+        check_cancelled(cancelled)
+        candidates.sort()
+        rows = []
+        for path in candidates:
+            check_cancelled(cancelled)
+            rows.append({"id": str(path.relative_to(source).as_posix()), "path": str(path), "label": path.name})
+        check_cancelled(cancelled)
         if not rows:
             raise ValueError("No supported audio files found")
         return self.ingest(rows, source, kind="directory", append=append, progress=progress,
@@ -119,15 +146,48 @@ class Workspace:
 
     def import_manifest(self, manifest: Path, *, append: bool = False, progress: Callable | None = None,
                         cancelled: threading.Event | None = None) -> dict:
+        check_cancelled(cancelled)
         manifest = manifest.resolve(strict=True)
         if manifest.suffix.lower() == ".csv":
             with manifest.open(encoding="utf-8-sig", newline="") as stream:
-                rows = list(csv.DictReader(stream))
+                rows = []
+                reader = csv.DictReader(stream, strict=True)
+                try:
+                    names = set()
+                    for name in reader.fieldnames or []:
+                        check_cancelled(cancelled)
+                        if name and name in names:
+                            raise ValueError(
+                                f"Malformed CSV manifest at line {reader.line_num}: "
+                                f"duplicate header {name!r}"
+                            )
+                        names.add(name)
+                    for row in reader:
+                        check_cancelled(cancelled)
+                        if None in row:
+                            raise ValueError(
+                                f"Malformed CSV manifest at line {reader.line_num}: "
+                                "row has more cells than the header"
+                            )
+                        # Missing trailing cells use the same defaults as omitted
+                        # columns; explicit empty cells remain empty strings.
+                        rows.append({name: value for name, value in row.items() if value is not None})
+                except csv.Error as exc:
+                    # DictReader.line_num is only updated after a successful row;
+                    # use the underlying parser for the failing physical line.
+                    raise ValueError(
+                        f"Malformed CSV manifest at line {reader.reader.line_num}: {exc}"
+                    ) from exc
         else:
-            data = json.loads(manifest.read_text(encoding="utf-8-sig"))
+            content = manifest.read_text(encoding="utf-8-sig")
+            check_cancelled(cancelled)
+            data = loads_unique(content, context="JSON manifest",
+                                checkpoint=lambda: check_cancelled(cancelled))
+            check_cancelled(cancelled)
             if not isinstance(data, dict) or data.get("schema") != SCHEMA or not isinstance(data.get("items"), list):
                 raise ValueError(f"JSON manifest needs schema={SCHEMA!r} and an items array")
             rows = data["items"]
+        check_cancelled(cancelled)
         if not rows:
             raise ValueError("Manifest is empty")
         return self.ingest(rows, manifest.parent, kind="manifest", append=append, progress=progress,
@@ -135,11 +195,13 @@ class Workspace:
 
     def import_files(self, paths: list[str], *, append: bool = False, progress: Callable | None = None,
                      cancelled: threading.Event | None = None) -> dict:
+        check_cancelled(cancelled)
         if not isinstance(paths, list) or not 1 <= len(paths) <= 500 or any(not isinstance(p, str) or not p.strip() for p in paths):
             raise ValueError("Select between 1 and 500 audio files")
         if any(Path(p).is_symlink() for p in paths):
             raise ValueError("Symbolic links are not supported")
         sources = sorted({Path(p).expanduser().resolve(strict=True) for p in paths})
+        check_cancelled(cancelled)
         if any(not p.is_file() for p in sources):
             raise ValueError("The path does not match the selected import type")
         rows = [{"id": "file:" + hashlib.sha256(str(p).encode()).hexdigest()[:24], "path": str(p), "label": p.name} for p in sources]
@@ -149,10 +211,13 @@ class Workspace:
     def ingest(self, rows: list[dict], base: Path, kind: str, *, append: bool = False,
                progress: Callable | None = None, cancelled: threading.Event | None = None,
                source: Path | list[Path] | None = None) -> dict:
+        check_cancelled(cancelled)
+        checkpoint = (lambda: check_cancelled(cancelled)) if cancelled is not None else None
         # Validate all rows first; a malformed manifest cannot partially replace a catalog.
         prepared = []
         ids: set[str] = set()
         for raw in rows:
+            check_cancelled(cancelled)
             if not isinstance(raw, dict) or not isinstance(raw.get("path"), str) or not raw["path"].strip():
                 raise ValueError("Every item needs a nonempty path")
             item_id = str(raw.get("id") or raw["path"])
@@ -164,9 +229,12 @@ class Workspace:
             self.assert_input_separate(path.parent)
             if path.suffix.lower() not in SUPPORTED:
                 raise ValueError(f"Unsupported audio extension for item {item_id}")
-            start = float(raw.get("source_start") or 0)
-            end = raw.get("source_end")
-            end = None if end in (None, "") else float(end)
+            try:
+                start = float(raw.get("source_start") or 0)
+                end = raw.get("source_end")
+                end = None if end in (None, "") else float(end)
+            except OverflowError as exc:
+                raise ValueError("Source intervals must be finite, nonnegative, and increasing") from exc
             if not math.isfinite(start) or start < 0 or (end is not None and (not math.isfinite(end) or end <= start)):
                 raise ValueError("Source intervals must be finite, nonnegative, and increasing")
             source_id = str(raw.get("source_id") or "")
@@ -188,16 +256,25 @@ class Workspace:
         collection_id = hashlib.sha256(f"{kind}\0{source_key}".encode()).hexdigest()[:24]
         assets = []
         def report(done, label, phase="decoding"):
-            if cancelled is not None and cancelled.is_set():
-                raise ImportCancelled("Import cancelled; the previous file list is unchanged")
+            check_cancelled(cancelled)
             if progress:
                 progress(done, len(prepared), label, phase)
         for index, entry in enumerate(prepared):
             report(index, entry["label"])
             asset = dict(entry)
             asset["collection_id"] = collection_id
+            # Byte identity is independent of decodability/alignment. Hash B even
+            # when A fails, without advertising an unplayable reference to the UI.
+            if asset["reference_path"]:
+                asset["reference_sha256"] = None
+                try:
+                    asset["reference_sha256"] = file_sha256(
+                        Path(asset["reference_path"]), checkpoint=checkpoint)
+                except OSError:
+                    check_cancelled(cancelled)
+            quality = None
             try:
-                quality = analyze(Path(asset["path"]), self.decoder)
+                quality = analyze(Path(asset["path"]), self.decoder, checkpoint=checkpoint)
                 if asset["source_end"] is None:
                     asset["source_end"] = asset["source_start"] + quality["duration"]
                 if abs(asset["source_end"] - asset["source_start"] - quality["duration"]) > 1 / quality["sample_rate"] + 1e-8:
@@ -205,17 +282,28 @@ class Workspace:
                 asset["quality"] = quality
                 asset["source_id"] = asset["source_id"] or "pcm:" + quality["pcm_sha256"]
                 if asset["reference_path"]:
-                    reference = analyze(Path(asset["reference_path"]), self.decoder)
+                    reference = analyze(Path(asset["reference_path"]), self.decoder, checkpoint=checkpoint)
+                    if reference["sha256"] != asset["reference_sha256"]:
+                        raise AudioError("Reference changed during import; reimport stable source files")
                     if abs(reference["duration"] - quality["duration"]) > 0.05:
                         raise ValueError("A/B reference must be time-aligned and within 50 ms of clip duration")
                     asset["reference_quality"] = reference
                 asset["error"] = None
+            except ImportCancelled:
+                # Cancellation is not a decode error and must never enter the catalog.
+                raise
             except (AudioError, OSError, ValueError, wave.Error) as exc:
+                check_cancelled(cancelled)
                 asset["quality"] = {"decoded": False, "flags": ["decode_error"]}
-                try:
-                    asset["quality"]["sha256"] = file_sha256(Path(asset["path"]))
-                except OSError:
-                    pass
+                if quality is not None:
+                    # A was already analyzed successfully. A later B/interval
+                    # failure must not discard that identity or bind newer bytes.
+                    asset["quality"]["sha256"] = quality["sha256"]
+                else:
+                    try:
+                        asset["quality"]["sha256"] = file_sha256(Path(asset["path"]), checkpoint=checkpoint)
+                    except OSError:
+                        check_cancelled(cancelled)
                 asset["error"] = (f"Audio file unavailable ({type(exc).__name__})" if isinstance(exc, OSError)
                                   else str(exc)[:500])
                 asset["error_code"] = error_code(exc)
@@ -225,7 +313,10 @@ class Workspace:
             signature = {"id": asset["id"], "sha256": asset["quality"].get("sha256"),
                          "source_id": asset["source_id"], "source_start": asset["source_start"],
                          "source_end": asset["source_end"], "eligible": asset["eligible"],
-                         "reference_sha256": asset.get("reference_quality", {}).get("sha256")}
+                         "reference_sha256": asset.get("reference_sha256")}
+            if asset["reference_path"] and asset["reference_sha256"] is None:
+                # Distinguish unavailable B from no B and old unbound failures.
+                signature["reference_unavailable"] = True
             asset["key"] = hashlib.sha256(encode(signature).encode()).hexdigest()
             assets.append(asset)
             report(index + 1, entry["label"])
@@ -236,6 +327,19 @@ class Workspace:
             existing = self.assets(connection) if append else []
             existing_ids = {item["id"]: item for item in existing}
             for asset in assets:
+                stored = connection.execute("SELECT metadata FROM assets WHERE key=?", (asset["key"],)).fetchone()
+                if stored:
+                    prior = json.loads(stored["metadata"])
+                    if (prior.get("quality", {}).get("sha256") is None and
+                            prior.get("path") != asset["path"]):
+                        # Includes inactive historical rows. Unknown bytes are
+                        # not evidence that two paths represent the same audio.
+                        raise Conflict("Primary version collision; back up the workspace and use a new manifest ID for this item to start a separate review")
+                    if (prior.get("reference_path") and "reference_sha256" not in prior and
+                            prior.get("reference_sha256", prior.get("reference_quality", {}).get("sha256")) is None):
+                        # Old broken-A/B signatures could collide with broken A
+                        # alone. Never overwrite the unbound historical evidence.
+                        raise Conflict("Legacy reference version collision; back up the workspace and use a new manifest ID for this item to start a separate review")
                 previous = existing_ids.get(asset["id"])
                 if previous and previous["path"] != asset["path"]:
                     raise Conflict(f"Clip ID {asset['id']!r} already belongs to another file; use unique manifest IDs or replace the list")
@@ -289,21 +393,38 @@ class Workspace:
         for path_key, quality_key in (("path", "quality"), ("reference_path", "reference_quality")):
             if asset.get(path_key):
                 expected = asset.get(quality_key, {}).get("sha256")
-                if expected is not None and file_sha256(Path(asset[path_key])) != expected:
-                    raise Conflict("Source changed since scanning; rescan before reviewing")
+                if path_key == "reference_path":
+                    # Healthy legacy references already have a trustworthy hash.
+                    # Never attach today's bytes to legacy failed-reference reviews.
+                    expected = asset.get("reference_sha256", expected)
+                    if expected is None:
+                        raise Conflict("Reference version is unverified; make the reference readable and reimport before reviewing or exporting")
+                elif expected is None:
+                    raise Conflict("Primary version is unverified; make A readable and reimport before reviewing or exporting")
+                if expected is not None:
+                    try:
+                        current = file_sha256(Path(asset[path_key]))
+                    except OSError as exc:
+                        raise Conflict("Source unavailable; restore the scanned file or reimport before reviewing or exporting") from exc
+                    if current != expected:
+                        raise Conflict("Source changed since scanning; rescan before reviewing")
 
     def save_review(self, key: str, payload: dict, origin: str = "human_ui") -> dict:
         asset = self.asset(key)
-        clean = self.validate_review(asset, payload)
-        self.verify_current(asset)
+        self.validate_review(asset, payload)
         with self.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            active = connection.execute("SELECT active FROM assets WHERE key=?", (key,)).fetchone()
-            if not active or not active["active"]:
+            row = connection.execute("SELECT metadata FROM assets WHERE key=? AND active=1", (key,)).fetchone()
+            if row is None:
                 raise Conflict("Audio version changed while saving")
+            asset = json.loads(row["metadata"])
             current = self.review(connection, key)
             if payload["expected_version"] != current["version"]:
                 raise Conflict("Another page updated this review; reload before saving")
+            clean = self.validate_review(asset, payload)
+            # Sources can change while waiting for another writer. Verify both
+            # after taking the lock; external file writes can still occur afterward.
+            self.verify_current(asset)
             if "markers" not in payload:
                 clean["markers"] = current.get("markers", [])
             review = self.write_review(connection, key, clean, current["version"] + 1, origin)
@@ -320,7 +441,7 @@ class Workspace:
         expected = payload.get("expected_version")
         if not isinstance(status, str) or status not in STATUSES:
             raise ValueError("Unknown review status")
-        if score is not None and (type(score) not in (int, float) or not math.isfinite(score) or not 0 <= score <= 10):
+        if score is not None and not finite_number_in_range(score, 0, 10):
             raise ValueError("Score must be null or a finite number from 0 to 10")
         if not isinstance(issues, list) or any(not isinstance(issue, str) or issue not in ISSUES for issue in issues):
             raise ValueError("Unknown issue label")
@@ -333,7 +454,7 @@ class Workspace:
         start, end = payload.get("trim_start"), payload.get("trim_end")
         duration = asset["quality"].get("duration", 0)
         for value in (start, end):
-            if value is not None and (type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= duration):
+            if value is not None and not finite_number_in_range(value, 0, duration):
                 raise ValueError("Trim bounds must be finite seconds within this clip")
         if (start if start is not None else 0) >= (end if end is not None else duration) and duration > 0:
             raise ValueError("Trim start must be before trim end")
@@ -342,8 +463,7 @@ class Workspace:
             raise ValueError("Use at most 100 time notes")
         clean_markers = []
         for marker in markers:
-            if (not isinstance(marker, dict) or type(marker.get("time")) not in (int, float)
-                    or not math.isfinite(marker["time"]) or not 0 <= marker["time"] <= duration
+            if (not isinstance(marker, dict) or not finite_number_in_range(marker.get("time"), 0, duration)
                     or not isinstance(marker.get("text"), str) or not 1 <= len(marker["text"].strip()) <= 240
                     or not asset["quality"]["decoded"]):
                 raise ValueError("Time notes need a position within the clip and text of 1 to 240 characters")
@@ -359,6 +479,9 @@ class Workspace:
         return review
 
     def batch_review(self, changes: list[dict], status: str) -> int:
+        return self.batch_review_result(changes, status)["saved"]
+
+    def batch_review_result(self, changes: list[dict], status: str) -> dict:
         if not isinstance(status, str) or status not in {"pending", "fix", "exclude"}:
             raise ValueError("Batch changes support pending, fix, and exclude; approval is per clip")
         if not isinstance(changes, list) or not 1 <= len(changes) <= 500:
@@ -382,9 +505,13 @@ class Workspace:
                 self.verify_current(asset)
                 clean = self.validate_review(asset, dict(current, status=status, expected_version=current["version"]))
                 validated.append((change["key"], clean, current["version"] + 1))
+            reviews = []
             for key, clean, version in validated:
-                self.write_review(connection, key, clean, version, "batch_ui")
-        return len(validated)
+                review = self.write_review(connection, key, clean, version, "batch_ui")
+                reviews.append({"key": key, "review": review})
+        # Return only after commit, using these writes rather than a later read
+        # that could include another page's changes.
+        return {"saved": len(reviews), "reviews": reviews}
 
     def undo_review(self, key: str, expected_version: int) -> dict:
         history = self.history(key)
@@ -460,8 +587,9 @@ class Workspace:
 
     def _restore(self, rows: list[dict]) -> int:
         # Reuse validation on a disposable database, then atomically copy only reviewed rows.
-        import tempfile
-        with tempfile.TemporaryDirectory(prefix="ard-review-validate-") as temporary:
+        temporary = tempfile.mkdtemp(prefix="ard-review-validate-")
+        committed = False
+        try:
             validation = Workspace(Path(temporary), self.decoder)
             validation.initialize()
             with self.connect() as source, validation.connect() as target:
@@ -469,7 +597,11 @@ class Workspace:
             for row in rows:
                 with validation.connect() as connection:
                     current = validation.review(connection, row["key"])
-                payload = dict(row["review"], expected_version=current["version"])
+                # A restore applies a complete snapshot, not an older client's
+                # partial edit. Legacy snapshots predate time notes and mean no
+                # markers; do not borrow annotations from the current review.
+                payload = dict(row["review"], expected_version=current["version"],
+                               markers=row["review"].get("markers", []))
                 validation.save_review(row["key"], payload, origin="imported_review")
             with self.connect() as connection, validation.connect() as validated:
                 connection.execute("BEGIN IMMEDIATE")
@@ -483,6 +615,27 @@ class Workspace:
                         raise Conflict("A review changed while importing; no reviews were imported")
                     connection.execute("INSERT OR REPLACE INTO reviews VALUES(?,?)", (key, encode(checked)))
                     connection.execute("INSERT INTO history(key,payload) VALUES(?,?)", (key, encode(checked)))
+            # Only a normal exit from both database contexts confirms success.
+            # A commit/close exception may be ambiguous; do not reinterpret it.
+            committed = True
+        finally:
+            try:
+                # This operation owns only this directory, never other restores.
+                shutil.rmtree(temporary)
+            except Exception:
+                # Cleanup must not mask validation/transaction failure or turn a
+                # confirmed commit into a retryable failure. Do not log database
+                # paths, contents, or the cleanup exception (which may include them).
+                outcome = ("Restore committed; do not retry it." if committed else
+                           "Restore was not confirmed; inspect reviews before retrying.")
+                try:
+                    print(f"Warning: could not remove validation copy {Path(temporary).name}. "
+                          f"{outcome} After restore processes stop, inspect this directory "
+                          "in Python's configured temporary directory before removing it.",
+                          file=sys.stderr)
+                except Exception:
+                    pass  # A diagnostic write failure cannot change the outcome.
+                # BaseException is deliberately not caught: interrupts still propagate.
         return len(rows)
 
     def preview(self, key: str, variant: str) -> Path:
@@ -537,7 +690,10 @@ def statistics(items: list[dict]) -> dict:
         pcm = quality["pcm_sha256"]
         unique[pcm] = quality["duration"]
         groups.setdefault(pcm, []).append(item["id"])
-        warnings += bool(quality["flags"])
+        reference_flags = (item.get("reference_quality") or {}).get("flags", [])
+        warnings += bool(quality["flags"] or any(
+            flag in {"ogg_ending_unconfirmed", "ogg_check_incomplete", "mp3_frame_count_differs", "mp3_check_incomplete", "mp4_extent_exceeds_file", "mp4_check_incomplete", "mp4_indexed_audio_bytes_unavailable"} for flag in reference_flags
+        ))
         if item["eligible"] and review["status"] not in {"fix", "exclude"}:
             start = item["source_start"] + (review["trim_start"] or 0)
             end = item["source_start"] + (review["trim_end"] if review["trim_end"] is not None else quality["duration"])

@@ -429,10 +429,11 @@ main {
   margin-left: auto;
 }
 #selectedCount {
-  display: none;
+  font-variant-numeric: tabular-nums;
 }
 .batch-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -449,6 +450,20 @@ main {
 .batch-bar button {
   font-size: 12px;
   min-height: 28px;
+}
+.batch-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+.batch-selection-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .queue-shell {
   position: relative;
@@ -531,6 +546,21 @@ button.clip {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+.clip-row.has-search-context { height: 100px; contain-intrinsic-size: auto 100px; }
+.clip-search-context {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  max-height: 32px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.clip-search-source { color: var(--ink); font-weight: 500; }
+.clip-search-excerpt { unicode-bidi: isolate; }
 .status-pass {
   color: var(--good);
 }
@@ -706,6 +736,10 @@ progress::-moz-progress-bar {
 .flag.error {
   color: #c5554c;
   background: #c5554c0c;
+}
+.flag.neutral {
+  color: var(--muted);
+  background: var(--blue-soft);
 }
 .flag.good {
   color: var(--good);
@@ -1216,6 +1250,15 @@ audio {
   width: 12px;
   height: 12px;
 }
+.range-duration {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 .range-fields {
   display: flex;
   align-items: end;
@@ -1309,11 +1352,53 @@ details[open] > summary:before {
   overflow-wrap: anywhere;
   font-size: 11px;
 }
-#history p {
-  padding: 10px 0;
+.history-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+#history {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 16px;
+}
+.history-entry {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.history-entry-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.history-entry-title {
+  flex: 1 1 180px;
+  margin: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.history-entry-detail {
+  margin: 10px 0 0;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
   white-space: pre-wrap;
-  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.history-load {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+.history-warning {
+  margin: 0;
+  color: var(--warn);
+  overflow-wrap: anywhere;
 }
 fieldset {
   margin: 0;
@@ -1794,6 +1879,9 @@ dialog > p {
   margin-top: 8px;
   line-height: 1.7;
 }
+#importPreviousStatus:empty {
+  margin-top: 0;
+}
 .inline-error {
   color: #c34e48;
   font-size: 13px;
@@ -1907,11 +1995,13 @@ dialog > p {
   color: var(--blue);
 }
 .command-empty {
+  margin: 0;
   padding: 30px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
 }
+.command-empty:empty { padding: 0; }
 .command-footer {
   padding: 10px 18px;
   border-top: 1px solid var(--line);
@@ -2203,9 +2293,29 @@ dialog > p {
   .transport-time {
     font-size: 13px;
   }
-  .volume-control,
   .playback-shortcut {
     display: none;
+  }
+  /* Keep persisted zero volume recoverable without widening the window.
+     Scoped selectors survive the later studio stylesheet's compact widths. */
+  .transport {
+    flex-wrap: wrap;
+  }
+  .transport .volume-control {
+    display: flex;
+    flex: 0 0 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .transport .volume-control svg {
+    flex: 0 0 15px;
+  }
+  .transport .volume-control input {
+    flex: 0 1 160px;
+    width: 160px;
+    min-width: 0;
+    max-width: 100%;
+    height: 32px;
   }
   .playback-tools {
     margin-bottom: 16px;
@@ -2577,3 +2687,40 @@ dialog > p {
 .issue-panel[open] summary svg { transform:rotate(90deg); }
 .issue-panel[open] { padding-bottom:12px; }
 .issue-panel summary:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }
+
+/* Session-only recovery is separate from the saved-review status. */
+.draft-recovery {
+  margin: 16px 0 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--blue-soft);
+  font-size: 12px;
+}
+.draft-recovery[data-state="unavailable"],
+.draft-recovery[data-state="invalid"] { border-color: var(--warn); }
+.draft-recovery-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.draft-recovery time, .draft-recovery-hint { color: var(--muted); font-size: 11px; }
+.draft-recovery p { margin: 8px 0; overflow-wrap: anywhere; }
+.draft-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.draft-recovery-actions button { font-size: 12px; }
+.draft-recovery details { margin-top: 12px; }
+.draft-recovery summary { cursor: pointer; color: var(--muted); }
+.draft-recovery pre {
+  max-height: 200px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  font: inherit;
+  line-height: 1.6;
+}

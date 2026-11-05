@@ -137,6 +137,50 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(rows[0]["note"].startswith("'="))
         self.assertNotIn("path", rows[0])
 
+    def test_csv_formula_prefixes_after_python_whitespace_preserve_json_note(self):
+        # Explicit Python whitespace set, not a spreadsheet interpretation claim.
+        whitespace = (
+            "\t\n\v\f\r\x1c\x1d\x1e\x1f "
+            "\x85\xa0\u1680\u2000\u2001\u2002\u2003\u2004"
+            "\u2005\u2006\u2007\u2008\u2009\u200a"
+            "\u2028\u2029\u202f\u205f\u3000"
+        )
+        self.assertEqual(len(set(whitespace)), 29)
+        self.assertTrue(all(character.isspace() for character in whitespace))
+        key = self.changes()[0]["key"]
+        version = 0
+        for prefix in [*whitespace, whitespace]:
+            for operator in "=+-@":
+                with self.subTest(prefix=repr(prefix), operator=operator):
+                    note = prefix + operator + "1+1"
+                    self.workspace.save_review(key, dict(
+                        status="pass", score=None, note=note, issues=[], expected_version=version))
+                    version += 1
+                    reader = csv.DictReader(io.StringIO(self.workspace.export_csv("pass"), newline=""))
+                    rows = list(reader)
+                    self.assertEqual(len(rows), 1)
+                    self.assertEqual(set(rows[0]), set(reader.fieldnames))
+                    self.assertTrue(all(value is not None for value in rows[0].values()))
+                    self.assertEqual(rows[0]["note"], "'" + note)
+                    exported = json.loads(json.dumps(self.workspace.export()))
+                    item = next(item for item in exported["items"] if item["key"] == key)
+                    self.assertEqual(item["review"]["note"], note)
+
+    def test_csv_quoted_multiline_note_stays_one_cell_and_preserves_json(self):
+        key = self.changes()[0]["key"]
+        note = '声音 🎧, "quoted"\r\n=1+1\nsecond line, "end"'
+        self.workspace.save_review(key, dict(
+            status="pass", score=None, note=note, issues=[], expected_version=0))
+        reader = csv.DictReader(io.StringIO(self.workspace.export_csv("pass"), newline=""))
+        rows = list(reader)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(set(rows[0]), set(reader.fieldnames))
+        self.assertTrue(all(value is not None for value in rows[0].values()))
+        self.assertEqual(rows[0]["note"], note)
+        exported = json.loads(json.dumps(self.workspace.export()))
+        item = next(item for item in exported["items"] if item["key"] == key)
+        self.assertEqual(item["review"]["note"], note)
+
     def test_jobs_report_success_and_exclude_concurrent_imports(self):
         jobs = ImportJobs(self.workspace)
         entered, release = threading.Event(), threading.Event()

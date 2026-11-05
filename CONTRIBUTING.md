@@ -34,7 +34,7 @@ Before a PR, explain what changed and which checks you ran. Add a regression cas
 After tests pass and changes are committed, build from the committed tree:
 
 ```sh
-python scripts/build_release.py --output ../release/0.8.0
+python scripts/build_release.py --output ../release/new-release
 ```
 
 Use a new output directory for each release. The script archives the commit, builds its wheel in a clean temporary directory, and writes SHA256 checksums. This avoids packaging stale frontend files from a previous local build. Install that wheel in a separate environment before publishing, and check the CI result for the exact release commit.

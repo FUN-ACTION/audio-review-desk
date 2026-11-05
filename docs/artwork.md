@@ -6,6 +6,8 @@ Pointer movement changes the viewpoint slightly. The amplitude of a synthesized 
 
 The three working examples use an original synthesized phrase: compare timbres at the same time position, loop a selected interval, or add and remove temporary timestamped notes. These examples do not write workspace reviews. Actual scores, ranges and review history belong to the application workspace.
 
+The unpublished local-file path also connects the user's chosen audio to the listening, interval and note panels. It uses a time ruler, not simulated peaks from the original phrase. The sculpture is an abstract amplitude-responsive artwork, not a spectrogram or an analysis result. Browser interval audition is not sample-accurate editing. See [interface scope and limits](design.md#browser-listening-desk).
+
 ## Design references
 
 Apple's product pages informed the typography hierarchy, light navigation and feature grouping. No Apple product image, logo, font file or source code is bundled. Latin and Chinese typography uses the project's existing licensed fonts, with platform fonts where available.
@@ -16,4 +18,4 @@ The 0.12 images art-bloom.png, art-wave.png and art-prism.png were generated for
 
 No supplied PDF score, artist song, private recording, review database or model weight is included in the artwork.
 
-[Third-party notices](../THIRD_PARTY_NOTICES.md) · [Media](showcase-media.md) · [Verification](verification.md)
+[Third-party notices](../THIRD_PARTY_NOTICES.md) · [Media](showcase-media.md) · [0.13.0 release verification](verification.md) · [Unreleased maintenance verification](verification-2026-11-maintenance.md)

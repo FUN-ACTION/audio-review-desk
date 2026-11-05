@@ -56,7 +56,7 @@ export function moveSampleEdge(start, end, edge, value) {
     ![start, end].every(Number.isFinite) ||
     start < 0 ||
     end > sampleDuration ||
-    end - start < 0.25
+    end - start < 0.25 - 1e-9
   )
     throw new RangeError("selection");
   if (!["start", "end"].includes(edge)) throw new RangeError("edge");

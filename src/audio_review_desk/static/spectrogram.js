@@ -238,9 +238,13 @@ export function mountSpectrogram({ canvas, status, onSeek, language = "zh", alig
   resize?.observe(canvas);
   inform();
   return {
-    setSource(url, identity = url) {
+    setSource(url, identity = url, { retryFailed = false } = {}) {
       const resolved = url ? mediaPreviewURL(url, runtime.location?.href) : null;
-      if (source?.url === resolved && source?.identity === identity) return;
+      if (source?.url === resolved && source?.identity === identity) {
+        // Only an explicit reselection retries a transient failure. Redraws,
+        // visibility changes and background refreshes keep cache/request state.
+        if (!retryFailed || error !== "failed" || request) return;
+      }
       cancelRequest();
       source = resolved ? { url: resolved, identity } : null;
       cache = null; image = null; phase = "waiting"; error = url && !resolved ? "failed" : null;

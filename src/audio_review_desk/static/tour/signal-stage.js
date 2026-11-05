@@ -14,7 +14,7 @@ export function acousticLayout(count = 44) {
       x: (u - .5) * 7.1,
       radius: .16 + envelope * (.86 + .30 * Math.sin(u * Math.PI * 3 + .4)),
       phase: u * Math.PI * 2,
-      hue: 204 + u * 17,
+      hue: 29 + u * 8,
     };
   });
 }
@@ -22,7 +22,7 @@ export function smoothTarget(value, target, delta, response = 7) {
   return value + (target - value) * (1 - Math.exp(-response * Math.min(.05, Math.max(0, delta))));
 }
 
-export function mountSignalStage(host, { paused = false } = {}, runtime = globalThis) {
+export function mountSignalStage(host, { paused = false, onAvailabilityChange = () => {} } = {}, runtime = globalThis) {
   const document = host.ownerDocument;
   let renderer, scene, camera, sculpture, geometry, environment, frame = 0, recoveryFrame = 0;
   let disposed = false, intersecting = true, lost = false, time = 0, last = 0;
@@ -31,8 +31,12 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
   const canvas = document.createElement('canvas');
   canvas.setAttribute('aria-hidden', 'true');
   host.prepend(canvas);
-  host.dataset.renderer = 'fallback';
-  host.dataset.ready = 'false';
+  function availability(ready) {
+    host.dataset.renderer = ready ? 'webgl' : 'fallback';
+    host.dataset.ready = String(ready);
+    try { onAvailabilityChange(ready); } catch {}
+  }
+  availability(false);
   const pauseFrame = () => { runtime.cancelAnimationFrame(frame); frame = 0; last = 0; };
   function shouldRun() { return !disposed && !paused && !document.hidden && intersecting && !lost && !!renderer; }
   function draw(delta = 0) {
@@ -40,11 +44,11 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
     level = smoothTarget(level, audio, delta, 8);
     rotationX = smoothTarget(rotationX, pointerY * .075, delta, 6);
     rotationY = smoothTarget(rotationY, pointerX * .12, delta, 6);
-    sculpture.rotation.set(.08 + rotationX, -.05 + rotationY, -.12);
+    sculpture.rotation.set(.12 + rotationX, -.12 + rotationY, -.16);
     for (let index = 0; index < rings.length; index++) {
       const shape = layout[index];
       const breath = 1 + Math.sin(time * .58 + shape.phase) * .018 + level * .065;
-      rings[index].scale.set(shape.radius * .80 * breath, shape.radius * breath, 1);
+      rings[index].scale.set(shape.radius * .86 * breath, shape.radius * breath, 1);
     }
     renderer.render(scene, camera);
   }
@@ -67,7 +71,7 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
     renderer.setPixelRatio(Math.min(1.5, runtime.devicePixelRatio || 1));
     renderer.setSize(box.width, box.height, false);
     camera.aspect = box.width / box.height;
-    camera.position.set(2.6, 1.7, camera.aspect < 1.35 ? 12.8 : 8.6);
+    camera.position.set(2.7, 2.2, camera.aspect < 1.35 ? 12.2 : 8.3);
     camera.lookAt(0, 0, 0); camera.updateProjectionMatrix(); draw();
   }
   function initialize() {
@@ -75,7 +79,7 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
       renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
       renderer.setClearColor(0x000000, 0);
       renderer.toneMapping = ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.10;
+      renderer.toneMappingExposure = 1.32;
       scene = new Scene();
       camera = new PerspectiveCamera(32, 2, .1, 40);
       let generator, room;
@@ -87,17 +91,17 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
       } finally {
         room?.dispose(); generator?.dispose();
       }
-      scene.add(new HemisphereLight(0xcce9ff, 0x0b1632, 1.4));
-      const key = new DirectionalLight(0xeef8ff, 4.8); key.position.set(-3, 5, 6); scene.add(key);
-      const fill = new DirectionalLight(0x258aff, 4.0); fill.position.set(3, -.5, 3); scene.add(fill);
-      const edge = new DirectionalLight(0xffffff, 3.0); edge.position.set(0, 2, -5); scene.add(edge);
+      scene.add(new HemisphereLight(0xffefd9, 0x283422, 1.9));
+      const key = new DirectionalLight(0xfff4dd, 6.2); key.position.set(-3, 5, 6); scene.add(key);
+      const fill = new DirectionalLight(0xcb8c55, 4.2); fill.position.set(3, -.5, 3); scene.add(fill);
+      const edge = new DirectionalLight(0xf7ede1, 4.3); edge.position.set(0, 2, -5); scene.add(edge);
       sculpture = new Group();
-      geometry = new TorusGeometry(1, .017, 10, 96);
+      geometry = new TorusGeometry(1, .038, 12, 96);
       for (const shape of layout) {
-        const tint = new Color().setHSL(shape.hue / 360, .60, .70);
+        const tint = new Color().setHSL(shape.hue / 360, .35, .61);
         const material = new MeshPhysicalMaterial({
-          color: tint, metalness: .90, roughness: .22,
-          clearcoat: .55, clearcoatRoughness: .22, envMapIntensity: 1.3,
+          color: tint, metalness: .78, roughness: .31,
+          clearcoat: .30, clearcoatRoughness: .28, envMapIntensity: 1.5,
         });
         const ring = new Mesh(geometry, material);
         ring.position.set(shape.x, Math.sin(shape.phase * 1.3) * .12, 0);
@@ -105,13 +109,13 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
         materials.push(material); rings.push(ring); sculpture.add(ring);
       }
       scene.add(sculpture);
-      host.dataset.renderer = 'webgl'; host.dataset.ready = 'true';
+      availability(true);
       resize(); schedule();
     } catch {
       pauseFrame();
       geometry?.dispose(); materials.forEach(material => material.dispose());
       environment?.dispose(); renderer?.dispose(); renderer = null;
-      host.dataset.renderer = 'fallback'; host.dataset.ready = 'false';
+      availability(false);
     }
   }
   function pointer(event) {
@@ -125,7 +129,7 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
   function contextLost(event) {
     event.preventDefault(); lost = true; pauseFrame();
     runtime.cancelAnimationFrame(recoveryFrame); recoveryFrame = 0;
-    host.dataset.ready = 'false'; host.dataset.renderer = 'fallback';
+    availability(false);
   }
   function contextRestored() {
     if (disposed || !renderer) return;
@@ -138,12 +142,12 @@ export function mountSignalStage(host, { paused = false } = {}, runtime = global
       if (disposed || !renderer) return;
       lost = false;
       try {
-        resize(); host.dataset.ready = 'true'; host.dataset.renderer = 'webgl'; schedule();
+        resize(); availability(true); schedule();
       } catch {
         lost = true; pauseFrame();
         geometry?.dispose(); materials.forEach(material => material.dispose());
         environment?.dispose(); renderer?.dispose(); renderer = null;
-        host.dataset.ready = 'false'; host.dataset.renderer = 'fallback';
+        availability(false);
       }
     });
   }

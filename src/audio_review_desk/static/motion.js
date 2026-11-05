@@ -35,24 +35,57 @@ export function springValue(render) {
   const value = motionValue(0);
   let active;
   value.on("change", render);
+  const release = (operation) => {
+    operation.query.removeEventListener("change", operation.reduce);
+    if (active === operation) active = null;
+  };
   return (target, instant = false) => {
-    const velocity = value.getVelocity();
-    active?.stop();
+    const velocity = value.getVelocity(), previous = active;
+    if (previous) {
+      release(previous);
+      previous.effect?.stop();
+    }
     if (instant || immediate()) {
       value.jump(target);
       render(target);
       return;
     }
-    active = animateValue(value, target, {
-      type: "spring",
-      stiffness: 650,
-      damping: 48,
-      velocity,
-      restDelta: 0.03,
-      restSpeed: 0.05,
-    });
+    // Subscribe only while this spring is active. Operation identity prevents
+    // an old completion or queued preference event from owning a newer target.
+    const operation = { query: matchMedia("(prefers-reduced-motion: reduce)"), effect: null };
+    operation.reduce = () => {
+      if (active !== operation || !operation.query.matches) return;
+      release(operation);
+      operation.effect?.stop();
+      value.jump(target);
+      render(target);
+    };
+    active = operation;
+    try {
+      operation.query.addEventListener("change", operation.reduce);
+      operation.effect = animateValue(value, target, {
+        type: "spring",
+        stiffness: 650,
+        damping: 48,
+        velocity,
+        restDelta: 0.03,
+        restSpeed: 0.05,
+        onComplete: () => release(operation),
+      });
+      // A synchronous callback may already have superseded this operation.
+      if (active !== operation) operation.effect.stop();
+      Promise.resolve(operation.effect).then(
+        () => release(operation),
+        () => release(operation),
+      );
+    } catch (error) {
+      release(operation);
+      operation.effect?.stop();
+      throw error;
+    }
   };
 }
+
 const active = new WeakMap();
 export function reveal(element, kind = "panel") {
   const old = active.get(element),

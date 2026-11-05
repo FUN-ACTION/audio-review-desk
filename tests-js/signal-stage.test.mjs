@@ -52,9 +52,11 @@ test('explicit graphics fallback remains usable and owns no animation loop', () 
     IntersectionObserver: Observer, ResizeObserver: Observer,
     requestAnimationFrame() { requested++; return 1; }, cancelAnimationFrame() {},
   };
-  const stage = mountSignalStage(host, {}, runtime);
+  const availability=[];
+  const stage = mountSignalStage(host, { onAvailabilityChange: ready => availability.push(ready) }, runtime);
   assert.equal(stage.ready, false);
   assert.equal(host.dataset.renderer, 'fallback');
+  assert.deepEqual(availability,[false]);
   stage.setPaused(true); stage.setAudioLevel(.8); stage.setPaused(false);
   assert.equal(requested, 0);
   assert.equal(host.dataset.paused, 'false');

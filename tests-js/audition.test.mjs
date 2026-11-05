@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
+import { words } from "../src/audio_review_desk/static/copy.js";
 import { auditionBounds, quietRange, createAudition } from "../src/audio_review_desk/static/audition.js";
 
 test("edge audition includes context on both sides and clamps to actual media", () => {
@@ -22,11 +25,11 @@ test("quiet suggestion refuses all-silent, undecoded and invalid boundaries", ()
 
 function setup() {
   const player = new EventTarget();
-  Object.assign(player, { src: "/media/fixture/a.wav", readyState: 4, currentTime: 0, paused: true, plays: [] });
+  Object.assign(player, { src: "/media/fixture/a.wav", readyState: 4, duration: 12, currentTime: 0, paused: true, plays: [] });
   player.play = () => { player.paused = false; return new Promise((resolve, reject) => player.plays.push({ resolve, reject })); };
   player.pause = () => { player.paused = true; player.dispatchEvent(new Event("pause")); };
-  const loop = { checked: true }, changes = [], errors = [];
-  return { player, loop, changes, errors, control: createAudition({ player, loop, onChange: value => changes.push(value), onError: e => errors.push(e) }) };
+  const loop = { checked: true }, changes = [], errors = [], unavailable = [];
+  return { player, loop, changes, errors, unavailable, control: createAudition({ player, loop, onChange: value => changes.push(value), onError: e => errors.push(e), onRangeUnavailable: () => unavailable.push(true) }) };
 }
 
 test("one-shot stops at the end and restores the user's previous loop setting", () => {
@@ -96,4 +99,86 @@ test("a final timeupdate before native ended retains the one-shot guard", () => 
   player.dispatchEvent(new Event("ended"));
   assert.equal(restarts, 0);
   assert.equal(loop.checked, true);
+});
+
+// Production controller with media doubles; not native playback/listening QA.
+for (const kind of ['selection', 'start', 'end']) test(`short B reference rejects unavailable ${kind} audition without changing the review window`, () => {
+  const { control, player, loop, changes, unavailable } = setup();
+  player.duration = 10;
+  const bounds = auditionBounds(100, 50, 60, kind), original = [...bounds];
+  assert.equal(control.start(bounds, kind), false);
+  assert.deepEqual(bounds, original);
+  assert.equal(player.currentTime, 0);
+  assert.equal(player.plays.length, 0);
+  assert.equal(player.paused, true);
+  assert.equal(loop.checked, true);
+  assert.deepEqual(changes, []);
+  assert.equal(unavailable.length, 1);
+});
+
+for (const [kind, start, end, expectedStart] of [['selection', 5, 20, 5], ['start', 9.5, 20, 8.25], ['end', 5, 10.5, 9.25]])
+  test(`partially covered ${kind} audition stops at B's duration and restores loop`, () => {
+    const { control, player, loop, unavailable } = setup();
+    player.duration = 10;
+    const bounds = auditionBounds(100, start, end, kind), original = [...bounds];
+    assert.equal(control.start(bounds, kind), true);
+    assert.equal(player.currentTime, expectedStart);
+    assert.equal(loop.checked, false);
+    control.check(9.99); assert.equal(player.paused, false);
+    control.check(10); assert.equal(player.paused, true);
+    assert.equal(loop.checked, true);
+    assert.deepEqual(bounds, original);
+    assert.deepEqual(unavailable, []);
+  });
+
+for (const duration of [NaN, Infinity, -1, 0, undefined]) test(`unknown or invalid active duration ${duration} does not issue an audition seek`, () => {
+  const { control, player, loop, unavailable } = setup();
+  player.duration = duration;
+  assert.equal(control.start([2, 5], 'selection'), false);
+  assert.equal(player.currentTime, 0); assert.equal(player.plays.length, 0);
+  assert.equal(loop.checked, true); assert.equal(unavailable.length, 1);
+});
+
+for (const bounds of [null, [], [2], [2, 5, 8], [NaN, 5], [2, Infinity], [-1, 5], [5, 5], [6, 5], ['2', 5]])
+  test(`invalid audition bounds ${JSON.stringify(bounds)} preserve active playback`, () => {
+    const { control, player, loop, unavailable } = setup();
+    control.start([2, 5], 'selection');
+    assert.equal(control.start(bounds, 'end'), false);
+    assert.equal(player.currentTime, 2); assert.equal(player.plays.length, 1);
+    assert.equal(loop.checked, false); assert.equal(unavailable.length, 1);
+    control.check(5); assert.equal(player.paused, true); assert.equal(loop.checked, true);
+  });
+
+test('a range starting exactly at active EOF is unavailable', () => {
+  const { control, player, unavailable } = setup(); player.duration = 10;
+  assert.equal(control.start([10, 12], 'selection'), false);
+  assert.equal(player.plays.length, 0); assert.equal(unavailable.length, 1);
+});
+
+test('unloaded media stays inert without reporting a range mismatch', () => {
+  for (const override of [{ readyState: 0 }, { src: '' }]) {
+    const { control, player, changes, unavailable } = setup(); Object.assign(player, override);
+    assert.equal(control.start([2, 5], 'selection'), false);
+    assert.equal(player.plays.length, 0); assert.deepEqual(changes, []); assert.deepEqual(unavailable, []);
+  }
+});
+
+
+test('sparse bounds cannot bypass finite endpoint validation', () => {
+  const { control, player, unavailable } = setup();
+  assert.equal(control.start(new Array(2), 'selection'), false);
+  assert.equal(player.plays.length, 0); assert.equal(unavailable.length, 1);
+});
+
+for (const language of ['en', 'zh']) test(`workbench wires a localized unavailable audition notice (${language})`, () => {
+  const source = readFileSync(new URL('../src/audio_review_desk/static/workbench.js', import.meta.url), 'utf8');
+  const registration = source.match(/const audition = createAudition\(\{[\s\S]*?\n\}\);/)[0];
+  const h = setup(), messages = [], attributes = [];
+  h.player.duration = 10;
+  const context = { createAudition, player: h.player, $: id => id === 'loop' ? h.loop : { setAttribute: (...args) => attributes.push(args) },
+    t: key => words[language][key], notice: value => messages.push(typeof value === 'function' ? value() : value) };
+  vm.runInNewContext(`${registration}\naudition.start([50, 60], 'selection');`, context);
+  assert.ok(words[language].auditionUnavailable);
+  assert.deepEqual(messages, [words[language].auditionUnavailable]);
+  assert.deepEqual(attributes, []); assert.equal(h.player.plays.length, 0); assert.equal(h.loop.checked, true);
 });

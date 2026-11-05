@@ -1,18 +1,11 @@
 import { openDialog } from "./motion.js";
+import { normalizeSearch, searchTerms } from "./ui.js";
 export function findCommands(rows, query) {
-  const terms = query
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const terms = searchTerms(query);
   return rows
     .filter((row) =>
       terms.every((term) =>
-        `${row.label} ${row.search || ""}`
-          .normalize("NFKC")
-          .toLocaleLowerCase()
-          .includes(term),
+        normalizeSearch(`${row.label} ${row.search || ""}`).includes(term),
       ),
     )
     .slice(0, 16);
@@ -21,6 +14,7 @@ export function mountCommands({
   dialog,
   input,
   list,
+  emptyStatus,
   rows,
   emptyText,
   onError,
@@ -28,8 +22,8 @@ export function mountCommands({
   let shown = [],
     index = 0;
   const highlight = () => {
-    [...list.children].forEach((row, i) =>
-      row.setAttribute("aria-selected", String(i === index)),
+    shown.forEach((_, i) =>
+      list.children[i].setAttribute("aria-selected", String(i === index)),
     );
     if (shown.length) {
       input.setAttribute("aria-activedescendant", `command-${index}`);
@@ -46,9 +40,9 @@ export function mountCommands({
       onError(error);
     }
   };
-  const render = () => {
+  const render = ({ preserveSelection = false } = {}) => {
     shown = findCommands(rows(), input.value);
-    index = 0;
+    index = preserveSelection ? Math.min(index, Math.max(0, shown.length - 1)) : 0;
     list.replaceChildren(
       ...shown.map((row, i) => {
         const button = document.createElement("button"),
@@ -65,16 +59,17 @@ export function mountCommands({
         return button;
       }),
     );
-    if (!shown.length) {
-      const p = document.createElement("p");
-      p.className = "command-empty";
-      p.textContent = emptyText();
-      list.append(p);
-    }
+    const message = shown.length ? "" : emptyText();
+    // Keep an existing live region outside the listbox. Only changed feedback
+    // is written, so repeated no-result queries do not repeat announcements.
+    if (emptyStatus.textContent !== message) emptyStatus.textContent = message;
     highlight();
   };
   input.addEventListener("input", render);
   input.addEventListener("keydown", (event) => {
+    // 229 also covers IME boundary keys when isComposing is already false.
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 ||
+        event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (shown.length)
@@ -93,6 +88,7 @@ export function mountCommands({
     dialog.close();
   });
   return {
+    refresh() { if (dialog.open) render({ preserveSelection: true }); },
     open() {
       input.value = "";
       render();

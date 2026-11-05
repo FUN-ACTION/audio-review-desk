@@ -1,6 +1,7 @@
 // Source time drives every visible value; scrubbing never waits for an animation.
 export function mountTransport({
   player,
+  media = player,
   button,
   seek,
   back,
@@ -10,56 +11,85 @@ export function mountTransport({
   loop,
   onTime,
   onError,
+  onRangeUnavailable = () => {},
   labels,
 }) {
   let frame = 0,
-    seeking = false,
-    resume = false,
-    textAt = 0;
+    scrub = null,
+    textAt = 0,
+    rendering = false;
+  const loopBounds = () => {
+    const [start, requestedEnd] = range();
+    const end = Number.isFinite(media.duration)
+      ? Math.min(requestedEnd, media.duration)
+      : requestedEnd;
+    return Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start
+      ? [start, end] : null;
+  };
   const render = (now = 0) => {
-    if (!now) cancelAnimationFrame(frame);
-    if (loop.checked && !player.paused) {
-      const [start, end] = range();
-      if (player.currentTime >= end || player.currentTime < start)
-        player.currentTime = start;
+    // A session seek/pause can synchronously notify this view. Keep one render
+    // and one animation chain even when correcting a loop boundary.
+    if (rendering) return;
+    rendering = true;
+    try {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (loop.checked && !player.paused && !media.pending) {
+        const bounds = loopBounds();
+        if (!bounds) {
+          media.pause();
+          onRangeUnavailable();
+        } else {
+          const [start, end] = bounds;
+          if (media.currentTime >= end || media.currentTime < start)
+            media.currentTime = start;
+        }
+      }
+      onTime(media.currentTime || 0, now - textAt > 70 || !now);
+      if (now - textAt > 70 || !now) textAt = now;
+      if (!player.paused) frame = requestAnimationFrame(render);
+    } finally {
+      rendering = false;
     }
-    onTime(player.currentTime || 0, now - textAt > 70 || !now);
-    if (now - textAt > 70 || !now) textAt = now;
-    if (!player.paused) frame = requestAnimationFrame(render);
-    else frame = 0;
   };
   const state = () => {
-    button.classList.toggle("is-playing", !player.paused);
+    button.classList.toggle("is-playing", !media.paused);
     button.setAttribute(
       "aria-label",
-      player.paused ? labels().play : labels().pause,
+      media.paused ? labels().play : labels().pause,
     );
-    button.title = player.paused ? labels().play : labels().pause;
+    button.title = media.paused ? labels().play : labels().pause;
+    if (media.pending) button.classList.toggle("is-loading", !media.paused);
   };
   const play = () => {
-    const [start, end] = range();
-    if (
-      loop.checked &&
-      (player.currentTime < start || player.currentTime >= end)
-    )
-      player.currentTime = start;
-    player.play().catch((error) => {
+    if (loop.checked) {
+      const bounds = loopBounds();
+      if (!bounds) {
+        media.pause();
+        onRangeUnavailable();
+        return;
+      }
+      const [start, end] = bounds;
+      if (media.currentTime < start || media.currentTime >= end)
+        media.currentTime = start;
+    }
+    media.play().catch((error) => {
       button.classList.remove("is-loading");
       onError(error.message);
     });
   };
   button.addEventListener("click", () => {
-    if (player.paused) play();
-    else player.pause();
+    if (media.paused) play();
+    else media.pause();
   });
   back.addEventListener("click", () => {
-    player.currentTime = Math.max(0, player.currentTime - 5);
+    media.currentTime = Math.max(0, media.currentTime - 5);
     render();
   });
   forward.addEventListener("click", () => {
-    player.currentTime = Math.min(
-      Number.isFinite(player.duration) ? player.duration : 0,
-      player.currentTime + 5,
+    media.currentTime = Math.min(
+      Number.isFinite(media.duration) ? media.duration : 0,
+      media.currentTime + 5,
     );
     render();
   });
@@ -67,17 +97,24 @@ export function mountTransport({
     player.volume = Number(volume.value);
   });
   seek.addEventListener("pointerdown", () => {
-    seeking = true;
-    resume = !player.paused;
-    player.pause();
+    const resume = !media.paused;
+    media.pause();
+    // Capture after our own pause. A later source switch, explicit playback
+    // action or error revokes this gesture, even if old native events arrive late.
+    scrub = { resume, revision: media.intentRevision };
   });
   seek.addEventListener("input", () => {
-    player.currentTime = Number(seek.value);
-    onTime(player.currentTime, true);
+    if (scrub && scrub.revision !== media.intentRevision) {
+      onTime(media.currentTime, true);
+      return;
+    }
+    media.currentTime = Number(seek.value);
+    onTime(media.currentTime, true);
   });
   const finish = () => {
-    if (!seeking) return;
-    seeking = false;
+    if (!scrub) return;
+    const resume = scrub.resume && scrub.revision === media.intentRevision;
+    scrub = null;
     if (resume) play();
   };
   seek.addEventListener("change", finish);
@@ -99,7 +136,7 @@ export function mountTransport({
   });
   for (const event of ["waiting", "loadstart"])
     player.addEventListener(event, () => {
-      if (!player.paused) button.classList.add("is-loading");
+      if (!media.paused) button.classList.add("is-loading");
     });
   for (const event of ["playing", "canplay", "pause", "error", "emptied"])
     player.addEventListener(event, () => {
@@ -111,7 +148,7 @@ export function mountTransport({
     render();
   });
   player.addEventListener("ended", () => {
-    if (loop.checked) play();
+    if (loop.checked && !media.pending) play();
     else state();
   });
   return { refresh: state, render };

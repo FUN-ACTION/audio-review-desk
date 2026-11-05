@@ -2,8 +2,17 @@
 from __future__ import annotations
 
 RULES = (
+    ("Review restore JSON contains duplicate property", "review_invalid"),
+    ("Request JSON contains duplicate property", "review_invalid"),
+    ("JSON manifest contains duplicate property", "manifest_format"),
     ("Workspace must be outside", "source_contains_workspace"),
     ("Another page updated", "review_conflict"), ("updated elsewhere", "review_conflict"),
+    ("Legacy reference version collision", "reference_legacy_collision"),
+    ("Primary version collision", "primary_version_collision"),
+    ("Primary version is unverified", "primary_unverified"),
+    ("Reference version is unverified", "reference_unverified"),
+    ("Source unavailable", "source_unavailable"),
+    ("Reference changed during import", "source_changed"),
     ("Source changed", "source_changed"), ("Audio version", "source_changed"),
     ("audio versions changed", "source_changed"),
     ("Choose a folder", "path_required"), ("does not match the selected import type", "path_type"),

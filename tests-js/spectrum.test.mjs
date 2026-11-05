@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   createSpectrumAnalyzer, logFrequencyBins, spectrumLevels,
   analyzeSpectrogram, spectrumColor, SPECTRUM_LIMITS,
@@ -230,4 +231,133 @@ test("waveform overlay maps the entire plot width to the identical viewport with
   assert.deepEqual(seeks, [0.2, 0.5, 0.8]);
   assert.equal(Number(env.attributes.get("aria-valuenow")), 0.8);
   viewer.dispose();
+});
+
+for (const succeeds of [true, false]) test(`explicit same-source retry can ${succeeds ? "recover" : "fail again without looping"}`, async () => {
+  const env = fakeRuntime(), viewer = mountSpectrogram({ ...env, language: "en" }, env.runtime);
+  viewer.setSource(URL_A, "clip"); viewer.setVisible(true);
+  viewer.setSource(URL_A, "clip", { retryFailed: true });
+  assert.equal(env.fetches.length, 1, "initial in-flight request is deduplicated");
+  env.fetches[0].resolve({ ok: false }); await flush();
+  assert.equal(env.canvas.dataset.state, "error");
+  assert.match(env.status.textContent, /Select this audio again/);
+  viewer.setSource(URL_A, "clip"); viewer.setVisible(false); viewer.setVisible(true);
+  viewer.setView({ start: 0, end: 1 }); viewer.setLanguage("zh");
+  assert.equal(env.fetches.length, 1, "ordinary refresh/display changes do not retry");
+  viewer.setSource(URL_A, "clip", { retryFailed: true });
+  assert.equal(env.fetches.length, 2); assert.equal(env.canvas.dataset.state, "loading");
+  viewer.setSource(URL_A, "clip", { retryFailed: true });
+  assert.equal(env.fetches.length, 2, "in-flight retry is deduplicated");
+  env.fetches[1].resolve(succeeds ? env.response(1) : { ok: false }); await flush();
+  assert.equal(env.canvas.dataset.state, succeeds ? "ready" : "error");
+  viewer.setVisible(false); viewer.setVisible(true); assert.equal(env.fetches.length, 2);
+  if (succeeds) {
+    const layer = env.layers[0];
+    viewer.setSource(URL_A, "clip", { retryFailed: true });
+    assert.equal(env.fetches.length, 2); assert.equal(env.paints.at(-1), layer);
+  }
+  viewer.dispose();
+});
+
+test("hidden explicit retry waits until visible and source replacement owns late responses", async () => {
+  const env = fakeRuntime(), viewer = mountSpectrogram(env, env.runtime);
+  viewer.setSource(URL_A, "clip"); viewer.setVisible(true);
+  env.fetches[0].resolve({ ok: false }); await flush(); viewer.setVisible(false);
+  viewer.setSource(URL_A, "clip", { retryFailed: true }); assert.equal(env.fetches.length, 1);
+  viewer.setVisible(true); assert.equal(env.fetches.length, 2); const retry = env.fetches[1];
+  viewer.setSource(URL_B, "other"); assert.equal(retry.options.signal.aborted, true);
+  env.fetches[2].resolve(env.response(2)); await flush(); const layer = env.layers[0];
+  retry.resolve(env.response(1)); await flush();
+  assert.equal(env.layers.length, 1); assert.equal(env.paints.at(-1), layer);
+  assert.equal(env.canvas.dataset.state, "ready"); viewer.dispose();
+});
+
+for (const kind of ["unavailable", "large", "empty"]) test(`same-source retry does not reset permanent ${kind} state`, async () => {
+  const env = fakeRuntime({ context: kind !== "unavailable" });
+  if (kind === "empty") env.runtime.AudioContext.prototype.decodeAudioData = async () => ({ length: 0 });
+  const viewer = mountSpectrogram({ ...env, language: "en" }, env.runtime);
+  viewer.setSource(URL_A, "clip"); viewer.setVisible(true);
+  if (kind !== "unavailable") {
+    env.fetches[0].resolve(kind === "large" ? { ok: true, headers: { get: () => String(SPECTRUM_LIMITS.bytes + 1) } } : env.response(1));
+    await flush();
+  }
+  const message = env.status.textContent, requests = env.fetches.length;
+  viewer.setSource(URL_A, "clip", { retryFailed: true }); viewer.setVisible(false); viewer.setVisible(true);
+  assert.equal(env.fetches.length, requests); assert.equal(env.status.textContent, message);
+  assert.equal(env.canvas.dataset.state, "error"); viewer.dispose();
+});
+
+test("workbench requests transient recovery only for explicit selection, not catalog refresh", () => {
+  const source = readFileSync(new URL("../src/audio_review_desk/static/workbench.js", import.meta.url), "utf8");
+  const statement = source.match(/spectrumView\.setSource\(item\.quality\.decoded[\s\S]*?;/)?.[0];
+  assert.ok(statement);
+  const item = { key: "a".repeat(64), quality: { decoded: true } }, calls = [];
+  const selectSource = Function("spectrumView", "item", "refreshTurn", statement);
+  for (const turn of [null, 0, 42]) selectSource({ setSource: (...args) => calls.push(args) }, item, turn);
+  assert.deepEqual(calls.map(args => args[2].retryFailed), [true, false, false]);
+  assert.ok(calls.every(args => args[0] === URL_A && args[1] === `${item.key}:a`));
+});
+
+// Execute the production selection source statement and complete variant action
+// against the real viewer. Deferred fetch and PCM doubles stay entirely offline.
+function productionSources(viewer) {
+  const source = readFileSync(new URL("../src/audio_review_desk/static/workbench.js", import.meta.url), "utf8");
+  const selection = source.match(/spectrumView\.setSource\(item\.quality\.decoded[\s\S]*?;/)?.[0];
+  const start = source.indexOf("async function switchVariant(next)");
+  const end = source.indexOf("function showImportError(", start);
+  assert.ok(selection && start >= 0 && end > start);
+  const noop = () => {};
+  return Function("spectrumView", "audition", "$", "media", "renderDetails", "updateTime", `
+    let selected, variant = 'a';
+    ${source.slice(start, end)}
+    return {
+      select(item, refreshTurn = null) { selected = item; variant = 'a'; ${selection} },
+      switchVariant,
+    };
+  `)(viewer, { cancel: noop }, () => ({}), { load: noop }, noop, noop);
+}
+const spectrumItem = key => ({ key, quality: { decoded: true, duration: 1 }, reference_quality: { decoded: true, duration: 1 } });
+
+for (const phase of ["ready", "loading", "error"]) test(`A → B → A keeps ${phase} spectrum through catalog refresh`, async () => {
+  const env = fakeRuntime(), viewer = mountSpectrogram(env, env.runtime), actions = productionSources(viewer);
+  const item = spectrumItem("a".repeat(64)); viewer.setVisible(true);
+  actions.select(item); await actions.switchVariant("b"); await actions.switchVariant("a");
+  assert.equal(env.fetches.length, 3);
+  assert.deepEqual(env.fetches.map(row => new URL(row.url).pathname), [URL_A, URL_A.replace('/a.wav', '/b.wav'), URL_A]);
+  assert.ok(env.fetches.slice(0, 2).every(row => row.options.signal.aborted));
+  const current = env.fetches[2];
+  if (phase !== "loading") { current.resolve(phase === "ready" ? env.response(1) : { ok: false }); await flush(); }
+  assert.equal(env.canvas.dataset.state, phase);
+  const image = env.layers.at(-1), message = env.status.textContent;
+  actions.select(item, 12); viewer.setVisible(true); await flush();
+  assert.equal(env.fetches.length, 3, "refresh is not a new identity or retry");
+  assert.equal(current.options.signal.aborted, false);
+  assert.equal(env.canvas.dataset.state, phase); assert.equal(env.status.textContent, message);
+  if (phase === "ready") assert.equal(env.layers.at(-1), image);
+  if (phase === "loading") { current.resolve(env.response(1)); await flush(); assert.equal(env.canvas.dataset.state, "ready"); }
+  if (phase === "error") {
+    actions.select(item); assert.equal(env.fetches.length, 4, "explicit reselection still retries");
+    env.fetches[3].resolve(env.response(1)); await flush(); assert.equal(env.canvas.dataset.state, "ready");
+  }
+  for (const old of env.fetches.slice(0, 2)) old.resolve(env.response(2));
+  await flush(); assert.equal(env.layers.length, 1, "obsolete variants cannot publish");
+  viewer.dispose();
+});
+
+test("canonical A identity still replaces different clips and resets a B refresh to A", async () => {
+  const env = fakeRuntime(), viewer = mountSpectrogram(env, env.runtime), actions = productionSources(viewer);
+  const first = spectrumItem("a".repeat(64)), second = spectrumItem("b".repeat(64));
+  viewer.setVisible(true); actions.select(first); env.fetches[0].resolve(env.response(1)); await flush();
+  const oldImage = env.layers[0];
+  actions.select(second, 10); assert.equal(env.fetches.length, 2);
+  assert.equal(new URL(env.fetches[1].url).pathname, `/media/${second.key}/a.wav`);
+  await actions.switchVariant("b"); assert.equal(env.fetches[1].options.signal.aborted, true);
+  assert.equal(new URL(env.fetches[2].url).pathname, URL_B);
+  actions.select(second, 11); assert.equal(env.fetches.length, 4);
+  assert.equal(env.fetches[2].options.signal.aborted, true);
+  assert.equal(new URL(env.fetches[3].url).pathname, `/media/${second.key}/a.wav`);
+  env.fetches[3].resolve(env.response(2)); await flush();
+  assert.notEqual(env.paints.at(-1), oldImage); assert.equal(env.canvas.dataset.state, "ready");
+  for (const old of env.fetches.slice(1, 3)) old.resolve(env.response(1));
+  await flush(); assert.equal(env.layers.length, 2); viewer.dispose();
 });

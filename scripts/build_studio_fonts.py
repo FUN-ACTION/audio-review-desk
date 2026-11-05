@@ -8,6 +8,35 @@ import platform
 from pathlib import Path
 from scripts.build_fonts import ui_characters
 
+def refresh_coverage(repo: Path | None = None):
+    """Verify shipped bytes and their actual cmap before recording new UI copy.
+
+    This does not rebuild or rewrite either font, and does not need source downloads.
+    The original build provenance remains unchanged in the manifest.
+    """
+    from fontTools.ttLib import TTFont
+    repo = repo or Path(__file__).resolve().parents[1]
+    static = repo / 'src/audio_review_desk/static'
+    manifest = repo / 'scripts/fonts/studio.json'
+    report = json.loads(manifest.read_text(encoding='utf-8'))
+    for record in report['fonts']:
+        data = (static / record['file']).read_bytes()
+        if len(data) != record['bytes'] or hashlib.sha256(data).hexdigest() != record['sha256']:
+            raise ValueError(f"Shipped font differs from its build record: {record['file']}")
+        if record['unchanged'] and record['sha256'] != record['source_sha256']:
+            raise ValueError(f"Unchanged font differs from its pinned source: {record['file']}")
+    required = ui_characters(static)
+    with TTFont(static / 'MiSans-Regular.woff2') as font:
+        available = set(font.getBestCmap())
+    if not required <= available:
+        missing = ''.join(map(chr, sorted(required - available)))
+        raise ValueError(f'MiSans does not cover the interface: {missing}')
+    report['ui_cjk_unicodes'] = sorted(required)
+    report['coverage_check'] = dict(method='Verified shipped font hashes and MiSans cmap; font bytes unchanged',
+                                  fonttools=importlib.metadata.version('fonttools'), characters=len(required))
+    manifest.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    return report
+
 def build(source_dir: Path):
     from fontTools import subset
     from fontTools.ttLib import TTFont
@@ -50,5 +79,12 @@ def build(source_dir: Path):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source-dir',type=Path,required=True)
-    build(parser.parse_args().source_dir)
+    mode=parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--source-dir',type=Path)
+    mode.add_argument('--verify-coverage',action='store_true',help='Check shipped font hashes and cmap, then refresh copy coverage without rebuilding fonts')
+    args=parser.parse_args()
+    if args.verify_coverage:
+        report=refresh_coverage()
+        print(json.dumps(report['coverage_check']))
+    else:
+        build(args.source_dir)

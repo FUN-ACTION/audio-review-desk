@@ -21,7 +21,7 @@ export function quietRange(quality) {
   return end - leading >= 0.02 && (leading > 0 || trailing > 0) ? [leading, end] : null;
 }
 
-export function createAudition({ player, loop, onChange = () => {}, onError = () => {} }) {
+export function createAudition({ player, loop, onChange = () => {}, onError = () => {}, onRangeUnavailable = () => {} }) {
   let active = null, generation = 0, ownsNativeEnd = false;
   const cancel = ({ restore = true, keepEndGuard = false } = {}) => {
     generation++;
@@ -48,10 +48,23 @@ export function createAudition({ player, loop, onChange = () => {}, onError = ()
   player.addEventListener("error", paused);
   return {
     start(bounds, kind) {
-      if (!bounds || !player.readyState || !player.src) return false;
+      if (!player.readyState || !player.src) return false;
+      // The review uses A's timeline; B may only cover part of that window.
+      // Validate before changing playback or the user's loop preference.
+      if (!Array.isArray(bounds) || bounds.length !== 2 || !finite(bounds[0]) || !finite(bounds[1]) ||
+          bounds[0] < 0 || bounds[1] <= bounds[0] ||
+          !finite(player.duration) || player.duration <= 0) {
+        onRangeUnavailable();
+        return false;
+      }
+      const end = Math.min(bounds[1], player.duration);
+      if (end <= bounds[0]) {
+        onRangeUnavailable();
+        return false;
+      }
       cancel();
       const turn = ++generation;
-      active = { end: bounds[1], kind, loop: loop.checked };
+      active = { end, kind, loop: loop.checked };
       loop.checked = false;
       player.currentTime = bounds[0];
       onChange(kind);

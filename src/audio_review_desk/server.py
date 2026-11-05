@@ -16,9 +16,11 @@ from .workspace import Conflict, Workspace, encode
 from .jobs import ImportJobs
 from .picker import choose
 from .errors import error_code
+from .json_input import loads_unique
 from . import __version__
 
 TOUR_FILES = {"index.html", "tour.css", "tour.js", "tour-copy.js", "media-info.js", "playback-policy.js", "preview.js", "studio.js", "studio-signal.js", "studio.css", "scene.js", "scene-physics.js", "scene-vendor.js", "three-LICENSE.txt", "reel-warp.js", "score-scene.js", "score-math.js", "story-demo.js", "story-demo.css", "story-math.js", "type.css", "score-serif.woff2", "score-serif-OFL.txt", "sample-playback.js", "score-sans.woff2", "note-geometry.js", "music-art.js", "music-art.css", "music-shader.js", "music-player.js", "art-stage.js", "signal-stage.js"}
+TOUR_FILES.update({"workspace-link.js", "review-tabs.js", "local-review.js", "range-time.js"})
 TOUR_MEDIA = { "workflow-zh.mp4", "workflow-en.mp4",
               "notes-zh.mp4", "notes-en.mp4", "range-zh.mp4", "range-en.mp4",
               "workflow-zh.webp", "workflow-en.webp", "notes-zh.webp", "notes-en.webp",
@@ -37,6 +39,38 @@ def static_content_type(name: str) -> str:
     return STATIC_MIME.get(name.rsplit(".", 1)[-1].lower()) or mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
+class ConnectionIOError(OSError):
+    """An error from the HTTP connection, not a workspace file or operation."""
+
+
+class ConnectionStream:
+    """Mark failures only at socket-backed stream read/write boundaries."""
+
+    def __init__(self, stream):
+        self.stream = stream
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+    def _call(self, name, *args):
+        try:
+            return getattr(self.stream, name)(*args)
+        except OSError as exc:
+            raise ConnectionIOError("HTTP connection interrupted") from exc
+
+    def read(self, *args):
+        return self._call("read", *args)
+
+    def readline(self, *args):
+        return self._call("readline", *args)
+
+    def write(self, *args):
+        return self._call("write", *args)
+
+    def flush(self):
+        return self._call("flush")
+
+
 def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
     workspace.initialize()
     workspace_id = hashlib.sha256(os.path.normcase(str(workspace.root)).encode("utf-8")).hexdigest()
@@ -45,18 +79,50 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "AudioReviewDesk"
+        # Socket I/O only, not a deadline for decoding, database or file work.
+        timeout = 30
+
+        def setup(self):
+            super().setup()
+            self.rfile = ConnectionStream(self.rfile)
+            self.wfile = ConnectionStream(self.wfile)
+
+        def handle_one_request(self):
+            self._response_started = False
+            try:
+                super().handle_one_request()
+            except ConnectionIOError:
+                self.close_connection = True
+
+        def end_headers(self):
+            # A failed/partial header write must never trigger another response.
+            self._response_started = True
+            super().end_headers()
 
         def log_message(self, *_args):
             pass
 
         def host_valid(self) -> bool:
-            return self.headers.get("Host") == f"127.0.0.1:{self.server.server_port}"
+            hosts = self.headers.get_all("Host", [])
+            allowed = {f"127.0.0.1:{self.server.server_port}"}
+            if self.server.server_port == 80:
+                allowed.add("127.0.0.1")
+            return len(hosts) == 1 and hosts[0] in allowed
+
+        def origin_valid(self) -> bool:
+            origins = self.headers.get_all("Origin", [])
+            allowed = {f"http://127.0.0.1:{self.server.server_port}"}
+            if self.server.server_port == 80:
+                allowed.add("http://127.0.0.1")
+            return len(origins) == 1 and origins[0] in allowed
 
         def headers_for(self, status: int, content_type: str, length: int, extra: dict | None = None):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(length))
             self.send_header("Cache-Control", "no-store")
+            if self.command == "POST":
+                self.send_header("Connection", "close")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
@@ -65,6 +131,9 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
             self.end_headers()
 
         def json_response(self, payload: object, status: int = 200, extra: dict | None = None):
+            if getattr(self, "_response_started", False):
+                self.close_connection = True
+                return
             if isinstance(payload, dict) and payload.get("error"):
                 payload = dict(payload, code=payload.get("code") or error_code(payload["error"]))
             data = encode(payload).encode()
@@ -81,7 +150,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     return self.json_response({"error": "Use the printed 127.0.0.1 address"}, 403)
                 path = urlsplit(self.path).path
                 if path == "/api/version":
-                    return self.json_response({"version": __version__})
+                    return self.json_response({"application": "audio-review-desk", "version": __version__})
                 if path == "/api/state":
                     return self.json_response(dict(workspace.state(), session=session, version=__version__,
                                                    can_rescan=workspace.import_source() is not None,
@@ -121,7 +190,7 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if match := re.fullmatch(r"/media/([0-9a-f]{64})/([ab])\.wav", path):
                     return self.serve_audio(workspace.preview(match[1], match[2]))
                 name = {"/": "workbench.html", "/app.js": "workbench.js", "/ui.js": "ui.js", "/style.css": "workbench.css"}.get(path)
-                if path in {"/audition.js", "/spectrogram.js", "/spectrum-math.js", "/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/listening.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2", "/desk-cjk-ui.woff2", "/fonts.css", "/desk-display.woff2", "/geist-latin.woff2", "/MiSans-Regular.woff2", "/MiSans-License.pdf", "/workbench-studio.css"}:
+                if path in {"/marker-text.js", "/draft-recovery.js", "/draft-session.js", "/read-once.js", "/waveform-reader.js", "/read-recovery.js", "/job-poller.js", "/media-session.js", "/trim.js", "/audition.js", "/spectrogram.js", "/spectrum-math.js", "/copy.js", "/motion.js", "/motion-vendor.js", "/motion-LICENSE.txt", "/markers.js", "/listening.js", "/commands.js", "/errors.js", "/waveform.js", "/wave-math.js", "/transport.js", "/studio-latin.woff2", "/studio-cjk.woff2", "/desk-cjk-ui.woff2", "/fonts.css", "/desk-display.woff2", "/geist-latin.woff2", "/MiSans-Regular.woff2", "/MiSans-License.pdf", "/workbench-studio.css"}:
                     name = path[1:]
                 if name:
                     data = files("audio_review_desk").joinpath("static", name).read_bytes()
@@ -135,10 +204,10 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                         self.wfile.write(data)
                     return
                 self.json_response({"error": "Not found"}, 404)
+            except ConnectionIOError:
+                raise
             except Conflict as exc:
                 self.json_response({"error": str(exc)}, 409)
-            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-                pass
             except (ValueError, AudioError, OSError) as exc:
                 self.json_response({"error": str(exc) if isinstance(exc, ValueError) else "Audio file unavailable; rescan the workspace"}, 422)
             except Exception:
@@ -178,9 +247,11 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     remaining -= len(block)
 
         def do_POST(self):
+            # Never reuse a stream whose request body may remain unread.
+            # This does not impose a deadline on slow clients.
+            self.close_connection = True
             try:
-                expected_origin = f"http://127.0.0.1:{self.server.server_port}"
-                if (not self.host_valid() or self.headers.get("Origin") != expected_origin
+                if (not self.host_valid() or not self.origin_valid()
                         or not secrets.compare_digest(self.headers.get("X-Review-Token", ""), session)):
                     return self.json_response({"error": "Reload this local page before saving"}, 403)
                 path = urlsplit(self.path).path
@@ -188,10 +259,28 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                     return self.json_response({"error": "Not found"}, 404)
                 if self.headers.get_content_type() != "application/json":
                     return self.json_response({"error": "Expected application/json"}, 415)
-                length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 131072:
+                lengths = self.headers.get_all("Content-Length", [])
+                if self.headers.get_all("Transfer-Encoding", []) or len(lengths) > 1:
+                    return self.json_response({"error": "Invalid request framing", "code": "operation_failed"}, 400)
+                if not lengths:
                     return self.json_response({"error": "Review body too large or empty"}, 413)
-                payload = json.loads(self.rfile.read(length))
+                value = lengths[0].strip(" \t")
+                if not re.fullmatch(r"[0-9]+", value):
+                    return self.json_response({"error": "Invalid request length", "code": "operation_failed"}, 400)
+                # Avoid int's digit limit and bound conversion before reading.
+                digits = value.lstrip("0") or "0"
+                if len(digits) > 6 or (len(digits) == 6 and digits > "131072") or digits == "0":
+                    return self.json_response({"error": "Review body too large or empty"}, 413)
+                length = int(digits)
+                try:
+                    body = self.rfile.read(length)
+                except ConnectionIOError:
+                    raise
+                except OSError:
+                    return self.json_response({"error": "Could not read request body", "code": "operation_failed"}, 400)
+                if len(body) != length:
+                    return self.json_response({"error": "Incomplete request body", "code": "operation_failed"}, 400)
+                payload = loads_unique(body, context="Request JSON")
                 if not isinstance(payload, dict):
                     raise ValueError("Expected an object")
                 if path == "/api/browse":
@@ -206,13 +295,15 @@ def make_server(workspace: Workspace, port: int = 8765) -> ThreadingHTTPServer:
                 if path == "/api/cancel-import":
                     return self.json_response(jobs.cancel(payload.get("id")))
                 if path == "/api/batch":
-                    return self.json_response({"saved": workspace.batch_review(payload.get("changes"), payload.get("status"))})
+                    return self.json_response(workspace.batch_review_result(payload.get("changes"), payload.get("status")))
                 if not isinstance(payload.get("key"), str):
                     raise ValueError("Missing audio version key")
                 if path == "/api/undo":
                     return self.json_response({"saved": True, "review": workspace.undo_review(payload["key"], payload.get("expected_version"))})
                 review = workspace.save_review(payload["key"], payload)
                 return self.json_response({"saved": True, "review": review})
+            except ConnectionIOError:
+                raise
             except Conflict as exc:
                 self.json_response({"error": str(exc)}, 409)
             except (ValueError, KeyError, json.JSONDecodeError) as exc:

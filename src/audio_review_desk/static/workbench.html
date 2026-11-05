@@ -140,19 +140,20 @@
               ><span data-t="export">导出</span>
             </summary>
             <div class="menu">
+              <p id="exportScope" class="export-scope">导出仅包含已保存的审阅，不包含未保存的更改。</p>
               <a
                 href="/api/export?format=csv&amp;status=pass"
-                download
+                download aria-describedby="exportScope"
                 data-t="exportPass"
                 >通过的素材 · CSV</a
               >
               <a
                 href="/api/export?format=csv&amp;status=all"
-                download
+                download aria-describedby="exportScope"
                 data-t="exportCsv"
                 >全部素材 · CSV</a
               >
-              <a href="/api/export" download data-t="exportJson"
+              <a href="/api/export" download aria-describedby="exportScope" data-t="exportJson"
                 >完整记录 · JSON</a
               >
             </div>
@@ -215,16 +216,21 @@
           <label
             ><input id="selectAll" type="checkbox" /><span
               data-t="selectVisible"
-              >全选</span
+              >选择当前结果</span
             ></label
-          ><span id="queueCount">0 / 0</span><span id="selectedCount"></span>
+          ><span id="queueCount">0 / 0</span>
         </div>
         <div id="batchBar" class="batch-bar" hidden>
           <select id="batchStatus" aria-label="Batch status">
             <option value="fix" data-t="fix">待处理</option>
             <option value="exclude" data-t="exclude">排除</option>
             <option value="pending" data-t="pending">待审</option></select
-          ><button id="applyBatch" data-t="apply">应用</button>
+          ><button id="applyBatch" type="button" data-t="apply" aria-describedby="selectedCount batchSelectionHint">应用</button>
+          <div class="batch-summary">
+            <span id="selectedCount" role="status" aria-atomic="true"></span>
+            <button id="clearSelection" type="button" class="text-button" data-t="clearSelection">清除选择</button>
+          </div>
+          <p id="batchSelectionHint" class="batch-selection-hint" role="status" aria-atomic="true" hidden></p>
         </div>
         <div class="queue-shell">
           <div id="queueHighlight" class="queue-highlight" hidden></div>
@@ -299,15 +305,37 @@
             </button>
           </div>
         </div>
+        <span id="jobPhase" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
         <section id="jobStrip" class="job-strip" hidden>
           <div>
-            <span class="job-orbit"></span><span id="jobText"></span
+            <span class="job-orbit" aria-hidden="true"></span><span id="jobText"></span
             ><span id="jobCounter"></span>
           </div>
-          <progress id="jobProgress" max="100" value="0"></progress
+          <progress id="jobProgress" max="100" data-title="jobProgress" aria-label="导入进度" aria-describedby="jobText jobCounter"></progress
           ><button id="cancelImport" class="text-button" data-t="cancelImport">
             停止
           </button>
+        </section>
+        <details id="rescanSubmissionReceipt" class="hint" hidden>
+          <summary data-t="rescanReceiptTitle">重新扫描: 本页最近一次已返回结果</summary>
+          <p id="rescanSubmissionReceiptText"></p>
+        </details>
+        <section id="draftRecovery" class="draft-recovery" aria-labelledby="draftRecoveryTitle" hidden>
+          <div class="draft-recovery-heading">
+            <strong id="draftRecoveryTitle" data-t="recoveryTitle">草稿刷新保护</strong>
+            <time id="draftRecoveryWhen"></time>
+          </div>
+          <p id="draftRecoveryText" role="status" aria-live="polite" aria-atomic="true"></p>
+          <p class="draft-recovery-hint" data-t="recoveryScope">仅在本标签页会话中暂存，不等于保存审核。关闭标签页或更换地址后，不保证可恢复。</p>
+          <div class="draft-recovery-actions">
+            <button id="restoreDraft" type="button" data-t="recoveryRestore">恢复为草稿</button>
+            <button id="locateDraft" type="button" data-t="recoveryLocate">查看对应音频</button>
+            <button id="discardDraft" type="button" data-t="recoveryDiscard">清除此副本</button>
+          </div>
+          <details id="draftRecoveryPreview">
+            <summary data-t="recoveryPreview">查看与复制草稿内容</summary>
+            <pre id="draftRecoveryContent" tabindex="0" aria-labelledby="draftRecoveryTitle"></pre>
+          </details>
         </section>
         <section id="detailPanel" aria-labelledby="clipTitle" hidden>
           <div id="outsideFilter" class="filter-context" hidden>
@@ -322,7 +350,7 @@
                 <span id="clipId"></span><span class="dot-divider">·</span
                 ><span id="clipPosition"></span>
               </div>
-              <h2 id="clipTitle">—</h2>
+              <h2 id="clipTitle" tabindex="-1">—</h2>
               <div id="qualityFlags" class="flags"></div>
             </div>
             <div class="clip-navigation">
@@ -437,6 +465,10 @@
                   value="0"
                   data-title="panWave"
                 />
+                <div id="waveStatus" class="analysis-status wave-status" hidden>
+                  <p id="waveStatusText" role="status" tabindex="-1"></p>
+                  <button id="retryWave" type="button" data-t="waveRetry">重试波形</button>
+                </div>
                 <p id="analysisStatus" class="analysis-status" role="status" hidden></p>
                 <audio id="player" preload="metadata" data-title="play"></audio>
                 <div class="transport">
@@ -511,7 +543,7 @@
                 <div class="marker-compose">
                   <input
                     id="markerText"
-                    maxlength="240"
+                    maxlength="480"
                     type="text"
                     data-placeholder="markerPlaceholder"
                     data-title="markerText"
@@ -585,6 +617,7 @@
                     </div></label
                   >
                 </div>
+                <p class="range-duration"><span id="selectedDurationLabel" data-t="selectedDuration">所选时长</span> <span id="selectedDuration">—</span></p>
               </section>
               <details class="technical-panel">
                 <summary data-t="fileInfo">文件信息</summary>
@@ -593,13 +626,29 @@
               </details>
               <details id="historyPanel">
                 <summary data-t="history">审核历史</summary>
+                <p class="history-hint" data-t="historyHint">载入旧版本只会改变草稿。确认内容后，点击保存。</p>
                 <div id="history"></div>
               </details>
             </div>
             <form id="reviewForm" class="review-pane">
-              <div class="section-heading">
+              <div class="section-heading review-heading">
                 <h3 data-t="decision">审核</h3>
-                <span id="saveState" aria-live="polite"></span>
+                <div class="review-state">
+                  <span id="saveState" aria-live="polite"></span>
+                  <details id="draftProtection" class="draft-protection" hidden>
+                    <summary id="draftProtectionSummary" aria-describedby="draftProtectionDescription">
+                      <span id="draftProtectionStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+                      <svg aria-hidden="true"><use href="#i-arrow" /></svg>
+                    </summary>
+                    <div class="draft-protection-popover">
+                      <strong data-t="recoveryTitle">草稿刷新保护</strong>
+                      <p id="draftProtectionDescription" data-t="recoveryProtected">已在本标签页暂存当前未保存草稿，可用于刷新后恢复。仍需点击保存，才会写入审核记录。</p>
+                      <p class="draft-recovery-hint" data-t="recoveryScope">仅在本标签页会话中暂存，不等于保存审核。关闭标签页或更换地址后，不保证可恢复。</p>
+                      <time id="draftProtectionWhen"></time>
+                      <button id="clearProtectedDraft" type="button" class="text-button" data-t="recoveryDiscard">清除此副本</button>
+                    </div>
+                  </details>
+                </div>
               </div>
               <fieldset class="decisions">
                 <legend class="sr-only" data-t="decision">审核</legend>
@@ -654,7 +703,7 @@
                 ><textarea
                   id="note"
                   rows="3"
-                  maxlength="4000"
+                  maxlength="8000"
                   data-placeholder="notesPlaceholder"
                 ></textarea>
               </label>
@@ -839,6 +888,15 @@
           </p>
         </div>
         <div id="importError" class="inline-error" role="alert" hidden></div>
+        <div id="importPreviousStatus" class="hint" role="status" aria-live="polite" aria-atomic="true"></div>
+        <details id="importSubmissionReceipt" class="hint" hidden>
+          <summary data-t="importReceiptTitle">最近一次已返回的提交结果</summary>
+          <p id="importSubmissionReceiptText"></p>
+        </details>
+        <details id="rescanSubmissionReceiptDialog" class="hint" hidden>
+          <summary data-t="rescanReceiptTitle">重新扫描: 本页最近一次已返回结果</summary>
+          <p id="rescanSubmissionReceiptDialogText"></p>
+        </details>
         <div class="dialog-actions">
           <button id="dismissImport" type="button" data-t="cancel">取消</button
           ><button type="submit" class="primary" data-t="startImport">
@@ -906,7 +964,7 @@
           </div>
           <div>
             <dt>M</dt>
-            <dd data-t="addMarker">在播放位置添加批注</dd>
+            <dd data-t="focusMarker">进入批注输入；提交时使用播放位置</dd>
           </div>
           <div>
             <dt>← / →</dt>
@@ -950,6 +1008,7 @@
         </button>
       </div>
       <div id="commandList" role="listbox"></div>
+      <p id="commandEmptyStatus" class="command-empty" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="command-footer" data-t="commandKeys">
         ↑↓ 选择　↵ 执行　Esc 关闭
       </div>

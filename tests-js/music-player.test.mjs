@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createMusicPlayer } from '../src/audio_review_desk/static/tour/music-player.js';
 
 function fakeRuntime() {
@@ -130,3 +131,141 @@ test('sample end and reset release playback while allowing a later local selecti
   player.reset();assert.equal(player.state.name,'');assert.deepEqual(env.revoked,env.created);
   assert.equal(levels.at(-1),0);player.dispose();
 });
+
+for (const selected of [false, true]) {
+  for (const failure of ['missing', 'construct', 'resume-sync', 'resume-async', 'graph', 'play']) {
+    test(`error category stays scoped: ${failure}, selected=${selected}`, async () => {
+      const env = fakeRuntime(), errors = [], original = new Error('Not a file diagnosis');
+      original.name = 'NotAllowedError';
+      const player = createMusicPlayer({ onError: (...args) => errors.push(args) }, env.runtime);
+      if (selected) player.selectFile({ name: 'audio.wav' });
+      if (failure === 'missing') delete env.runtime.AudioContext;
+      if (failure === 'construct') env.runtime.AudioContext = class { constructor() { throw original; } };
+      if (failure === 'resume-sync') env.resume = () => { throw original; };
+      if (failure === 'resume-async') env.resume = async () => { throw original; };
+      if (failure === 'graph') env.runtime.AudioContext.prototype.createAnalyser = () => { throw original; };
+      if (failure === 'play') {
+        if (selected) env.play = async () => { throw original; };
+        else env.runtime.AudioContext.prototype.createBuffer = () => { throw original; };
+      }
+      await player.toggle();
+      assert.equal(errors.length, 1);
+      assert.equal(errors[0][1], failure === 'missing' ? 'unavailable' : failure.startsWith('resume-') ? 'resume' : 'playback');
+      if (failure !== 'missing') assert.equal(errors[0][0], original);
+      assert.deepEqual(player.state, { playing: false, pending: false, name: selected ? 'audio.wav' : '' });
+      assert.equal(env.frames.size, 0); player.dispose(); assert.deepEqual(env.revoked, env.created);
+    });
+  }
+}
+for (const code of [undefined, 1, 2, 3, 4, 99]) {
+  test(`native media error ${code} only diagnoses supported codes`, async () => {
+    const env = fakeRuntime(), errors = [];
+    const player = createMusicPlayer({ onError: (...args) => errors.push(args) }, env.runtime);
+    player.selectFile({ name: 'audio.wav' }); await player.toggle();
+    env.media[0].error = code === undefined ? null : { code };
+    env.media[0].onerror();
+    assert.equal(errors[0][1], code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'playback');
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    player.dispose();
+  });
+}
+for (const phase of ['resume', 'play']) for (const change of ['pause', 'replace', 'new-play', 'dispose']) {
+  test(`late ${phase} rejection after ${change} cannot report or alter newer state`, async () => {
+    const env = fakeRuntime(), errors = []; let reject;
+    env[phase] = () => new Promise((_, no) => { reject = no; });
+    const player = createMusicPlayer({ onError: (...args) => errors.push(args) }, env.runtime);
+    player.selectFile({ name: 'old.wav' }); const pending = player.toggle(); await Promise.resolve();
+    if (change === 'dispose') player.dispose();
+    else if (change === 'replace') player.selectFile({ name: 'new.wav' });
+    else { player.pause(); if (change === 'new-play') { env[phase] = async () => {}; await player.toggle(); } }
+    const state = player.state, frames = env.frames.size;
+    reject(new Error('late')); await pending;
+    assert.deepEqual(errors, []); assert.deepEqual(player.state, state); assert.equal(env.frames.size, frames);
+    player.dispose(); assert.deepEqual(env.revoked, env.created);
+  });
+}
+
+test('resume failure can retry successfully; a later graph error is not mislabeled resume', async () => {
+  const env = fakeRuntime(), errors = [];
+  env.resume = async () => { throw new Error('first'); };
+  const player = createMusicPlayer({ onError: (...args) => errors.push(args) }, env.runtime);
+  player.selectFile({ name: 'keep.wav' }); await player.toggle();
+  assert.equal(errors[0][1], 'resume'); assert.deepEqual(env.revoked, []);
+  env.resume = async () => {}; await player.toggle();
+  assert.equal(player.state.playing, true); assert.equal(player.state.name, 'keep.wav');
+  player.pause(); env.play = async () => { throw new Error('play failure'); };
+  await player.toggle(); assert.equal(errors[1][1], 'playback');
+  player.dispose(); assert.deepEqual(env.revoked, env.created);
+});
+
+const tourSource = readFileSync(new URL('../src/audio_review_desk/static/tour/tour.js', import.meta.url), 'utf8');
+const visibilityStart = tourSource.indexOf('const heroVisibility =');
+const visibilityEnd = tourSource.indexOf('const revealObserver =', visibilityStart);
+assert.ok(visibilityStart >= 0 && visibilityEnd > visibilityStart);
+const visibilityWiring = tourSource.slice(visibilityStart, visibilityEnd);
+for (const route of ['hidden', 'offscreen']) for (const pending of [false, true]) {
+  test(`hero ${route} callback independently pauses ${pending ? 'pending synthetic' : 'playing local'} audio and frames`, async () => {
+    const env = fakeRuntime(), player = createMusicPlayer({}, env.runtime), wait = deferred();
+    if (pending) env.resume = () => wait.promise;
+    else player.selectFile({ name: 'visibility.wav' });
+    const hero = {}, listeners = new Map(); let intersection, observed;
+    const document = { hidden: false, addEventListener(type, fn) { listeners.set(type, fn); } };
+    class Observer { constructor(fn) { intersection = fn; } observe(node) { observed = node; } }
+    // Evaluate production registration, not an equivalent hand-written pause.
+    Function('IntersectionObserver', '$', 'music', 'document', visibilityWiring)(Observer,
+      id => { assert.equal(id, 'heroStage'); return hero; }, player, document);
+    assert.equal(observed, hero); assert.ok(listeners.has('visibilitychange'));
+    const playing = player.toggle();
+    if (!pending) { await playing; assert.equal(player.state.playing, true); assert.ok(env.frames.size > 0); }
+    else assert.equal(player.state.pending, true);
+    if (route === 'hidden') { document.hidden = true; listeners.get('visibilitychange')(); }
+    else intersection([{ isIntersecting: false }]);
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    assert.equal(env.frames.size, 0);
+    if (pending) { wait.resolve(); await playing; assert.equal(env.sources.length, 0); }
+    else assert.equal(env.media[0].playing, false);
+    assert.equal(env.frames.size, 0);
+    if (route === 'hidden') { document.hidden = false; listeners.get('visibilitychange')(); }
+    else intersection([{ isIntersecting: true }]);
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    assert.equal(env.frames.size, 0, 'becoming visible cannot auto-resume');
+    player.dispose();
+  });
+}
+
+for (const route of ['hidden', 'offscreen']) {
+  test(`hero ${route} during local media.play pending rejects late success without auto-resuming`, async () => {
+    const env = fakeRuntime(), player = createMusicPlayer({}, env.runtime), wait = deferred();
+    let playStarted = false;
+    player.selectFile({ name: 'delayed.wav' });
+    // Deliberately make the media active on late resolution, as a controlled
+    // adverse outcome; this is not a claim about native transient audibility.
+    env.play = media => { playStarted = true; return wait.promise.then(() => { media.playing = true; }); };
+    const hero = {}, listeners = new Map(); let intersection, observed;
+    const document = { hidden: false, addEventListener(type, fn) { listeners.set(type, fn); } };
+    class Observer { constructor(fn) { intersection = fn; } observe(node) { observed = node; } }
+    Function('IntersectionObserver', '$', 'music', 'document', visibilityWiring)(Observer,
+      id => { assert.equal(id, 'heroStage'); return hero; }, player, document);
+    assert.equal(observed, hero); assert.ok(listeners.has('visibilitychange'));
+    const pending = player.toggle();
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    assert.equal(playStarted, true, 'must reach media.play, not remain in context.resume');
+    assert.equal(player.state.pending, true);
+    if (route === 'hidden') { document.hidden = true; listeners.get('visibilitychange')(); }
+    else intersection([{ isIntersecting: false }]);
+    const pausesAfterHide = env.media[0].pauseCalls;
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    assert.equal(env.frames.size, 0);
+    wait.resolve(); await pending;
+    assert.equal(env.media[0].playing, false);
+    assert.ok(env.media[0].pauseCalls > pausesAfterHide, 'late active media must be paused again');
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    assert.equal(env.frames.size, 0);
+    if (route === 'hidden') { document.hidden = false; listeners.get('visibilitychange')(); }
+    else intersection([{ isIntersecting: true }]);
+    assert.equal(env.media[0].playing, false);
+    assert.equal(player.state.playing, false); assert.equal(player.state.pending, false);
+    assert.equal(env.frames.size, 0, 'becoming visible cannot auto-resume');
+    player.dispose();
+  });
+}
