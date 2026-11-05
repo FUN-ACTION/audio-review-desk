@@ -14,7 +14,7 @@ from audio_review_desk.workspace import Conflict, SCHEMA, Workspace, merge_range
 class WorkspaceTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.audio = self.root / "audio"
         self.audio.mkdir()
         write_wav(self.audio / "a.wav", seconds=2)

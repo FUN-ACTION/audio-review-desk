@@ -14,7 +14,7 @@ from audio_review_desk.workspace import ImportCancelled, Workspace
 class ImportCancellationTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.audio = self.root / "audio"
         write_wav(self.audio / "saved.wav", seconds=.1)
         self.workspace = Workspace(self.root / "workspace")

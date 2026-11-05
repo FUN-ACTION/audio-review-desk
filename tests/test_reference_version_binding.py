@@ -17,7 +17,7 @@ class ReferenceVersionBindingTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.a = self.root / 'audio/a.wav'
         self.b = self.root / 'audio/b.wav'
         write_wav(self.a, seconds=.1)

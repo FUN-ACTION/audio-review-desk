@@ -133,7 +133,7 @@ class ContractTests(unittest.TestCase):
 
     def test_b_only_advisory_keeps_keys_reviews_exports_and_playback(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             a, b = root / 'audio/a.wav', root / 'audio/b.wav'
             write_wav(a, seconds=.1)
             write_wav(b, seconds=.1, amplitude=.3)

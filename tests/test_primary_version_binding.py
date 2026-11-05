@@ -16,7 +16,7 @@ class PrimaryVersionBindingTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.a = self.root / 'audio/a.wav'
         self.b = self.root / 'audio/b.wav'
         write_wav(self.b, seconds=.1)
@@ -129,19 +129,24 @@ class PrimaryVersionBindingTests(unittest.TestCase):
         for changed in (False, True):
             with self.subTest(changed=changed):
                 self.a.write_bytes(original)
+                failed_b, attempted_a_fallback = [], []
                 def fail_b(path, *args, **kwargs):
                     if path == self.b:
+                        failed_b.append(path)
                         if changed:
                             self.a.write_bytes(b'different bytes after A analysis')
                         raise AudioError('Synthetic B failure')
                     return real_analyze(path, *args, **kwargs)
                 def unreadable_a(path, **kwargs):
                     if path == self.a:
+                        attempted_a_fallback.append(path)
                         raise PermissionError('Synthetic fallback failure')
                     return real_hash(path, **kwargs)
                 with patch('audio_review_desk.workspace.analyze', side_effect=fail_b), \
                      patch('audio_review_desk.workspace.file_sha256', side_effect=unreadable_a):
                     item = self.ingest()
+                self.assertEqual(failed_b, [self.b])
+                self.assertEqual(attempted_a_fallback, [])
                 self.assertEqual(item['quality']['sha256'], digest)
                 if changed:
                     with self.assertRaisesRegex(Conflict, 'Source changed'):

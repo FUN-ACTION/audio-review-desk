@@ -5,7 +5,7 @@ import tempfile
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -59,9 +59,10 @@ class SaveSourceRaceTests(unittest.TestCase):
                     return future.result(timeout=5)
 
     def assert_lock_released(self):
-        with sqlite3.connect(self.workspace.db, timeout=0) as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            connection.rollback()
+        with closing(sqlite3.connect(self.workspace.db, timeout=0)) as connection:
+            with connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.rollback()
 
     def test_changed_a_during_wait_rejects_without_writes(self):
         before = self.snapshot()

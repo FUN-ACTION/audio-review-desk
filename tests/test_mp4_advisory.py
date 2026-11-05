@@ -179,7 +179,7 @@ class ContractTests(unittest.TestCase):
     def test_b_only_neutral_or_extent_preserves_reviews_and_csv_columns(self):
         for flag in (mp4.CHECK_INCOMPLETE, mp4.EXTENT_EXCEEDS_FILE):
             with self.subTest(flag=flag), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
+                root = Path(directory).resolve()
                 a, b = root / 'audio/a.wav', root / 'audio/b.wav'
                 write_wav(a, seconds=.1)
                 write_wav(b, seconds=.1, amplitude=.3)
